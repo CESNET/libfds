@@ -4,7 +4,7 @@
   */
 
 /**
-  * \defgroup context   Context operations
+  * \defgroup context   API for context manipulation, creation and deletion
   * \defgroup exporter  Exporter operations
   * \defgroup record-hl High-level API for record manipulation
   * \defgroup template  Template operations (Mid-level API)
@@ -15,9 +15,7 @@
 /**
   * \ingroup context
   *
-  * API for context manipulation, creation and deletion
-  *
-  * \note Any file operation must be handled by user (i.e. opening/closing file)
+  * Any file operation must be handled by user (i.e. opening/closing file)!
   */
 
 /**
@@ -76,8 +74,6 @@ lnf_ctx_file_set(lnf_ctx_t *ctx, FILE *file);
 FILE *
 lnf_ctx_file_get(lnf_ctx_t *ctx);
 
-
-
 /**
   * \ingroup context
   *
@@ -103,12 +99,6 @@ lnf_ctx_read(lnf_ctx_t *ctx, ...);
 
 /**
   * TODO: How to read only the significant blocks from a record
-  */
-
-/**
-  * \ingroup exporter
-  *
-  * \brief Operations with exporters
   */
 
 /**
@@ -219,38 +209,71 @@ lnf_rec_next(lnf_rec_t *rec, uint32_t *f_en, uint16_t *f_id, uint8_t *data);
 */
 
 
-// Middle level
+/**
+  * Middle level
+  */
+/**
+  * \ingroup template
+  *
+  * \brief Add new template to context
+  *
+  * \param *ctx Context to which to add the new template
+  * \param flp_cnt number of fields
+  * \param *fields fields of the template
+  *
+  * \return pointer to newly created template structure
+  */
 lnf_template_t *
 lnf_template_add(lnf_ctx_t *ctx, uint16_t fld_cnt, const struct lnf_ctx_tmplt_field *fields);
 
-// V pripade, že sablona je NULL bude skladat zaznam dynamicky. Pokud jiz 
-// drive tvorit zaznam dynamicky, nebude předpokládat použití stejné šablony.
+/**
+  * \ingroup template
+  *
+  * \brief Set template to a record
+  *
+  * \note If the template is NULL it will set the record's template dynamically.
+  * If the record was previously created dynamically it will not use
+  * the previous template.
+  *
+  * \param *rec     Record for which to set a template
+  * \param *tmplt   Pointer to template
+  *
+  * \return
+  */
 void
 lnf_rec_set_template(lnf_rec_t *rec, lnf_template_t *tmplt);
 
 
-// Low level
+/**
+  * Low level
+  */
 
-// Vrati ukazatel do bufferu
+/**
+  * \ingroup record-ll
+  *
+  * \brief Allocate memory for new record
+  *
+  * \param *ctx     Working context
+  * \param *exp     Exporter of the record
+  * \param *tmplt   Template of the record
+  * \param size     Size of memory to allocate
+  *
+  * \return Pointer to buffer
+  */
 uint8_t *
 lnf_raw_alloc(lnf_ctx_t *ctx, lnf_exporter_t *exp, lnf_template_t *tmplt, uint16_t size);
 
-// Oznami ze zaznam byl v datech vyplnen (pozita delka jsou prvni 2B pouzite pameti)
-lnf_raw_finalize(lnf_ctx_t *ctx);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+  * \ingroup record-ll
+  *
+  * \brief Finalizes writing of a record into a context
+  *
+  * \note Size is needed as well if the user didn't use all allocated size.
+  *
+  * \param *ctx Context in which the record was written
+  * \param size Final size of the record which was written
+  *
+  * \return
+  */
+void
+lnf_raw_finalize(lnf_ctx_t *ctx, uint16_t size);

@@ -1,6 +1,19 @@
 /**
   * \file   libnf2.h
   * \brief  libnf2 C interface
+  *
+  * libnf2.h is a public interface to interact with the whole libnf2 library.
+  * API is divided into high-level, mid-level and low-level API each best suited
+  * for different use-cases and ease of development.
+  *
+  * The API and library is work in progress. Any comments are welcome and
+  * aprreciated.
+  *
+  * \author Petr Stehlík <stehlik@cesnet.cz>
+  * \author Lukáš Huták <xhutak01@stud.fit.vutbr.cz>
+  * \author Petr Velan <petr.velan@cesnet.cz>
+  *
+  * \date 04/2017
   */
 
 /**
@@ -15,7 +28,8 @@
 /**
   * \ingroup context
   *
-  * \warning Any file operation must be handled by user (i.e. opening/closing file)!
+  * \warning Any file operation must be handled by user (i.e. opening/closing
+  * file)!
   */
 
 /**
@@ -28,7 +42,7 @@
   * \param *file File descriptor
   * \param flags Set of flags (TBD) (read/write/append) \n
   *         LNF_READ - open file for reading \n
-  *	        LNF_APPEND - open file for reading in append mode (!not implemented yet) \n
+  *	        LNF_APPEND - open file for reading in append mode \n
   *	        LNF_WRITE - open file for for writing \n
   *         LNF_COMP_X - compress context data using X \n
   *         LNF_COMP_Y - compress context data using Y
@@ -113,7 +127,10 @@ lnf_ctx_read(lnf_ctx_t *ctx, lnf_rec_t *rec);
 typedef bool (*lnf_cond_cb) (const lnf_tmplt_t *, const lnf_exp_t *, void *);
 
 /**
-  * \brief Read record from context under a condition evaluated by the callback function
+  * \ingroup context
+  *
+  * \brief Read record from context under a condition evaluated by the callback
+  * function
   *
   * If condition is not met the flow block is skipped.
   *
@@ -225,6 +242,7 @@ int
 lnf_rec_get(lnf_rec_t *rec, uint32_t f_en, uint16_t f_id, uint8_t **data, uint16_t *size);
 
 /**
+  * \ingroup record-hl
   * \brief Get raw record data
   *
   * \param[in] Record which to retrieve
@@ -233,6 +251,7 @@ const uint8_t *
 lnf_rec_raw_get(lnf_rec_t *rec);
 
 /**
+  * \ingroup record-hl
   * \brief Set exporter to a record
   *
   * \param[in] rec Record in which to set exporter

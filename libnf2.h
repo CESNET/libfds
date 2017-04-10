@@ -15,7 +15,7 @@
 /**
   * \ingroup context
   *
-  * Any file operation must be handled by user (i.e. opening/closing file)!
+  * \warning Any file operation must be handled by user (i.e. opening/closing file)!
   */
 
 /**
@@ -23,13 +23,20 @@
   *
   * \brief Create new context with given file descriptor and set of flags
   *
+  * \note TODO: loading a list of available items
+  *
   * \param *file File descriptor
-  * \param flags Set of flags (TBD)
+  * \param flags Set of flags (TBD) (read/write/append) \n
+  *         LNF_READ - open file for reading \n
+  *	        LNF_APPEND - open file for reading in append mode (!not implemented yet) \n
+  *	        LNF_WRITE - open file for for writing \n
+  *         LNF_COMP_X - compress context data using X \n
+  *         LNF_COMP_Y - compress context data using Y
   *
   * \return pointer to newly created context
   */
 lnf_ctx_t *
-lnf_ctx_new(FILE *file, int flags);
+lnf_ctx_new(FILE *file, const char *elem_dir, int flags);
 
 /**
   * \ingroup context
@@ -80,11 +87,12 @@ lnf_ctx_file_get(lnf_ctx_t *ctx);
   * \brief Write new record into given context
   *
   * \param *ctx Context in which to write the record
-  * \param *exp Exporter info
   * \param *rec Record to write
+  *
+  * \return LNF_OK, LNF_CTX_ERR
   */
-void
-lnf_ctx_write(lnf_ctx_t *ctx, lnf_exporter_t *exp, lnf_rec_t *rec);
+int
+lnf_ctx_write(lnf_ctx_t *ctx, lnf_rec_t *rec);
 
 /**
   * \ingroup context
@@ -92,10 +100,32 @@ lnf_ctx_write(lnf_ctx_t *ctx, lnf_exporter_t *exp, lnf_rec_t *rec);
   * \brief Read a record from given context
   *
   * \param *ctx Context in which to read a record
-  * \param TBD
+  * \param[in,out] rec
+  *
+  * \return LNF_OK, LNF_EOF, LNF_CTX_ERR
   */
-void
-lnf_ctx_read(lnf_ctx_t *ctx, ...);
+int
+lnf_ctx_read(lnf_ctx_t *ctx, lnf_rec_t *rec);
+
+/**
+  * \brief Callback function for lnf_ctx_read_cond()
+  */
+typedef bool (*lnf_cond_cb) (const lnf_tmplt_t *, const lnf_exp_t *, void *);
+
+/**
+  * \brief Read record from context under a condition evaluated by the callback function
+  *
+  * If condition is not met the flow block is skipped.
+  *
+  * \param[in] ctx Context to read from
+  * \param[in,out] rec Read record
+  * \param[in] cb Callback function for conditional read
+  * \param[in] cb_data Callback function data
+  *
+  * \return LNF_OK, LNF_EOF, LNC_CTX_ERR
+  */
+int
+lnf_ctx_read_cond(lnf_ctx_t *ctx, lnf_rec_t *rec, lnf_cond_cb *cb, void *cb_data);
 
 /**
   * TODO: How to read only the significant blocks from a record
@@ -129,10 +159,12 @@ typedef struct lnf_rec_s lnf_rec_t;
   *
   * \brief Create empty record
   *
-  * \return Pointer to newly allocated record
+  * \param *ctx Context in which to initialize record
+  *
+  * \return Pointer to newly initialized record
   */
 lnf_rec_t *
-lnf_rec_init();
+lnf_rec_init(lnf_ctx_t *ctx);
 
 /**
   * \ingroup record-hl
@@ -179,38 +211,48 @@ lnf_rec_set(lnf_rec_t *rec, uint32_t f_en, uint16_t f_id, const uint8_t *data,
   * \ingroup record-hl
   *
   * \brief Get a value from a record
+  * Record data are not copied, only pointer to it is returned with its size.
   *
-  * \param *rec Record from which to retrieve the value
-  * \param f_en Enterprise number
-  * \param f_id Field ID
-  * \param *data Retrieved data
+  * \param[in]  *rec    Record from which to retrieve the value
+  * \param[in]  f_en    Enterprise number
+  * \param[in]  f_id    Field ID
+  * \param[out] **data  Retrieved data
+  * \param[out] *size   Size of retrieved data
   *
-  * \note TODO: how do we know how much data we will retrieve?
-  *
-  * \return LNF_REC_OK, LNF_REC_ERR
+  * \return LNF_OK, LNF_REC_ERR
   */
 int
-lnf_rec_get(lnf_rec_t *rec, uint32_t f_en, uint16_t f_id, uint8_t *data);
+lnf_rec_get(lnf_rec_t *rec, uint32_t f_en, uint16_t f_id, uint8_t **data, uint16_t *size);
 
 /**
-  * \ingroup record-hl
+  * \brief Get raw record data
   *
-  * \brief Get a next value from a record
-  *
-  * \param *rec Record from which to retrieve the value
-  * \param *f_en Enterprise number
-  * \param *f_id Field ID
-  * \param *data Retrieved data
-  *
-  * \return LNF_REC_OK, LNF_REC_ERR
+  * \param[in] Record which to retrieve
   */
-/*int
-lnf_rec_next(lnf_rec_t *rec, uint32_t *f_en, uint16_t *f_id, uint8_t *data);
-*/
-
+const uint8_t *
+lnf_rec_raw_get(lnf_rec_t *rec);
 
 /**
-  * Middle level
+  * \brief Set exporter to a record
+  *
+  * \param[in] rec Record in which to set exporter
+  * \param[in] exp Exporter for given record
+  *
+  * \return LNF_OK, LNF_REC_RO_ERR (read-only error)
+  */
+int
+lnf_rec_exporter_set(lnf_rec_t *rec, const lnf_exporter_t *exp)
+
+/**
+  * \brief Retrieve exporter from record
+  *
+  * \param[in] rec Record from which to get exporter
+  */
+const lnf_exporter_t *
+lnf_rec_exporter_get(lnf_rec_t *rec)
+
+/**
+  * Middle level - TEMPLATES
   */
 /**
   * \ingroup template
@@ -224,7 +266,7 @@ lnf_rec_next(lnf_rec_t *rec, uint32_t *f_en, uint16_t *f_id, uint8_t *data);
   * \return pointer to newly created template structure
   */
 lnf_template_t *
-lnf_template_add(lnf_ctx_t *ctx, uint16_t fld_cnt, const struct lnf_ctx_tmplt_field *fields);
+lnf_template_add(lnf_ctx_t *ctx, uint16_t fld_cnt, const struct lnf_tmplt_field *fields);
 
 /**
   * \ingroup template
@@ -235,19 +277,19 @@ lnf_template_add(lnf_ctx_t *ctx, uint16_t fld_cnt, const struct lnf_ctx_tmplt_fi
   * If the record was previously created dynamically it will not use
   * the previous template.
   *
+  * \note Record must be empty otherwise no action is taken.
+  *
   * \param *rec     Record for which to set a template
   * \param *tmplt   Pointer to template
   *
-  * \return
+  * \return LNF_OK, LNF_TMPLT_ERR
   */
-void
-lnf_rec_set_template(lnf_rec_t *rec, lnf_template_t *tmplt);
-
+int
+lnf_rec_template_set(lnf_rec_t *rec, lnf_template_t *tmplt);
 
 /**
   * Low level
   */
-
 /**
   * \ingroup record-ll
   *
@@ -268,12 +310,13 @@ lnf_raw_alloc(lnf_ctx_t *ctx, lnf_exporter_t *exp, lnf_template_t *tmplt, uint16
   *
   * \brief Finalizes writing of a record into a context
   *
-  * \note Size is needed as well if the user didn't use all allocated size.
+  * \note Record size is the first two bytes of the record.
   *
   * \param *ctx Context in which the record was written
   * \param size Final size of the record which was written
   *
-  * \return
+  * \return LNF_OK, LNF_RAW_ERR
   */
-void
-lnf_raw_finalize(lnf_ctx_t *ctx, uint16_t size);
+int
+lnf_raw_finalize(lnf_ctx_t *ctx);
+

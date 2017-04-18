@@ -1,22 +1,35 @@
-# libnf2
-New library for flow storage
+# libfds
+Library for flow data storage
 
 ## Use-cases
 
-Simple use cases on how to use high-level API defined in libnf2.h.
+Simple use cases on how to use high-level API defined in libfds.h.
 
 ### Reading
 ```C
-FILE *f = fopen("exmaple.lnf", "r");
-lnf_ctx_t *ctx = lnt_ctx_new(f, "/etc/lnf/elems", LNF_READ);
+FILE *f = fopen("example.fds", "r");
 
-lnf_rec_t *rec = lnf_rec_init(ctx);
+fds_ctx_t *ctx = NULL;
+int err = 0;
 
-while(lnf_ctx_read(ctx, rec) != LNF_EOF) {
+err = lnt_ctx_new(f, fds_READ, &ctx);
+
+if (err != 0) {
+    ERROR(...);
+}
+
+fds_rec_t *rec = NULL;
+err = fds_rec_init(ctx, &rec);
+
+if (err != 0) {
+    ERROR(...);
+}
+
+while(fds_ctx_read(ctx, rec) != fds_EOF) {
     uint8_t ipv4_src_addr[4];
-    int result = lnf_rec_get(rec, 0, 8, ipv4_src_addr, sizeof(ipv4_src_addr));
+    int result = fds_rec_get(rec, 0, 8, ipv4_src_addr, sizeof(ipv4_src_addr));
 
-    if (result != LNF_REC_OK) {
+    if (result != fds_REC_OK) {
         WARNING(...);
         continue;
     }
@@ -24,27 +37,47 @@ while(lnf_ctx_read(ctx, rec) != LNF_EOF) {
     // ... do something with the address
 }
 
-lnf_rec_destroy(rec);
-lnf_ctx_destroy(ctx);
+fds_rec_destroy(rec);
+fds_ctx_destroy(ctx);
+
+free(rec);
+free(ctx);
 ```
 
 ### Writing
 ```C
-FILE *f = fopen("exmaple.lnf", "w");
-lnf_ctx_t *ctx = lnt_ctx_new(f, "/etc/lnf/elems", LNF_WRITE);
+FILE *f = fopen("example.fds", "w");
 
-lnf_rec_t *rec = lnf_rec_init(ctx);
+fds_ctx_t *ctx = NULL;
+int err = 0;
+
+err = lnt_ctx_new(f, fds_WRITE, &ctx);
+
+if (err != 0) {
+    ERROR(...);
+}
+
+fds_rec_t *rec = NULL;
+err = fds_rec_init(ctx, &rec);
+
+if (err != 0) {
+    ERROR(...);
+}
+
 uint16_t dst_port = 42;
 int result = 0;
 
-result = lnf_rec_set(rec, 0, EXAMPLE_IPFIX_DST_PORT, (uint8_t *) dst_port, sizeof(dst_port));
+result = fds_rec_set(rec, 0, EXAMPLE_IPFIX_DST_PORT, (uint8_t *) dst_port, sizeof(dst_port));
 
 // ...
 
-result = lnf_ctx_write(ctx, rec);
+result = fds_ctx_write(ctx, rec);
 
 // ...
 
-lnf_rec_destroy(rec);
-lnf_ctx_destroy(ctx);
+fds_rec_destroy(rec);
+fds_ctx_destroy(ctx);
+
+free(rec);
+free(ctx);
 ```

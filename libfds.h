@@ -39,18 +39,20 @@
   *
   * \note TODO: loading a list of available items
   *
-  * \param *file File descriptor
+  * \param[in] *file File descriptor
+  * \param[in] *elems IPFIX elements definitions
   * \param flags Set of flags (TBD) (read/write/append) \n
   *         fds_READ - open file for reading \n
   *	        fds_APPEND - open file for reading in append mode \n
   *	        fds_WRITE - open file for for writing \n
   *         fds_COMP_X - compress context data using X \n
   *         fds_COMP_Y - compress context data using Y
+  * \param[out] *ctx Newly crated context
   *
-  * \return pointer to newly created context
+  * \return 0 on success, otherwise an error number
   */
-fds_ctx_t *
-fds_ctx_new(FILE *file, const char *elem_dir, int flags);
+int
+fds_ctx_new(FILE *file, const ipx_elems_t *elems, int flags, fds_ctx_t *ctx);
 
 /**
   * \ingroup context
@@ -177,11 +179,12 @@ typedef struct fds_rec_s fds_rec_t;
   * \brief Create empty record
   *
   * \param *ctx Context in which to initialize record
+  * \param[out] *rec Newly initialized record
   *
-  * \return Pointer to newly initialized record
+  * \return 0 on success, otherwise an error number
   */
-fds_rec_t *
-fds_rec_init(fds_ctx_t *ctx);
+int
+fds_rec_init(fds_ctx_t *ctx, fds_rec_t *rec);
 
 /**
   * \ingroup record-hl

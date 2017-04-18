@@ -178,12 +178,12 @@ typedef struct fds_rec_s fds_rec_t;
   * \brief Create empty record
   *
   * \param *ctx Context in which to initialize record
-  * \param[out] *rec Newly initialized record
+  * \param[out] **rec Newly initialized record
   *
   * \return 0 on success, otherwise an error number
   */
 int
-fds_rec_init(fds_ctx_t *ctx, fds_rec_t *rec);
+fds_rec_init(fds_ctx_t *ctx, fds_rec_t **rec);
 
 /**
   * \ingroup record-hl

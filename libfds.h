@@ -47,12 +47,12 @@
   *	        fds_WRITE - open file for for writing \n
   *         fds_COMP_X - compress context data using X \n
   *         fds_COMP_Y - compress context data using Y
-  * \param[out] *ctx Newly crated context
+  * \param[out] **ctx Newly created context
   *
   * \return 0 on success, otherwise an error number
   */
 int
-fds_ctx_new(FILE *file, const ipx_elems_t *elems, int flags, fds_ctx_t *ctx);
+fds_ctx_new(FILE *file, const ipx_elems_t *elems, int flags, fds_ctx_t **ctx);
 
 /**
   * \ingroup context

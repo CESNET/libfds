@@ -37,10 +37,9 @@
   *
   * \brief Create new context with given file descriptor and set of flags
   *
-  * \note TODO: loading a list of available items
+  * \note TODO: loading a list of available IPFIX elements definitions
   *
   * \param[in] *file File descriptor
-  * \param[in] *elems IPFIX elements definitions
   * \param flags Set of flags (TBD) (read/write/append) \n
   *         fds_READ - open file for reading \n
   *	        fds_APPEND - open file for reading in append mode \n
@@ -52,7 +51,7 @@
   * \return 0 on success, otherwise an error number
   */
 int
-fds_ctx_new(FILE *file, const ipx_elems_t *elems, int flags, fds_ctx_t **ctx);
+fds_ctx_new(FILE *file, int flags, fds_ctx_t **ctx);
 
 /**
   * \ingroup context

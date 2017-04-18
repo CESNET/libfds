@@ -1,8 +1,8 @@
 /**
-  * \file   libnf2.h
-  * \brief  libnf2 C interface
+  * \file   libfds.h
+  * \brief  libfds C interface
   *
-  * libnf2.h is a public interface to interact with the whole libnf2 library.
+  * libfds.h is a public interface to interact with the whole libfds library.
   * API is divided into high-level, mid-level and low-level API each best suited
   * for different use-cases and ease of development.
   *
@@ -41,16 +41,16 @@
   *
   * \param *file File descriptor
   * \param flags Set of flags (TBD) (read/write/append) \n
-  *         LNF_READ - open file for reading \n
-  *	        LNF_APPEND - open file for reading in append mode \n
-  *	        LNF_WRITE - open file for for writing \n
-  *         LNF_COMP_X - compress context data using X \n
-  *         LNF_COMP_Y - compress context data using Y
+  *         fds_READ - open file for reading \n
+  *	        fds_APPEND - open file for reading in append mode \n
+  *	        fds_WRITE - open file for for writing \n
+  *         fds_COMP_X - compress context data using X \n
+  *         fds_COMP_Y - compress context data using Y
   *
   * \return pointer to newly created context
   */
-lnf_ctx_t *
-lnf_ctx_new(FILE *file, const char *elem_dir, int flags);
+fds_ctx_t *
+fds_ctx_new(FILE *file, const char *elem_dir, int flags);
 
 /**
   * \ingroup context
@@ -64,7 +64,7 @@ lnf_ctx_new(FILE *file, const char *elem_dir, int flags);
   * \return void
   */
 void
-lnf_ctx_destroy(lnf_ctx_t *ctx);
+fds_ctx_destroy(fds_ctx_t *ctx);
 
 /**
   * \ingroup context
@@ -78,7 +78,7 @@ lnf_ctx_destroy(lnf_ctx_t *ctx);
   * \param *file File descriptor
   */
 void
-lnf_ctx_file_set(lnf_ctx_t *ctx, FILE *file);
+fds_ctx_file_set(fds_ctx_t *ctx, FILE *file);
 
 /**
   * \ingroup context
@@ -93,7 +93,7 @@ lnf_ctx_file_set(lnf_ctx_t *ctx, FILE *file);
   * \return File descriptor
   */
 FILE *
-lnf_ctx_file_get(lnf_ctx_t *ctx);
+fds_ctx_file_get(fds_ctx_t *ctx);
 
 /**
   * \ingroup context
@@ -103,10 +103,10 @@ lnf_ctx_file_get(lnf_ctx_t *ctx);
   * \param *ctx Context in which to write the record
   * \param *rec Record to write
   *
-  * \return LNF_OK, LNF_CTX_ERR
+  * \return fds_OK, fds_CTX_ERR
   */
 int
-lnf_ctx_write(lnf_ctx_t *ctx, lnf_rec_t *rec);
+fds_ctx_write(fds_ctx_t *ctx, fds_rec_t *rec);
 
 /**
   * \ingroup context
@@ -116,15 +116,15 @@ lnf_ctx_write(lnf_ctx_t *ctx, lnf_rec_t *rec);
   * \param *ctx Context in which to read a record
   * \param[in,out] rec
   *
-  * \return LNF_OK, LNF_EOF, LNF_CTX_ERR
+  * \return fds_OK, fds_EOF, fds_CTX_ERR
   */
 int
-lnf_ctx_read(lnf_ctx_t *ctx, lnf_rec_t *rec);
+fds_ctx_read(fds_ctx_t *ctx, fds_rec_t *rec);
 
 /**
-  * \brief Callback function for lnf_ctx_read_cond()
+  * \brief Callback function for fds_ctx_read_cond()
   */
-typedef bool (*lnf_cond_cb) (const lnf_tmplt_t *, const lnf_exp_t *, void *);
+typedef bool (*fds_cond_cb) (const fds_tmplt_t *, const fds_exp_t *, void *);
 
 /**
   * \ingroup context
@@ -139,10 +139,10 @@ typedef bool (*lnf_cond_cb) (const lnf_tmplt_t *, const lnf_exp_t *, void *);
   * \param[in] cb Callback function for conditional read
   * \param[in] cb_data Callback function data
   *
-  * \return LNF_OK, LNF_EOF, LNC_CTX_ERR
+  * \return fds_OK, fds_EOF, LNC_CTX_ERR
   */
 int
-lnf_ctx_read_cond(lnf_ctx_t *ctx, lnf_rec_t *rec, lnf_cond_cb *cb, void *cb_data);
+fds_ctx_read_cond(fds_ctx_t *ctx, fds_rec_t *rec, fds_cond_cb *cb, void *cb_data);
 
 /**
   * TODO: How to read only the significant blocks from a record
@@ -160,8 +160,8 @@ lnf_ctx_read_cond(lnf_ctx_t *ctx, lnf_rec_t *rec, lnf_cond_cb *cb, void *cb_data
   *
   * \return Initialized exporter
   */
-lnf_exporter_t *
-lnf_exporter_add(lnf_ctx_t *ctx, uint32_t odid, uint8_t addr[16],
+fds_exporter_t *
+fds_exporter_add(fds_ctx_t *ctx, uint32_t odid, uint8_t addr[16],
 	const char *description);
 
 /**
@@ -169,7 +169,7 @@ lnf_exporter_add(lnf_ctx_t *ctx, uint32_t odid, uint8_t addr[16],
   *
   * \brief Alias for internal record structure definition
   */
-typedef struct lnf_rec_s lnf_rec_t;
+typedef struct fds_rec_s fds_rec_t;
 
 /**
   * \ingroup record-hl
@@ -180,8 +180,8 @@ typedef struct lnf_rec_s lnf_rec_t;
   *
   * \return Pointer to newly initialized record
   */
-lnf_rec_t *
-lnf_rec_init(lnf_ctx_t *ctx);
+fds_rec_t *
+fds_rec_init(fds_ctx_t *ctx);
 
 /**
   * \ingroup record-hl
@@ -189,7 +189,7 @@ lnf_rec_init(lnf_ctx_t *ctx);
   * \brief Destroy given record
   */
 void
-lnf_rec_destroy(lnf_rec_t *rec);
+fds_rec_destroy(fds_rec_t *rec);
 
 /**
   * \ingroup record-hl
@@ -203,7 +203,7 @@ lnf_rec_destroy(lnf_rec_t *rec);
   *
   * \param *rec Record to clear
   */
-lnf_rec_clear(lnf_rec_t *rec);
+fds_rec_clear(fds_rec_t *rec);
 
 /**
   * \ingroup record-hl
@@ -218,10 +218,10 @@ lnf_rec_clear(lnf_rec_t *rec);
   * \param *data Data to store
   * \param len length of data
   *
-  * \return LNF_REC_OK, LNF_REC_ERR
+  * \return fds_REC_OK, fds_REC_ERR
   */
 int
-lnf_rec_set(lnf_rec_t *rec, uint32_t f_en, uint16_t f_id, const uint8_t *data,
+fds_rec_set(fds_rec_t *rec, uint32_t f_en, uint16_t f_id, const uint8_t *data,
 	uint16_t len);
 
 /**
@@ -236,10 +236,10 @@ lnf_rec_set(lnf_rec_t *rec, uint32_t f_en, uint16_t f_id, const uint8_t *data,
   * \param[out] **data  Retrieved data
   * \param[out] *size   Size of retrieved data
   *
-  * \return LNF_OK, LNF_REC_ERR
+  * \return fds_OK, fds_REC_ERR
   */
 int
-lnf_rec_get(lnf_rec_t *rec, uint32_t f_en, uint16_t f_id, uint8_t **data, uint16_t *size);
+fds_rec_get(fds_rec_t *rec, uint32_t f_en, uint16_t f_id, uint8_t **data, uint16_t *size);
 
 /**
   * \ingroup record-hl
@@ -248,7 +248,7 @@ lnf_rec_get(lnf_rec_t *rec, uint32_t f_en, uint16_t f_id, uint8_t **data, uint16
   * \param[in] Record which to retrieve
   */
 const uint8_t *
-lnf_rec_raw_get(lnf_rec_t *rec);
+fds_rec_raw_get(fds_rec_t *rec);
 
 /**
   * \ingroup record-hl
@@ -257,18 +257,18 @@ lnf_rec_raw_get(lnf_rec_t *rec);
   * \param[in] rec Record in which to set exporter
   * \param[in] exp Exporter for given record
   *
-  * \return LNF_OK, LNF_REC_RO_ERR (read-only error)
+  * \return fds_OK, fds_REC_RO_ERR (read-only error)
   */
 int
-lnf_rec_exporter_set(lnf_rec_t *rec, const lnf_exporter_t *exp)
+fds_rec_exporter_set(fds_rec_t *rec, const fds_exporter_t *exp)
 
 /**
   * \brief Retrieve exporter from record
   *
   * \param[in] rec Record from which to get exporter
   */
-const lnf_exporter_t *
-lnf_rec_exporter_get(lnf_rec_t *rec)
+const fds_exporter_t *
+fds_rec_exporter_get(fds_rec_t *rec)
 
 /**
   * Middle level - TEMPLATES
@@ -284,8 +284,8 @@ lnf_rec_exporter_get(lnf_rec_t *rec)
   *
   * \return pointer to newly created template structure
   */
-lnf_template_t *
-lnf_template_add(lnf_ctx_t *ctx, uint16_t fld_cnt, const struct lnf_tmplt_field *fields);
+fds_template_t *
+fds_template_add(fds_ctx_t *ctx, uint16_t fld_cnt, const struct fds_tmplt_field *fields);
 
 /**
   * \ingroup template
@@ -301,10 +301,10 @@ lnf_template_add(lnf_ctx_t *ctx, uint16_t fld_cnt, const struct lnf_tmplt_field 
   * \param *rec     Record for which to set a template
   * \param *tmplt   Pointer to template
   *
-  * \return LNF_OK, LNF_TMPLT_ERR
+  * \return fds_OK, fds_TMPLT_ERR
   */
 int
-lnf_rec_template_set(lnf_rec_t *rec, lnf_template_t *tmplt);
+fds_rec_template_set(fds_rec_t *rec, fds_template_t *tmplt);
 
 /**
   * Low level
@@ -322,7 +322,7 @@ lnf_rec_template_set(lnf_rec_t *rec, lnf_template_t *tmplt);
   * \return Pointer to buffer
   */
 uint8_t *
-lnf_raw_alloc(lnf_ctx_t *ctx, lnf_exporter_t *exp, lnf_template_t *tmplt, uint16_t size);
+fds_raw_alloc(fds_ctx_t *ctx, fds_exporter_t *exp, fds_template_t *tmplt, uint16_t size);
 
 /**
   * \ingroup record-ll
@@ -334,8 +334,8 @@ lnf_raw_alloc(lnf_ctx_t *ctx, lnf_exporter_t *exp, lnf_template_t *tmplt, uint16
   * \param *ctx Context in which the record was written
   * \param size Final size of the record which was written
   *
-  * \return LNF_OK, LNF_RAW_ERR
+  * \return fds_OK, fds_RAW_ERR
   */
 int
-lnf_raw_finalize(lnf_ctx_t *ctx);
+fds_raw_finalize(fds_ctx_t *ctx);
 

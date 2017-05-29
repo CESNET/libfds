@@ -50,8 +50,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Flow Data Storage'
-copyright = '2017, Petr Stehlík'
-author = 'Petr Stehlík'
+copyright = '2017, CESNET'
+author = 'Petr Stehlik'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

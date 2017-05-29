@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Scope of IPFIX elements -->
+<ipfix-elements>
+	<!-- Scope   -->
+	<scope>
+		<!-- Private Enterprise Number                       -->
+		<pen>0</pen>
+		<!-- Alias for the scope (usually organization name) -->
+		<name>iana</name>
+		<!-- Biflow mode                                     -->
+		<biflow mode="pen">29305</biflow>
+	</scope>
+
+	<!-- List of IPFIX Information Elements                                 -->
+	<element>
+		<!-- A numeric identifier of the Information Element                -->
+		<id>1</id>
+		<!-- A unique and meaningful name for the Information Element       -->
+		<name>octetDeltaCount</name>
+		<!-- One of the types listed in Section 3.1 of RFC 7012             -->
+		<dataType>unsigned64</dataType>
+
+		<!-- One of the semantics types listed in Section 3.2 of RFC 7012   -->
+		<dataSemantics>deltaCounter</dataSemantics>
+		<!-- Measure of some kind (tools.ietf.org/html/rfc5610#section-3.7) -->
+		<units>octets</units>
+		<!-- The status of the specification of this Information Element    -->
+		<status>current</status>
+	</element>
+
+	<element>
+		<id>2</id>
+		<name>packetDeltaCount</name>
+		<dataType>unsigned64</dataType>
+		<dataSemantics>deltaCounter</dataSemantics>
+		<units>packets</units>
+		<status>current</status>
+	</element>
+	<element>
+		<id>3</id>
+		<name>deltaFlowCount</name>
+		<dataType>unsigned64</dataType>
+		<dataSemantics>deltaCounter</dataSemantics>
+		<units>flows</units>
+		<status>current</status>
+	</element>
+	<element>
+		<id>4</id>
+		<name>protocolIdentifier</name>
+		<dataType>unsigned8</dataType>
+		<dataSemantics>identifier</dataSemantics>
+	</element>
+	<element>
+		<id>5</id>
+		<name>ipClassOfService</name>
+		<dataType>unsigned8</dataType>
+		<dataSemantics>identifier</dataSemantics>
+	</element>
+	<element>
+		<id>6</id>
+		<name>tcpControlBits</name>
+		<dataType>unsigned16</dataType>
+		<dataSemantics>flags</dataSemantics>
+	</element>
+	<element>
+		<id>7</id>
+		<name>sourceTransportPort</name>
+		<dataType>unsigned16</dataType>
+		<dataSemantics>identifier</dataSemantics>
+	</element>
+	<element>
+		<id>8</id>
+		<name>sourceIPv4Address</name>
+		<dataType>ipv4Address</dataType>
+		<dataSemantics>default</dataSemantics>
+	</element>
+
+	<!-- TODO: all remaining elements... -->
+</ipfix-elements>

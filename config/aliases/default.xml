@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ipfix-aliases>
+	<!-- Definition of alternative element -->
+	<element>
+		<!-- Identification of the element -->
+		<name>Packets</name>
+		<!-- Aliases                       -->
+		<alias>packets</alias>
+		<alias>pkts</alias>
+
+		<!-- List of Information Elements  -->
+		<source>
+			<id>iana:packetDeltaCount</id>
+		</source>
+
+		<!-- Agregation configuration      -->
+		<aggregation>
+			<method>sum</method>
+			<order>descendent</order>
+		</aggregation>
+	</element>
+
+	<!-- Source IP address (IPv4 or IPv6)  -->
+	<element>
+		<name>SRC IP</name>
+		<alias>srcip</alias>
+		<alias>srchost</alias>
+
+		<!-- possible data types: ipv4Address/ipv6Address         -->
+		<source mode="anyOf">
+			<id>iana:sourceIPv4Address</id>
+			<id>iana:sourceIPv6Address</id>
+		</source>
+	</element>
+
+	<!-- Destination IP address (IPv4 or IPv6)                    -->
+	<element>
+		<name>DST IP</name>
+		<alias>dstip</alias>
+		<alias>dsthost</alias>
+
+		<!-- possible data types: ipv4Address/ipv6Address         -->
+		<source mode="anyOf">
+			<id>iana:destinationIPv4Address</id>
+			<id>iana:destinationIPv6Address</id>
+		</source>
+	</element>
+
+	<!-- Source or destination IP address (IPv4 or IPv6)          -->
+	<element>
+		<name>IP</name>
+		<alias>ip</alias>
+		<alias>host</alias>
+
+		<!-- possible data types: ipv4Address/ipv6Address         -->
+		<source mode="anyOf">
+			<id>@srcip</id>
+			<id>@dstip</id>
+		</source>
+	</element>
+
+	<!-- Start timestamp of a flow                                -->
+	<element>
+		<name>Flow Start</name>
+		<alias>flowstart</alias>
+
+		<dataType>dateTimeMilliseconds</dataType>
+		<aggregation>
+			<method>min</method>
+			<order>ascendent</order>
+		</aggregation>
+
+		<source mode="firstOf">
+			<id>iana:flowStartSeconds</id>
+			<id>iana:flowStartMilliseconds</id>
+			<id>iana:flowStartMicroseconds</id>
+			<id>iana:flowStartNanoseconds</id>
+		</source>
+	</element>
+
+	<!-- End timestamp of a flow                                  -->
+	<element>
+		<name>Flow End</name>
+		<alias>flowend</alias>
+
+		<dataType>dateTimeMilliseconds</dataType>
+		<aggregation>
+			<method>max</method>
+			<order>ascendent</order>
+		</aggregation>
+
+		<source mode="firstOf">
+			<id>iana:flowEndSeconds</id>
+			<id>iana:flowEndMilliseconds</id>
+			<id>iana:flowEndMicroseconds</id>
+			<id>iana:flowEndNanoseconds</id>
+		</source>
+	</element>
+
+	<!-- Flow duration (calculation example)                      -->
+	<element>
+		<name>Duration</name>
+		<alias>duration</alias>
+
+		<dataType>dateTimeMilliseconds</dataType>
+		<aggregation>
+			<method>sum</method>
+			<order>descendent</order>
+		</aggregation>
+
+		<source mode="firstOf">
+			<id>iana:flowDurationMilliseconds</id>
+			<id>iana:flowDurationMicroseconds</id>
+			<calculated op="-">
+				<arg1>@flowEnd</arg1>
+				<arg2>@flowStart</arg2>
+			</calculated>
+		</source>
+	</element>
+
+	<!-- Bytes per second (another calculated value)              -->
+	<element>
+		<name>Bytes per second</name>
+		<alias>bps</alias>
+
+		<dataType>float64</dataType>
+		<aggregation>
+			<method>sum</method>
+			<order>descendent</order>
+		</aggregation>
+
+		<source>
+			<calculated op="/">
+				<arg1>iana:octetDeltaCount</arg1>
+				<arg2>@duration</arg2>
+			</calculated>
+		</source>
+	</element>
+</ipfix-aliases>
+
+<!-- TODO: How to express "net a.b.c.d/XX"? -->

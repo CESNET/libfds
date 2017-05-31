@@ -109,12 +109,14 @@
 		</aggregation>
 
 		<source mode="firstOf">
+			<!-- First, try to calculate the duration -->
+			<calculated expr="$1 - $2">
+				<arg id="1">@flowEnd</arg>
+				<arg id="2">@flowStart</arg>
+			</calculated>
+			<!-- If calculation failed, try to find other elements -->
 			<id>iana:flowDurationMilliseconds</id>
 			<id>iana:flowDurationMicroseconds</id>
-			<calculated op="-">
-				<arg1>@flowEnd</arg1>
-				<arg2>@flowStart</arg2>
-			</calculated>
 		</source>
 	</element>
 
@@ -130,9 +132,9 @@
 		</aggregation>
 
 		<source>
-			<calculated op="/">
-				<arg1>iana:octetDeltaCount</arg1>
-				<arg2>@duration</arg2>
+			<calculated expr="($1 * 1000) / $2">
+				<arg id="1">iana:octetDeltaCount</arg>
+				<arg id="2">@duration</arg>
 			</calculated>
 		</source>
 	</element>

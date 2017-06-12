@@ -1,0 +1,127 @@
+/**
+ * \file src/build_config.h
+ * \author Lukas Hutak <lukas.hutak@cesnet.cz>
+ * \brief Build configuration
+ * \date 2016
+ */
+
+/* Copyright (C) 2017 CESNET, z.s.p.o.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * ALTERNATIVELY, provided that this notice is retained in full, this
+ * product may be distributed under the terms of the GNU General Public
+ * License (GPL) version 2 or later, in which case the provisions
+ * of the GPL apply INSTEAD OF those given above.
+ *
+ * This software is provided ``as is'', and any express or implied
+ * warranties, including, but not limited to, the implied warranties of
+ * merchantability and fitness for a particular purpose are disclaimed.
+ * In no event shall the company or contributors be liable for any
+ * direct, indirect, incidental, special, exemplary, or consequential
+ * damages (including, but not limited to, procurement of substitute
+ * goods or services; loss of use, data, or profits; or business
+ * interruption) however caused and on any theory of liability, whether
+ * in contract, strict liability, or tort (including negligence or
+ * otherwise) arising in any way out of the use of this software, even
+ * if advised of the possibility of such damage.
+ *
+ */
+
+#ifndef _BUILD_CONFIG_
+#define _BUILD_CONFIG_
+
+#include <endian.h>
+
+/**
+ * \internal
+ * \defgroup fdsInternalBuildConfig Build configuration
+ * \ingroup internalAPIs
+ * \brief These definitions represent build configuration.
+ *
+ * @{
+ */
+
+/** \brief Library name                                                   */
+#define FDS_BUILD_APP_NAME "@PROJECT_NAME@"
+
+/** \brief Library major version                                          */
+#define FDS_BUILD_VERSION_MAJOR (@LIBFDS_VERSION_MAJOR@U)
+/** \brief Library minor version                                          */
+#define FDS_BUILD_VERSION_MINOR (@LIBFDS_VERSION_MINOR@U)
+/** \brief Library patch version                                          */
+#define FDS_BUILD_VERSION_PATCH (@LIBFDS_VERSION_PATCH@U)
+/** \brief Library version in string representation                       */
+#define FDS_BUILD_VERSION_FULL_STR \
+	"@LIBFDS_VERSION_MAJOR@.@LIBFDS_VERSION_MINOR@.@LIBFDS_VERSION_PATCH@"
+
+
+/** \brief Path to default configuration files                            */
+#define FDS_DEFAULT_CFG_DIR \
+	"@CMAKE_INSTALL_FULL_SYSCONFDIR@/libfds/"
+
+
+/** \brief Compiler name and version                                      */
+#define FDS_BUILD_COMPILER \
+	"@CMAKE_C_COMPILER_ID@ @CMAKE_C_COMPILER_VERSION@"
+/** \brief Build type                                                     */
+#define FDS_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
+/** \brief GIT Hash of the latest commit                                  */
+#define FDS_BUILD_GIT_HASH "@GIT_HASH@"
+
+/**
+ * \def FDS_BUILD_BYTE_ORDER
+ * \brief Determined target machine endianness
+ */
+#ifdef  __BYTE_ORDER
+	#if __BYTE_ORDER == __LITTLE_ENDIAN
+		#define FDS_BUILD_BYTE_ORDER "little endian"
+	#elif __BYTE_ORDER == __BIG_ENDIAN
+		#define FDS_BUILD_BYTE_ORDER "big endian"
+	#else
+		#define FDS_BUILD_BYTE_ORDER "unknown endian"
+	#endif
+#else
+	#define FDS_BUILD_BYTE_ORDER "unknown endian"
+#endif
+
+/**
+ * \def FDS_BUILD_ARCH
+ * \brief Determined target CPU architecture
+ */
+#if defined(__arm64) || defined(__arm64__)
+	#define FDS_BUILD_ARCH "ARM64"
+#elif defined(__arm) || defined(__arm__)
+	#define FDS_BUILD_ARCH "ARM"
+#elif defined(__i386) || defined (__i386__) || defined(__i686) \
+		|| defined(__i686__)
+	#define FDS_BUILD_ARCH "x86"
+#elif defined(__x86_64) || defined (__x86_64__) || defined(__amd64) \
+		|| defined(__amd64__)
+	#define FDS_BUILD_ARCH "x86-64"
+#elif defined(__ia64) || defined(__ia64__)
+	#define FDS_BUILD_ARCH "Intel Itanium"
+#elif defined(__mips) || defined(__mips__)
+	#define FDS_BUILD_ARCH "MIPS"
+#elif defined(__powerpc) || defined(__powerpc__) || defined(__ppc) \
+		|| defined(__ppc__)
+	#define FDS_BUILD_ARCH "PowerPC"
+#else
+	#define FDS_BUILD_ARCH "unknown"
+#endif
+
+/**@}*/
+
+#endif /* _BUILD_CONFIG_ */
+

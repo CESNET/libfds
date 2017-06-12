@@ -1,7 +1,7 @@
 /*
- * \file libfds.h
+ * \file libfds/dummy.h
  * \author Lukas Hutak <lukas.hutak@cesnet.cz>
- * \brief The main devel header for libfds (Flow Data Storage library)
+ * \brief Temporary testing file of build system
  *
  * Copyright (C) 2017 CESNET, z.s.p.o.
  *
@@ -39,21 +39,13 @@
  *
  */
 
-#ifndef LIBFDS_H_
-#define LIBFDS_H_
+#ifndef LIBFDS_DUMMY_H_
+#define LIBFDS_DUMMY_H_
 
 /**
- * \mainpage Flow Data Storage Library - Developer's Documentation
- *
- * This documents provides documentation of libfds.
+ * \brief Dummy interface testing
+ * \return Always returns 1
  */
+int dummy_api_test(void);
 
-/**
- * \defgroup publicAPIs Public libfds's APIs
- * \brief APIs for manipulation with flow files.
- */
-
-// #include <libfds/file.h>
-#include <libfds/dummy.h>
-
-#endif /* LIBFDS_H_ */
+#endif /* LIBFDS_DUMMY_H_ */

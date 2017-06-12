@@ -4,8 +4,9 @@ set(TOP_HEADERS
 )
 
 set(SUB_HEADERS
-	libfds/file.h
+	libfds/api.h
 	libfds/dummy.h
+	libfds/file.h
 )
 
 # Installation targets

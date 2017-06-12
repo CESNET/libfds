@@ -1,11 +1,11 @@
-/*
- * \file libfds/dummy.h
+/**
+ * \file include/libfds/api.h
  * \author Lukas Hutak <lukas.hutak@cesnet.cz>
- * \brief Temporary testing file of build system
- *
- * Copyright (C) 2017 CESNET, z.s.p.o.
- *
- * LICENSE TERMS
+ * \brief Definitions for API functions
+ * \date 2017
+ */
+
+/* Copyright (C) 2017 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,16 +39,17 @@
  *
  */
 
-#ifndef LIBFDS_DUMMY_H_
-#define LIBFDS_DUMMY_H_
-
-#include "api.h"
+#ifndef LIBFDS_API_H_
+#define LIBFDS_API_H_
 
 /**
- * \brief Dummy interface testing
- * \return Always returns 1
+ * \def API
+ * \brief Make an interface public outsite
+ *
+ * If the compiler supports attribute to mark objects as hidden, mark all
+ * objects as hidden and export only objects explicitly marked to be part of
+ * the public API.
  */
-FDS_API int
-dummy_api_test(void);
+#define FDS_API __attribute__((visibility("default")))
 
-#endif /* LIBFDS_DUMMY_H_ */
+#endif /* LIBFDS_API_H_ */

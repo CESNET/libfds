@@ -71,10 +71,10 @@ add_subdirectory(include)
 add_subdirectory(src)
 add_subdirectory(docs)
 
-#if (ENABLE_TESTS)
-#	enable_testing()
-#	add_subdirectory(tests/unit_tests)
-#endif()
+if (ENABLE_TESTS)
+	enable_testing()
+	add_subdirectory(tests/unit_tests)
+endif()
 
 # ------------------------------------------------------------------------------
 # Status messages

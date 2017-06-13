@@ -1,0 +1,23 @@
+# Basic configuration of IDEs
+
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+
+# Matches multiple files with brace expansion notation
+[*.{c,cpp,cxx,h,hpp,hxx}]
+charset = utf-8
+indent_style = tab
+tab_width = 4
+trim_trailing_whitespace = true
+
+# Tab indentation (no size specified)
+[CMakeLists.txt]
+indent_style = tab
+tab_width = 4
+trim_trailing_whitespace = true
+

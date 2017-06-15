@@ -55,7 +55,7 @@ Macros resembling functions may be named in lower case.
 .. code-block:: c
 
     #define PI 3.14
-    
+
     enum colors {
         COLOR_RED,
         COLOR_GREEN,
@@ -109,7 +109,7 @@ Put the opening brace last on the line, and put the closing brace first.
         my_class();
         ~my_class();
     private:
-       int i;
+        int i;
     };
 
 However, all functions have opening brace at the beginning of the next line:
@@ -222,9 +222,7 @@ This is wrong:
 Other
 -----
 
-In case of any doubts or issues other than described in this document,
-the Linux kernel coding style [1] is leading.
-
-[1] https://www.kernel.org/doc/Documentation/CodingStyle
-
+In case of any doubts or issues other than described in this document, the
+`Linux kernel coding style
+<https://www.kernel.org/doc/Documentation/process/coding-style.rst>`_ is leading.
 

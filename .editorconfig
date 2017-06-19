@@ -11,8 +11,8 @@ insert_final_newline = true
 # Matches multiple files with brace expansion notation
 [*.{c,cpp,cxx,h,hpp,hxx}]
 charset = utf-8
-indent_style = tab
-tab_width = 4
+indent_style = space
+indent_size = 4
 trim_trailing_whitespace = true
 
 # Tab indentation (no size specified)

@@ -7,20 +7,22 @@ TL;DR;
 
 Use ``clang-format`` tool (RPM package clang-analyzer, DEB package clang-format)
 and the attached configuration file, ``.clang-format``, to format your source
-code.
+code. The configuration file must be located in one the parent directories
+of the source file.
 
 .. code-block:: bash
 
     clang-format -style=file src/my_file.cpp
 
+Note: This tools only checks code alignment and basic style rules.
+*You still have to follow rules of naming and commenting.*
 
 Indentation and line length
 ---------------------------
 
-Tabs should be used for line continuation and indentation - assume 4 columns
-per tab stop. Spaces should be used to indent single line tailing comment after
-a statement on the same line, but spaces at line ends must be avoided.
-Line length is 80 (or less) characters.
+Only spaces (i.e. no tabs) should be used for indentation - use **4 spaces** per
+logic level. Spaces at line ends must be avoided.
+Line length limit is **100** (or less) **characters**.
 
 **Do not use more than 3 (in neccessary case 4) indentation levels.**
 You are doing probably something wrong if you need more levels of indentation.

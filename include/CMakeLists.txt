@@ -7,6 +7,7 @@ set(SUB_HEADERS
 	libfds/api.h
 	libfds/dummy.h
 	libfds/file.h
+	libfds/xml_parser.h
 )
 
 # Installation targets

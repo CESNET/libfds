@@ -50,6 +50,10 @@ struct attributes {
 int
 fds_xml_create(fds_xml_t **parser)
 {
+    if (parser == NULL) {
+        return FDS_XML_ERR_FMT;
+    }
+
     *parser = new (std::nothrow) fds_xml;
     if (!*parser) {
         return FDS_XML_ERR_NOMEM;
@@ -93,8 +97,11 @@ destroy_context(fds_xml_ctx *ctx)
 void
 fds_xml_destroy(fds_xml_t *parser)
 {
-    destroy_context(parser->ctx);
+    if (parser == NULL) {
+        return;
+    }
 
+    destroy_context(parser->ctx);
     delete parser;
 }
 
@@ -498,6 +505,10 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
 int
 fds_xml_set_args(const fds_xml_args *opts, fds_xml_t *parser)
 {
+    if (opts == NULL || parser == NULL) {
+        return FDS_XML_ERR_FMT;
+    }
+
     struct attributes attr = {};
 
     // check user defined conditions
@@ -1067,6 +1078,13 @@ error_handler(fds_xml *parser, const char *msg, ...)
 fds_xml_ctx_t *
 fds_xml_parse(fds_xml_t *parser, const char *mem, bool pedantic)
 {
+    if (parser == NULL)
+        return NULL;
+    if (mem == NULL) {
+        parser->error_msg = "Mem points to NULL";
+        return NULL;
+    }
+
     // fds_xml_set_args was not call
     if (parser->opts == NULL) {
         parser->error_msg = "Parser opts aren't set, first must be used fds_xml_set_args";
@@ -1118,6 +1136,9 @@ fds_xml_parse(fds_xml_t *parser, const char *mem, bool pedantic)
     // save context to parser
     parser->ctx = ctx;
 
+    xmlCtx.reset(nullptr);
+    conf.reset(nullptr);
+    xmlCleanupParser();
     return ctx;
 }
 

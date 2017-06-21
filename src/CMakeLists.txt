@@ -1,4 +1,5 @@
 find_package(LIBXML2 REQUIRED)
+mark_as_advanced(LIBXML2_DIR)
 
 # Configure a header file to pass some CMake variables
 configure_file(
@@ -18,6 +19,8 @@ include_directories(
 #set(CORE_SOURCE
 #	file.c
 #)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Subdirectories with auxiliary components
 add_subdirectory(dummy_dir)

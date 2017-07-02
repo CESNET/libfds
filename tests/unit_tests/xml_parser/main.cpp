@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <libxml2/libxml/parser.h>
+#include <iostream>
 
 extern "C" {
 	#include <libfds/xml_parser.h>
@@ -13,7 +14,6 @@ int main(int argc, char **argv)
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
-// TODO jak zkontrolovat neinicializovanou promennou?
 
 /**
  * fds_xml_create
@@ -56,9 +56,9 @@ TEST_F(Destroy, all)
 
 TEST_F(Destroy, valid)
 {
-    fds_xml_create(&parser);
+    EXPECT_EQ(fds_xml_create(&parser), FDS_XML_OK);
     fds_xml_destroy(parser);
-    //EXPECT_EQ(parser, (fds_xml_t *) NULL); // TODO
+    //EXPECT_EQ(parser, (fds_xml_t *) NULL); // TODO parser se nesmaze
 }
 
 /**
@@ -589,19 +589,19 @@ TEST_F(Set_args, nested_same_name)
 
 TEST_F(Set_args, nested_cyclic) // TODO
 {
-//    static const struct fds_xml_args args[];
+//    static const struct fds_xml_args main_args[];
 //
 //    static const struct fds_xml_args nested[] = {
 //            OPTS_ROOT("nested"),
-//            OPTS_NESTED(2, "args", args, 0),
+//            OPTS_NESTED(2, "args", main_args, 0),
 //            OPTS_END
 //    };
-//    static const struct fds_xml_args args[] = {
+//    static const struct fds_xml_args main_args[] = {
 //            OPTS_ROOT("root"),
 //            OPTS_NESTED(1, "nested", nested, 0),
 //            OPTS_END
 //    };
-//
+
 //    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
 //    EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
@@ -669,6 +669,28 @@ TEST_F(Next, not_same)
     EXPECT_NE(content_prev.type, content_last.type);
 }
 
+TEST_F(Next, last)
+{
+    static const struct fds_xml_args args[] = {
+            OPTS_ROOT("root"),
+            OPTS_ELEM(1, "elem1", OPTS_T_STRING, 0),
+            OPTS_END
+    };
+
+    const char *mem =
+            "<root>"
+                "<elem1>retezec</elem1>"
+            "</root>";
+
+    fds_xml_set_args(args, parser);
+    ctx = fds_xml_parse(parser, mem, true);
+
+    fds_xml_cont content;
+
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
+    EXPECT_EQ(fds_xml_next(ctx, &content), FDS_XML_EOC);
+}
+
 /**
  * fds_xml_parse
  */
@@ -689,7 +711,17 @@ public:
 
 TEST_F(Parse, inputs_null)
 {
-    const char *mem = "ABCD";
+    const struct fds_xml_args opts[] = {
+            OPTS_ROOT("root"),
+            OPTS_ELEM(1, "name", OPTS_T_UINT, 0),
+            OPTS_END
+    };
+    fds_xml_set_args(opts, parser);
+
+    const char *mem =
+            "<root>"
+                "<name>300</name>"
+            "</root>";
 
     EXPECT_EQ(fds_xml_parse(NULL, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_EQ(fds_xml_parse(parser, NULL, false), (fds_xml_ctx_t *) NULL);
@@ -717,18 +749,34 @@ TEST_F(Parse, missing_element)
 
     fds_xml_set_args(args, parser);
     EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(fds_xml_parse(parser, mem, false), (fds_xml_ctx_t *) NULL);
     EXPECT_NE(fds_xml_last_err(parser), err_msg);
 }
 
-TEST_F(Parse, valid) // TODO
+TEST_F(Parse, valid)
 {
+    fds_xml_cont content;
+    fds_xml_ctx *ctx;
+
     const struct fds_xml_args args[] = {
             OPTS_ROOT("root"),
             OPTS_ELEM(1, "name", OPTS_T_UINT, 0),
             OPTS_END
     };
+    const char *mem =
+            "<root>"
+                "<name>300</name>"
+            "</root>";
 
     fds_xml_set_args(args, parser);
+
+    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(fds_xml_last_err(parser), err_msg);
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
+
+    EXPECT_EQ(content.id, 1);
+    EXPECT_EQ(content.type, OPTS_T_UINT);
+    EXPECT_EQ(content.val_uint, 300);
 }
 
 TEST_F(Parse, one_more_element)
@@ -742,11 +790,14 @@ TEST_F(Parse, one_more_element)
 
     const char *mem =
             "<root>"
-                    "<name>300</name>"
-                    "</root>";
+                "<name>300</name>"
+                "<second>retezec</second>"
+                "<third>42</third>"
+            "</root>";
 
     fds_xml_set_args(args, parser);
     EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(fds_xml_parse(parser, mem, false), (fds_xml_ctx_t *) NULL);
     EXPECT_NE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -767,6 +818,83 @@ TEST_F(Parse, optional)
             "</root>";
 
     fds_xml_set_args(args, parser);
+    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(fds_xml_last_err(parser), err_msg);
+}
+
+TEST_F(Parse, no_trim)
+{
+    fds_xml_ctx *ctx;
+    fds_xml_cont content;
+    const struct fds_xml_args args[] = {
+            OPTS_ROOT("root"),
+            OPTS_ELEM(1, "name", OPTS_T_STRING, OPTS_P_NOTRIM),
+            OPTS_END
+    };
+
+    const char *mem =
+            "<root>"
+                    "<name>  retezec  </name>"
+            "</root>";
+    fds_xml_set_args(args, parser);
+
+    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(fds_xml_last_err(parser), err_msg);
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
+
+    EXPECT_EQ(content.id, 1);
+    EXPECT_EQ(content.type, OPTS_T_STRING);
+    EXPECT_STREQ(content.ptr_string, "  retezec  ");
+}
+
+TEST_F(Parse, multi)
+{
+    fds_xml_ctx *ctx;
+    fds_xml_cont content;
+    const struct fds_xml_args args[] = {
+            OPTS_ROOT("root"),
+            OPTS_ELEM(1, "name", OPTS_T_STRING, OPTS_P_MULTI),
+            OPTS_END
+    };
+
+    const char *mem =
+            "<root>"
+                    "<name>  retezec  </name>"
+                    "<name>  retezec  </name>"
+            "</root>";
+    fds_xml_set_args(args, parser);
+
+    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(fds_xml_last_err(parser), err_msg);
+
+    // first elem
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
+    EXPECT_EQ(content.id, 1);
+    EXPECT_EQ(content.type, OPTS_T_STRING);
+    EXPECT_STREQ(content.ptr_string, "retezec");
+
+    // second elem
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
+    EXPECT_EQ(content.id, 1);
+    EXPECT_EQ(content.type, OPTS_T_STRING);
+    EXPECT_STREQ(content.ptr_string, "retezec");
+}
+
+TEST_F(Parse, no_multi)
+{
+    const struct fds_xml_args args[] = {
+            OPTS_ROOT("root"),
+            OPTS_ELEM(1, "name", OPTS_T_STRING, 0),
+            OPTS_END
+    };
+
+    const char *mem =
+            "<root>"
+                    "<name>  retezec  </name>"
+                    "<name>  retezec  </name>"
+                    "</root>";
+    fds_xml_set_args(args, parser);
+
     EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_NE(fds_xml_last_err(parser), err_msg);
 }
@@ -840,7 +968,6 @@ TEST_F(Rewind, over)
 
     fds_xml_rewind(ctx);
     fds_xml_next(ctx, &content_after);
-
 
     EXPECT_EQ(fds_xml_next(ctx, &content_after), FDS_XML_EOC);
 }

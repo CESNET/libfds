@@ -1195,7 +1195,7 @@ fds_xml_parse(fds_xml_t *parser, const char *mem, bool pedantic)
 }
 
 int
-fds_xml_next(fds_xml_ctx_t *ctx, struct fds_xml_cont *content)
+fds_xml_next(fds_xml_ctx_t *ctx, const struct fds_xml_cont **content)
 {
     if (ctx == NULL || content == NULL) {
         return FDS_XML_ERR_FMT;
@@ -1205,7 +1205,7 @@ fds_xml_next(fds_xml_ctx_t *ctx, struct fds_xml_cont *content)
         return FDS_XML_EOC;
     }
 
-    *content = ctx->cont[ctx->index];
+    *content = &ctx->cont[ctx->index];
 
     ctx->index++;
     return FDS_XML_OK;

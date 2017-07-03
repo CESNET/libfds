@@ -362,7 +362,7 @@ fds_xml_parse(fds_xml_t *parser, const char *mem, bool pedantic);
  *   If all options have been parsed, then returns #FDS_XML_EOC.
  */
 FDS_API int
-fds_xml_next(fds_xml_ctx_t *ctx, struct fds_xml_cont *content);
+fds_xml_next(fds_xml_ctx_t *ctx, const struct fds_xml_cont **content);
 
 /**
  * \brief Rewind iterator

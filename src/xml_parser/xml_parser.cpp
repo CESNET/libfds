@@ -53,6 +53,8 @@ fds_xml_create(fds_xml_t **parser)
 {
     if (parser == NULL) {
         return FDS_XML_ERR_FMT;
+    } else if (*parser != NULL) {
+        delete *parser;
     }
 
     *parser = new (std::nothrow) fds_xml;
@@ -654,12 +656,12 @@ int
 parse_int(
     const std::string content, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
 {
-    long long res;                                     // string to number
+    unsigned long long res;                                     // string to number
     char *err;                                         // if char contains some string
     fds_xml_cont cont;                                 // saved content to vector of fds_xml_cont
     int64_t max = std::numeric_limits<int64_t>::max(); // max value of long
 
-    res = std::strtoll(content.c_str(), &err, 10);
+    res = std::strtoull(content.c_str(), &err, 10);
     if (*err != '\0') {
         error_msg = "In element '" + std::string(opt->name) + "' should be only number (int), not "
             + content;
@@ -844,7 +846,10 @@ int
 parse_content(
     const xmlChar *content, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
 {
-    std::string cur_content = std::string((char *) content);
+    std::string cur_content;
+    if (content != NULL) {
+        cur_content = std::string((char *) content);
+    }
 
     // remove WS if TRIM, don't remove if NOTRIM flag is on
     if (!(opt->flags & OPTS_P_NOTRIM)) {
@@ -942,7 +947,7 @@ parse_all_contents(const xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *
     int ret; // return value
 
     // when some element contain text and still is not nested
-    if (cur_node != NULL && cur_node->next == NULL && cur_node->children == NULL) {
+    if (cur_node != NULL && cur_node->next == NULL && cur_node->children == NULL && cur_node->content != NULL) {
         opt = find_text(opts); // find element with text
         if (opt == NULL) {
             if (pedantic) { // end
@@ -1128,6 +1133,10 @@ fds_xml_parse(fds_xml_t *parser, const char *mem, bool pedantic)
         parser->error_msg = "Mem points to NULL";
         return NULL;
     }
+    if (parser->ctx != NULL) {
+        destroy_context(parser->ctx);
+        parser->ctx = NULL;
+    }
 
     // fds_xml_set_args was not call
     if (parser->opts == NULL) {
@@ -1145,7 +1154,7 @@ fds_xml_parse(fds_xml_t *parser, const char *mem, bool pedantic)
     // create new parser context (multi thread safety)
     std::unique_ptr<xmlParserCtxt, decltype(&::xmlFreeParserCtxt)> xmlCtx(
         xmlNewParserCtxt(), &::xmlFreeParserCtxt);
-    if (xmlCtx == NULL) {
+    if (xmlCtx == NULL || parser->error_msg != "") {
         parser->error_msg = "Failed to create context";
         return NULL;
     }
@@ -1154,7 +1163,7 @@ fds_xml_parse(fds_xml_t *parser, const char *mem, bool pedantic)
     std::unique_ptr<xmlDoc, decltype(&::xmlFreeDoc)> conf(
         xmlCtxtReadMemory(xmlCtx.get(), mem, (int) strlen(mem), NULL /*??*/, NULL, 0),
         &::xmlFreeDoc);
-    if (conf == NULL) {
+    if (conf == NULL || parser->error_msg != "") {
         xmlCtx.reset(nullptr);
         xmlCleanupParser();
         return NULL;
@@ -1163,7 +1172,7 @@ fds_xml_parse(fds_xml_t *parser, const char *mem, bool pedantic)
     // read and check first element
     // libxml auto check whether there is only one root element
     xmlNodePtr node = xmlDocGetRootElement(conf.get());
-    if (node == NULL) {
+    if (node == NULL || parser->error_msg != "") {
         return NULL;
     }
 

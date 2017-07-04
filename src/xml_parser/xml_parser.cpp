@@ -426,11 +426,10 @@ check_nested(
     }
 
     // called nested structure that was previously parsed (cyclic structures)
-    if (attr.pointers.find(opt.next) != attr.pointers.end()) { // founded
+    if (attr.pointers.find(opt.next) != attr.pointers.end()) // founded
         return FDS_XML_NESTED;
-    } else {
+    else
         attr.pointers.insert(opt.next);
-    }
 
     return FDS_XML_OK;
 }
@@ -488,7 +487,6 @@ check_raw(const struct fds_xml_args opt, fds_xml_t *parser, struct names &names,
         return FDS_XML_ERR_FMT;
     }
 
-
     return FDS_XML_OK;
 }
 
@@ -529,7 +527,7 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
             ret = check_nested(opts[i], parser, names, attr);
             if (ret == FDS_XML_NESTED)
                 return FDS_XML_OK;
-            if (ret != FDS_XML_OK)
+            else if (ret != FDS_XML_OK)
                 return ret;
             // check nested recursively
             rec = check_all(opts[i].next, parser, attr);
@@ -580,6 +578,7 @@ fds_xml_set_args(const fds_xml_args *opts, fds_xml_t *parser)
     }
 
     struct attributes attr = {};
+    attr.pointers.insert(*&opts);
 
     // check user defined conditions
     int ret;

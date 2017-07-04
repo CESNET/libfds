@@ -531,9 +531,8 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
                 return ret;
             // check nested recursively
             rec = check_all(opts[i].next, parser, attr);
-            if (rec != FDS_XML_OK) {
+            if (rec != FDS_XML_OK)
                 return rec;
-            }
             break;
         case OPTS_C_RAW:
             ret = check_raw(opts[i], parser, names, attr);

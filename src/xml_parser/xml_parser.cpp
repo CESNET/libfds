@@ -36,7 +36,7 @@ struct names {
 struct attributes {
     std::set<int> ids;                       /// saved IDs
     std::set<const fds_xml_args *> pointers; /// saved pointers to nested structures
-    bool text = false;                       ///
+    bool text = false;                       /// only one definition of element text
 };
 
 /** Return value when some elements are cyclically nested */
@@ -53,8 +53,6 @@ fds_xml_create(fds_xml_t **parser)
 {
     if (parser == NULL) {
         return FDS_XML_ERR_FMT;
-    } else if (*parser != NULL) {
-        delete *parser;
     }
 
     *parser = new (std::nothrow) fds_xml;
@@ -451,6 +449,7 @@ check_end(const struct fds_xml_args opt, fds_xml_t *parser)
         parser->error_msg = get_type(opt) + " can't have nested element";
         return FDS_XML_ERR_FMT;
     }
+
     if (opt.id < 0) {
         parser->error_msg = get_type(opt) + " cant' have negative id";
         return FDS_XML_ERR_FMT;
@@ -460,6 +459,35 @@ check_end(const struct fds_xml_args opt, fds_xml_t *parser)
         parser->error_msg = "Element " + get_type(opt) + " must have type OPTS_T_NONE";
         return FDS_XML_ERR_FMT;
     }
+
+    return FDS_XML_OK;
+}
+
+int
+check_raw(const struct fds_xml_args opt, fds_xml_t *parser, struct names &names, struct attributes &attr)
+{
+    // same tests for all components types
+    int ret = check_common(opt, parser, names, attr);
+    if (ret != FDS_XML_OK) {
+        return ret;
+    }
+
+    // find element with same name
+    if (check_common_find_name(names.elem, opt.name)) {
+        parser->error_msg = "More than one occurrence of element " + get_type(opt);
+        return FDS_XML_ERR_FMT;
+    }
+
+    if (opt.next != NULL) {
+        parser->error_msg = get_type(opt) + " can't have nested element";
+        return FDS_XML_ERR_FMT;
+    }
+
+    if (opt.type != OPTS_T_STRING) {
+        parser->error_msg = "Element " + get_type(opt) + " must have type OPTS_T_STRING";
+        return FDS_XML_ERR_FMT;
+    }
+
 
     return FDS_XML_OK;
 }
@@ -503,12 +531,14 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
                 return FDS_XML_OK;
             if (ret != FDS_XML_OK)
                 return ret;
-
             // check nested recursively
             rec = check_all(opts[i].next, parser, attr);
             if (rec != FDS_XML_OK) {
                 return rec;
             }
+            break;
+        case OPTS_C_RAW:
+            ret = check_raw(opts[i], parser, names, attr);
             break;
         case OPTS_C_ROOT:
             parser->error_msg = get_type(opts[i]) + " should be only on beginning of args";
@@ -656,7 +686,7 @@ int
 parse_int(
     const std::string content, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
 {
-    unsigned long long res;                                     // string to number
+    long long res;                                     // string to number
     char *err;                                         // if char contains some string
     fds_xml_cont cont;                                 // saved content to vector of fds_xml_cont
     int64_t max = std::numeric_limits<int64_t>::max(); // max value of long
@@ -861,37 +891,46 @@ parse_content(
         if (parse_context(ctx, opt) != FDS_XML_OK)
             return FDS_XML_ERR_FMT;
         break;
-
     case OPTS_T_UINT:
         if (parse_uint(cur_content, ctx, opt, error_msg) != FDS_XML_OK)
             return FDS_XML_ERR_FMT;
         break;
-
     case OPTS_T_BOOL:
         if (parse_bool(cur_content, ctx, opt, error_msg) != FDS_XML_OK)
             return FDS_XML_ERR_FMT;
         break;
-
     case OPTS_T_DOUBLE:
         if (parse_double(cur_content, ctx, opt, error_msg) != FDS_XML_OK)
             return FDS_XML_ERR_FMT;
         break;
-
     case OPTS_T_INT:
         if (parse_int(cur_content, ctx, opt, error_msg) != FDS_XML_OK)
             return FDS_XML_ERR_FMT;
         break;
-
     case OPTS_T_STRING:
         if (parse_string(cur_content, ctx, opt, error_msg) != FDS_XML_OK)
             return FDS_XML_ERR_FMT;
         break;
-
     default:
         error_msg = "User element '" + std::string(opt->name) + "' has wrong type";
         return FDS_XML_ERR_FMT;
     }
 
+    return FDS_XML_OK;
+}
+
+int
+parse_raw(xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
+{
+    // FIXME deprecated
+    xmlBufferPtr buf = xmlBufferCreate();
+    xmlNodeDump(buf, node->doc, node, 5, 1);
+
+    const xmlChar *content = xmlBufferContent(buf);
+
+    parse_content(content, ctx, opt, error_msg);
+
+    xmlBufferFree(buf);
     return FDS_XML_OK;
 }
 
@@ -993,7 +1032,9 @@ parse_all_contents(const xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *
         }
 
         // parse element
-        if (cur_node->children == NULL) {
+        if (opt->comp == OPTS_C_RAW) {
+            ret = parse_raw(cur_node, ctx, opt, error_msg);
+        } else if (cur_node->children == NULL) {
             ret = parse_content((xmlChar *) "", ctx, opt, error_msg);
         } else {
             ret = parse_content(cur_node->children->content, ctx, opt, error_msg);

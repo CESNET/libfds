@@ -1,5 +1,5 @@
 /**
- * \file src/xml_parser.c
+ * \file src/xml_parser.cpp
  * \author Lukas Hutak <lukas.hutak@cesnet.cz>
  * \brief  Simple XML parser (header file)
  * \date   2017
@@ -169,12 +169,13 @@ extern "C" {
 
 /** XML Documents component                                                   */
 enum FDS_XML_COMP {
-    OPTS_C_ROOT,      /**< Root element identification                     */
-    OPTS_C_ELEMENT,   /**< Simple element (no attributes and no children)  */
-    OPTS_C_ATTR,      /**< Attribute                                       */
-    OPTS_C_TEXT,      /**< Text content                                    */
-    OPTS_C_NESTED,    /**< Nested element (allows attributes + children)   */
-    OPTS_C_TERMINATOR /**< Input termination (internal type)               */
+    OPTS_C_ROOT,       /**< Root element identification                     */
+    OPTS_C_ELEMENT,    /**< Simple element (no attributes and no children)  */
+    OPTS_C_ATTR,       /**< Attribute                                       */
+    OPTS_C_TEXT,       /**< Text content                                    */
+    OPTS_C_NESTED,     /**< Nested element (allows attributes + children)   */
+    OPTS_C_TERMINATOR, /**< Input termination (internal type)               */
+    OPTS_C_RAW         // TODO
 };
 
 /** Data type of an XML element (or attribute)                                */
@@ -253,6 +254,12 @@ enum FDS_XML_TYPE {
 #define OPTS_END                                                                                   \
     {                                                                                              \
         OPTS_C_TERMINATOR, OPTS_T_NONE, 0, NULL, NULL, 0                                           \
+    }
+
+// TODO
+#define OPTS_RAW(_id_, _name_, _flags_)                                                             \
+    {                                                                                              \
+        OPTS_C_RAW, OPTS_T_STRING, _id_, _name_, NULL, _flags_                                     \
     }
 
 /** Status code for success                                                   */

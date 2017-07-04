@@ -66,7 +66,6 @@ TEST_F(Rewind, nested)
     const fds_xml_cont *cont;
 
     static const struct fds_xml_args nested[] = {
-            OPTS_ROOT("nested"),
             OPTS_ELEM(2, "name", OPTS_T_UINT, 0),
             OPTS_END
     };

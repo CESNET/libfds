@@ -201,8 +201,8 @@ check_common(
         return FDS_XML_ERR_FMT;
     }
 
-    // don't check name in element text
-    if (opt.comp == OPTS_C_TEXT) {
+    // don't check name in element text and root
+    if (opt.comp == OPTS_C_TEXT || opt.comp == OPTS_C_ROOT) {
         return FDS_XML_OK;
     }
 
@@ -225,7 +225,7 @@ check_common(
  */
 int
 check_root(
-    const struct fds_xml_args opt, fds_xml_t *parser, struct names &names, struct attributes &attr)
+    const struct fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
 {
     // check if it's really root
     if (opt.comp != OPTS_C_ROOT) {
@@ -248,7 +248,7 @@ check_root(
         return FDS_XML_ERR_FMT;
     }
 
-    if (check_common(opt, parser, names, attr) != FDS_XML_OK) {
+    if (check_common(opt, parser, (names &) NULL, attr) != FDS_XML_OK) { // TODO
         return FDS_XML_ERR_FMT;
     }
 
@@ -505,14 +505,8 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
     int rec;            // return value for recursion
     int ret;            // return values of case
 
-    // check first if it's root
-    ret = check_root(opts[i], parser, names, attr);
-    if (ret != FDS_XML_OK) {
-        return ret;
-    }
-
     // go through all elements and check them
-    for (i = 1; opts[i].comp != OPTS_C_TERMINATOR; ++i) {
+    for (i = 0; opts[i].comp != OPTS_C_TERMINATOR; ++i) {
         switch (opts[i].comp) {
         case OPTS_C_ELEMENT:
             ret = check_element(opts[i], parser, names, attr);
@@ -579,10 +573,16 @@ fds_xml_set_args(const fds_xml_args *opts, fds_xml_t *parser)
     struct attributes attr = {};
     attr.pointers.insert(*&opts);
 
+    // check first if it's root
+    int retr = check_root(*opts, parser, attr);
+    if (retr != FDS_XML_OK) {
+        return retr;
+    }
+
     // check user defined conditions
     int ret;
     try {
-        ret = check_all(opts, parser, attr);
+        ret = check_all(opts+1, parser, attr);
     } catch (...) {
         parser->error_msg = "Memory allocation problem";
         return FDS_XML_ERR_NOMEM;
@@ -942,7 +942,7 @@ parse_raw(xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *opt, std::strin
 int
 parse_all_check(const fds_xml_args *opt, const std::set<int> ids, std::string &error_msg)
 {
-    for (int i = 1; opt[i].comp != OPTS_C_TERMINATOR; ++i) {
+    for (int i = 0; opt[i].comp != OPTS_C_TERMINATOR; ++i) {
         if (ids.find(opt[i].id) != ids.end()) {
             continue; // founded
         }
@@ -1217,7 +1217,7 @@ fds_xml_parse(fds_xml_t *parser, const char *mem, bool pedantic)
 
     fds_xml_ctx *ctx = NULL;
     try {
-        ctx = parse_all(parser->opts, node, pedantic, parser->error_msg);
+        ctx = parse_all(parser->opts+1, node, pedantic, parser->error_msg);
     } catch (...) {
         parser->error_msg = "Memory allocation problem for context";
         xmlCtx.reset(nullptr);

@@ -524,7 +524,6 @@ TEST_F(Parse, properties_valid)
     const struct fds_xml_cont *content;
 
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("root"),
             OPTS_ATTR(2, "attr", OPTS_T_STRING, OPTS_P_NOTRIM),
             OPTS_END
     };
@@ -554,7 +553,6 @@ TEST_F(Parse, properties_valid)
 TEST_F(Parse, properties_not_defined)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("root"),
             OPTS_END
     };
     const struct fds_xml_args args[] = {
@@ -579,7 +577,6 @@ TEST_F(Parse, properties_not_defined)
 TEST_F(Parse, content_not_defined)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("root"),
             OPTS_END
     };
     const struct fds_xml_args args[] = {
@@ -633,7 +630,6 @@ TEST_F(Parse, raw_valid)
 TEST_F(Parse, text_not_defined)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("root"),
             OPTS_END
     };
     const struct fds_xml_args args[] = {

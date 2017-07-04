@@ -11,6 +11,24 @@ int main(int argc, char **argv)
     return RUN_ALL_TESTS();
 }
 
+TEST(Test, test)
+{
+    static const struct fds_xml_args nested[] = {
+            OPTS_ELEM(2, "na", OPTS_T_INT, 0),
+            OPTS_END
+    };
+    static const fds_xml_args args[] = {
+            OPTS_ROOT("root"),
+            OPTS_NESTED(1, "name", nested, 0),
+            OPTS_END
+    };
+
+    fds_xml_t *parser;
+    fds_xml_create(&parser);
+
+    fds_xml_set_args(args, parser);
+}
+
 /**
  * fds_xml_set_args
  */

@@ -52,7 +52,7 @@ TEST_F(Next, not_same)
                     "<elem2>True</elem2>"
             "</root>";
     fds_xml_set_args(args, parser);
-    ctx = fds_xml_parse(parser, mem, true);
+    ctx = fds_xml_parse_mem(parser, mem, true);
 
     const struct fds_xml_cont *content_prev;
     const struct fds_xml_cont *content_last;
@@ -78,7 +78,7 @@ TEST_F(Next, last)
             "</root>";
 
     fds_xml_set_args(args, parser);
-    ctx = fds_xml_parse(parser, mem, true);
+    ctx = fds_xml_parse_mem(parser, mem, true);
 
     const struct fds_xml_cont *content;
 

@@ -11,24 +11,6 @@ int main(int argc, char **argv)
     return RUN_ALL_TESTS();
 }
 
-TEST(Test, test)
-{
-    static const struct fds_xml_args nested[] = {
-            OPTS_ELEM(2, "na", OPTS_T_INT, 0),
-            OPTS_END
-    };
-    static const fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_NESTED(1, "name", nested, 0),
-            OPTS_END
-    };
-
-    fds_xml_t *parser;
-    fds_xml_create(&parser);
-
-    fds_xml_set_args(args, parser);
-}
-
 /**
  * fds_xml_set_args
  */
@@ -44,6 +26,25 @@ protected:
         fds_xml_destroy(parser);
     }
 };
+
+TEST_F(Set_args, working)
+{
+    static const struct fds_xml_args nested[] = {
+            OPTS_ELEM(2, "na", OPTS_T_INT, 0),
+            OPTS_END
+    };
+    static const fds_xml_args args[] = {
+            OPTS_ROOT("root"),
+            OPTS_NESTED(1, "name", nested, 0),
+            OPTS_END
+    };
+
+    fds_xml_t *parser = nullptr;
+    fds_xml_create(&parser);
+
+    fds_xml_set_args(args, parser);
+    fds_xml_destroy(parser);
+}
 
 TEST_F(Set_args, opts_null)
 {
@@ -305,7 +306,6 @@ TEST_F(Set_args, attr_multi_flag)
 TEST_F(Set_args, attr_nested)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("nested"),
             OPTS_END
     };
     const struct fds_xml_args args[] = {
@@ -354,7 +354,6 @@ TEST_F(Set_args, end_with_name)
 TEST_F(Set_args, end_nested)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("nested"),
             OPTS_END
     };
     const struct fds_xml_args args[] = {
@@ -426,7 +425,6 @@ TEST_F(Set_args, text_with_name)
 TEST_F(Set_args, text_nested)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("nested"),
             OPTS_END
     };
     const struct fds_xml_args args[] = {
@@ -455,7 +453,6 @@ TEST_F(Set_args, text_same_def)
 TEST_F(Set_args, nested_wrong_type)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("nested"),
             OPTS_END
     };
     const struct fds_xml_args args[] = {
@@ -471,7 +468,6 @@ TEST_F(Set_args, nested_wrong_type)
 TEST_F(Set_args, nested_negative_id)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("nested"),
             OPTS_END
     };
     const struct fds_xml_args args[] = {
@@ -487,7 +483,6 @@ TEST_F(Set_args, nested_negative_id)
 TEST_F(Set_args, nested_no_name)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("nested"),
             OPTS_END
     };
     const struct fds_xml_args args[] = {
@@ -515,7 +510,6 @@ TEST_F(Set_args, nested_no_next)
 TEST_F(Set_args, nested_same_name)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("nested"),
             OPTS_END
     };
     const struct fds_xml_args args[] = {
@@ -534,7 +528,6 @@ TEST_F(Set_args, nested_cyclic)
     struct fds_xml_args main_args[4];
 
     struct fds_xml_args nested[] = {
-            OPTS_ROOT("nested"),
             OPTS_NESTED(2, "args", main_args, 0),
             OPTS_END
     };
@@ -601,7 +594,6 @@ TEST_F(Set_args, raw_same_name)
 TEST_F(Set_args, raw_nested)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_ROOT("nested"),
             OPTS_END
     };
 
@@ -615,13 +607,14 @@ TEST_F(Set_args, raw_nested)
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
-TEST_F(Set_args, no_end)
-{
-    static const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-    };
-
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
-    EXPECT_NE(fds_xml_last_err(parser), "No error");
-}
+// TODO not use -- dangerous
+//TEST_F(Set_args, no_end)
+//{
+//    static const struct fds_xml_args args[] = {
+//            OPTS_ROOT("root"),
+//    };
+//
+//    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+//    EXPECT_NE(fds_xml_last_err(parser), "No error");
+//}
 

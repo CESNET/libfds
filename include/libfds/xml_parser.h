@@ -1,5 +1,4 @@
 /**
- * \file src/xml_parser.cpp
  * \author Lukas Hutak <lukas.hutak@cesnet.cz>
  * \brief  Simple XML parser (header file)
  * \date   2017
@@ -175,7 +174,7 @@ enum FDS_XML_COMP {
     OPTS_C_TEXT,       /**< Text content                                    */
     OPTS_C_NESTED,     /**< Nested element (allows attributes + children)   */
     OPTS_C_TERMINATOR, /**< Input termination (internal type)               */
-    OPTS_C_RAW         // TODO
+    OPTS_C_RAW         /**< Raw content of an element                       */
 };
 
 /** Data type of an XML element (or attribute)                                */
@@ -248,18 +247,23 @@ enum FDS_XML_TYPE {
     }
 
 /**
+ * \brief Define a raw XML element
+ * \param[in] _id_    User identification of an element
+ * \param[in] _name_  Name of the element
+ * \param[in] _flags_ Properties
+ */
+#define OPTS_RAW(_id_, _name_, _flags_)                                                            \
+    {                                                                                              \
+        OPTS_C_RAW, OPTS_T_STRING, _id_, _name_, NULL, _flags_                                     \
+    }
+
+/**
  * \brief Terminator of a description array of XML elements
  * \warning This element always MUST be last field in the array!
  */
 #define OPTS_END                                                                                   \
     {                                                                                              \
         OPTS_C_TERMINATOR, OPTS_T_NONE, 0, NULL, NULL, 0                                           \
-    }
-
-// TODO
-#define OPTS_RAW(_id_, _name_, _flags_)                                                             \
-    {                                                                                              \
-        OPTS_C_RAW, OPTS_T_STRING, _id_, _name_, NULL, _flags_                                     \
     }
 
 /** Status code for success                                                   */
@@ -343,7 +347,7 @@ FDS_API int
 fds_xml_set_args(const struct fds_xml_args *opts, fds_xml_t *parser);
 
 /**
- * \brief Parse an XML document
+ * \brief Parse an XML from memory
  *
  * After successful document parsing it is guaranteed that all elements have
  * met all required conditions.
@@ -356,7 +360,23 @@ fds_xml_set_args(const struct fds_xml_args *opts, fds_xml_t *parser);
  *   (see fds_xml_last_err()).
  */
 FDS_API fds_xml_ctx_t *
-fds_xml_parse(fds_xml_t *parser, const char *mem, bool pedantic);
+fds_xml_parse_mem(fds_xml_t *parser, const char *mem, bool pedantic);
+
+/**
+ * \brief Parse an XML from file
+ *
+ * After successful document parsing it is guaranteed that all elements have
+ * met all required conditions.
+ * \param[in] parser   Parser
+ * \param[in] mem      XML configuration
+ * \param[in] pedantic If enabled, all unexpected XML elements are considered
+ *   as errors. Otherwise unexpected elements are ignored.
+ * \return On success returns a pointer to the context of the root element.
+ *   Otherwise returns NULL and an error message is set
+ *   (see fds_xml_last_err()).
+ */
+FDS_API fds_xml_ctx_t *
+fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic);
 
 /**
  * \brief Get the next option

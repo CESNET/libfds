@@ -46,7 +46,7 @@ TEST_F(Rewind, valid) {
             "   <elem>    retezec    </elem>"
             "</root>";
     fds_xml_set_args(args, parser);
-    ctx = fds_xml_parse(parser, mem, true);
+    ctx = fds_xml_parse_mem(parser, mem, true);
 
     const struct fds_xml_cont *content_prev;
     const struct fds_xml_cont *content_after;
@@ -82,7 +82,7 @@ TEST_F(Rewind, nested)
                     "<name>300</name>"
                 "</nested>"
             "</root>";
-    ctx = fds_xml_parse(parser, mem, true);
+    ctx = fds_xml_parse_mem(parser, mem, true);
 
     EXPECT_NE(fds_xml_next(ctx, &cont), FDS_XML_EOC);
     fds_xml_ctx *cur_ctx = cont->ptr_ctx;
@@ -103,7 +103,7 @@ TEST_F(Rewind, over)
                     "   <elem>    retezec    </elem>"
                     "</root>";
     fds_xml_set_args(args, parser);
-    ctx = fds_xml_parse(parser, mem, true);
+    ctx = fds_xml_parse_mem(parser, mem, true);
 
     const struct fds_xml_cont *content_prev;
     const struct fds_xml_cont *content_after;

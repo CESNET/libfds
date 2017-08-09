@@ -1,3 +1,8 @@
+/**
+ * \author Michal Režňák
+ * \date   8.8.17
+ */
+
 #include <gtest/gtest.h>
 #include <libxml2/libxml/parser.h>
 

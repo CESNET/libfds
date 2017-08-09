@@ -56,7 +56,7 @@ TEST_F(Destroy, nested_context)
                 "</nested>"
             "</root>";
 
-    EXPECT_NE(fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_NE(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
     fds_xml_destroy(parser);

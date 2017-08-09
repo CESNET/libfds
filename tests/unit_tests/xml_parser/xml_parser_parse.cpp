@@ -12,7 +12,7 @@ int main(int argc, char **argv)
 }
 
 /**
- * fds_xml_parse
+ * fds_xml_parse_mem
  */
 class Parse : public ::testing::Test
 {
@@ -43,8 +43,8 @@ TEST_F(Parse, inputs_null)
                 "<name>300</name>"
             "</root>";
 
-    EXPECT_EQ(fds_xml_parse(NULL, mem, true), (fds_xml_ctx_t *) NULL);
-    EXPECT_EQ(fds_xml_parse(parser, NULL, false), (fds_xml_ctx_t *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(NULL, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, NULL, false), (fds_xml_ctx_t *) NULL);
 }
 
 TEST_F(Parse, xml_file_wrong)
@@ -57,7 +57,7 @@ TEST_F(Parse, xml_file_wrong)
 
     const char *mem = "ABCD";
 
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -65,7 +65,7 @@ TEST_F(Parse, parser_opts_not_set)
 {
     const char *mem = "<root></root>";
 
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -81,7 +81,7 @@ TEST_F(Parse, two_root_nodes)
             "<root></root>"
             "<another></another>";
 
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -98,8 +98,8 @@ TEST_F(Parse, missing_element)
             "</root>";
 
     fds_xml_set_args(args, parser);
-    EXPECT_NE(fds_xml_parse(parser, mem, false), (fds_xml_ctx_t *) NULL);
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(fds_xml_parse_mem(parser, mem, false), (fds_xml_ctx_t *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -116,7 +116,7 @@ TEST_F(Parse, opts_flag)
             "<root>"
             "</root>";
 
-    EXPECT_NE(fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 }
 
@@ -137,7 +137,7 @@ TEST_F(Parse, valid)
 
     fds_xml_set_args(args, parser);
 
-    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
     EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
 
@@ -163,8 +163,8 @@ TEST_F(Parse, one_more_element)
             "</root>";
 
     fds_xml_set_args(args, parser);
-    EXPECT_NE(fds_xml_parse(parser, mem, false), (fds_xml_ctx_t *) NULL);
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(fds_xml_parse_mem(parser, mem, false), (fds_xml_ctx_t *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -185,7 +185,7 @@ TEST_F(Parse, optional)
             "</root>";
 
     fds_xml_set_args(args, parser);
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -205,7 +205,7 @@ TEST_F(Parse, no_trim)
             "</root>";
     fds_xml_set_args(args, parser);
 
-    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
     EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
 
@@ -231,7 +231,7 @@ TEST_F(Parse, multi)
             "</root>";
     fds_xml_set_args(args, parser);
 
-    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
     // first elem
@@ -262,7 +262,7 @@ TEST_F(Parse, no_multi)
                     "</root>";
     fds_xml_set_args(args, parser);
 
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -283,7 +283,7 @@ TEST_F(Parse, text_component)
             "</root>";
     fds_xml_set_args(args, parser);
 
-    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
     fds_xml_next(ctx, &content);
@@ -307,7 +307,7 @@ TEST_F(Parse, no_text_component)
 
     fds_xml_set_args(args, parser);
 
-    EXPECT_EQ(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_EQ(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -328,7 +328,7 @@ TEST_F(Parse, ignore_namespaces)
                     "<h:value> 42 </h:value>"
             "</root>";
 
-    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
     fds_xml_next(ctx, &cont);
@@ -359,7 +359,7 @@ TEST_F(Parse, bool_valid_values)
                 "<false>no</false>"
             "</root>";
 
-    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx_t *) NULL);
+    EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
     for (int i = 0; i < 3; ++i) {
@@ -388,7 +388,7 @@ TEST_F(Parse, bool_wrong_value)
                 "<wrong>42</wrong>"
             "</root>";
 
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -409,7 +409,7 @@ TEST_F(Parse, uint_valid_value)
                     "<uint>42</uint>"
                     "</root>";
 
-    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
     fds_xml_next(ctx, &content);
@@ -430,7 +430,7 @@ TEST_F(Parse, uint_text_instead_number)
                     "<wrong>text</wrong>"
                     "</root>";
 
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -451,7 +451,7 @@ TEST_F(Parse, int_valid_value)
                 "<int>42</int>"
             "</root>";
 
-    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
     fds_xml_next(ctx, &content);
@@ -472,7 +472,7 @@ TEST_F(Parse, int_text_instead_number)
                 "<wrong>text</wrong>"
             "</root>";
 
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -493,7 +493,7 @@ TEST_F(Parse, double_valid_value)
                     "<int>42.3</int>"
                     "</root>";
 
-    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
     fds_xml_next(ctx, &content);
@@ -514,7 +514,7 @@ TEST_F(Parse, double_text_instead_number)
                 "<wrong>text</wrong>"
             "</root>";
 
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -540,7 +540,7 @@ TEST_F(Parse, properties_valid)
                 "</nes>"
             "</root>";
 
-    EXPECT_NE(ctx = fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
     // get attribute
@@ -567,10 +567,10 @@ TEST_F(Parse, properties_not_defined)
                 "<nes attr=\"some text\"> </nes>"
             "</root>";
 
-    EXPECT_NE(fds_xml_parse(parser, mem, false), (fds_xml_ctx *) NULL);
+    EXPECT_NE(fds_xml_parse_mem(parser, mem, false), (fds_xml_ctx *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -593,7 +593,7 @@ TEST_F(Parse, content_not_defined)
                 "</nes>"
             "</root>";
 
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 
@@ -616,7 +616,7 @@ TEST_F(Parse, raw_valid)
             "</root>";
 
     EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_OK);
-    ctx = fds_xml_parse(parser, mem, true);
+    ctx = fds_xml_parse_mem(parser, mem, true);
 
     EXPECT_EQ(fds_xml_next(ctx, &content), FDS_XML_OK);
 
@@ -645,7 +645,7 @@ TEST_F(Parse, text_not_defined)
                 "</nes>"
             "</root>";
 
-    EXPECT_EQ(fds_xml_parse(parser, mem, true), (fds_xml_ctx *) NULL);
+    EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
 

@@ -12,7 +12,7 @@ include_directories(
 	"${PROJECT_SOURCE_DIR}/include/"
 #   "${PROJECT_BINARY_DIR}/include/"  # Nothing useful now - disabled
 	"${PROJECT_BINARY_DIR}/src/"      # for build_config.h
-    ${LIBXML2_INCLUDE_DIRS}
+    "${LIBXML2_INCLUDE_DIRS}"
 )
 
 # Core source files
@@ -25,13 +25,15 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Subdirectories with auxiliary components
 add_subdirectory(dummy_dir)
 add_subdirectory(xml_parser)
+add_subdirectory(iemgr)
 
 # Create a dynamic library from all source code
 add_library(
 	fds SHARED
 	${CORE_SOURCE}
-	$<TARGET_OBJECTS:dummy_obj>  # Dummy library
+	$<TARGET_OBJECTS:dummy_obj>       # Dummy library
 	$<TARGET_OBJECTS:xml_parser_obj>  # xml_parser library
+	$<TARGET_OBJECTS:iemgr_obj>       # iemgr library
 )
 
 target_link_libraries(fds ${LIBXML2_LIBRARIES})

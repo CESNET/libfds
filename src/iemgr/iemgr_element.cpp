@@ -354,6 +354,10 @@ element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
             }
             break;
         case ELEM_NAME:
+            if (!strcmp(cont->ptr_string, "")) {
+                mgr->err_msg = "Element name cannot be empty";
+                return false;
+            }
             elem->name = copy_str(cont->ptr_string);
             if (elem->name == nullptr) {
                 mgr->err_msg = "Name of the element with ID '" +to_string(elem->id)+

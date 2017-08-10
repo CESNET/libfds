@@ -480,16 +480,25 @@ fds_iemgr_elem_find_name(fds_iemgr_t *mgr, const char *name);
  * \brief Add element to the manager
  * \param[in,out] mgr        Manager
  * \param[in]     elem       Element
- * \param[in]     pen        Personal Enterprise Number
+ * \param[in]     pen        Private enterprise number
  * \param[in]     overwrite overwrite previously defined element
  * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR_NOMEM or #FDS_IEMGR_ERR
- * \note Element's scope is ignored.
- * \note In case of the biflow INDIVIDUAL mode the forward element must have \p reverse_elem NULL
- * and \p is_reverse must be false. The reverse element's \p reverse_elem must points
- * to forward element and \p is_reverse must be true.
+ * \note Element's \p scope is ignored.
+ * \note Element's \p reverse element is ignored.
  */
-FDS_API int // TODO reverse element
+FDS_API int
 fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t pen, bool overwrite);
+
+/**
+ * \brief Add reverse element to the manager
+ * \param[in,out] mgr       Manager
+ * \param[in]     pen       Private enterprise number of the scope
+ * \param[in]     id        ID of the reverse elements
+ * \param[in]     overwrite Overwrite previously defined reverse element
+ * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR_NOMEM or #FDS_IEMGR_ERR
+ */
+FDS_API int
+fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t  id, bool overwrite);
 
 /**
  * \brief Remove element from the manager

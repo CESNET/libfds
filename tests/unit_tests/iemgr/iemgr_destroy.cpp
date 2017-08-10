@@ -17,3 +17,15 @@ TEST(Destroy, success)
     auto mgr = fds_iemgr_create();
     EXPECT_NO_THROW(fds_iemgr_destroy(mgr));
 }
+
+TEST_F(Mgr, elem_remove)
+{
+    ASSERT_EQ(fds_iemgr_read_file(mgr, FILES_VALID "one_elem.xml", true), FDS_IEMGR_OK);
+    EXPECT_NO_ERROR;
+
+    EXPECT_EQ(fds_iemgr_elem_remove(mgr, 0, 1), FDS_IEMGR_OK);
+
+    const fds_iemgr_elem* elem = fds_iemgr_elem_find_id(mgr, 0, 1);
+    EXPECT_EQ(elem, nullptr);
+    EXPECT_NO_ERROR;
+}

@@ -88,7 +88,7 @@ get_data_unit(const char *unit)
         return FDS_EU_FLOWS;
     else if (!strcasecmp(unit,      "seconds"))
         return FDS_EU_SECONDS;
-    else if (!strcasecmp(unit,      "miliseconds"))
+    else if (!strcasecmp(unit,      "milliseconds"))
         return FDS_EU_MILLISECONDS;
     else if (!strcasecmp(unit,      "microseconds"))
         return FDS_EU_MICROSECONDS;
@@ -173,7 +173,7 @@ get_data_type(const char *type)
         return FDS_ET_STRING;
     else if (!strcasecmp(type,               "dateTimeSeconds"))
         return FDS_ET_DATE_TIME_SECONDS;
-    else if (!strcasecmp(type,               "dateTimeMiliseconds"))
+    else if (!strcasecmp(type,               "dateTimeMilliseconds"))
         return FDS_ET_DATE_TIME_MILLISECONDS;
     else if (!strcasecmp(type,               "dateTimeMicroseconds"))
         return FDS_ET_DATE_TIME_MICROSECONDS;

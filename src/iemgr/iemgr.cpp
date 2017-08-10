@@ -27,6 +27,62 @@ fds_iemgr_create()
     return mgr;
 }
 
+/**
+ * \brief Save reverse elements from scopes
+ * \param[in,out] mgr Manager
+ * \return True on success, otherwise False
+ * \warning Manager cannot contain reverse scopes
+ */
+bool
+mgr_save_reverse(fds_iemgr_t* mgr)
+{
+    fds_iemgr_scope_inter* tmp;
+    auto vec = mgr->pens;
+
+    for (const auto& scope: vec) {
+        if (scope.second->head.biflow_mode == FDS_BW_PEN) {
+            tmp = scope_create_reverse(scope.second);
+
+            mgr->pens.emplace_back(tmp->head.pen, tmp);
+            mgr->prefixes.emplace_back(tmp->head.name, tmp);
+        }
+        else {
+            if (!scope_save_reverse_elem(scope.second)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+/**
+ * \brief Remve all temporary vectors etc. from a manager
+ * \param mgr Manager
+ */
+void
+mgr_remove_temp(fds_iemgr_t* mgr)
+{
+    mgr->overwrite_scope.second.clear();
+    mgr->parsed_ids.clear();
+}
+
+/**
+ * \brief Sort scopes in a manager
+ * \param mgr Manager
+ */
+void
+mgr_sort(fds_iemgr_t* mgr)
+{
+    sort_vec(mgr->pens);
+    sort_vec(mgr->prefixes);
+
+    const auto func_pred = [](const pair<string, timespec>& lhs,
+                              const pair<string, timespec>& rhs)
+    { return lhs.first < rhs.first; }; // TODO neccessary?
+    sort(mgr->mtime.begin(), mgr->mtime.end(), func_pred);
+}
+
 fds_iemgr_t*
 mgr_copy(fds_iemgr_t* mgr)
 {
@@ -35,6 +91,10 @@ mgr_copy(fds_iemgr_t* mgr)
 
     fds_iemgr_scope_inter* scope;
     for (const auto& tmp: mgr->pens) {
+        if (tmp.second->is_reverse) {
+            continue;
+        }
+
         scope = scope_copy(tmp.second);
 
         res->pens.emplace_back(scope->head.pen, scope);
@@ -42,7 +102,15 @@ mgr_copy(fds_iemgr_t* mgr)
     }
 
     for (const auto& mtime: mgr->mtime) {
-//        res->mtime.emplace_back(copy_str(mtime.first), mtime.second);
+        char *path = strdup(mtime.first);
+        if (path == nullptr) {
+            return nullptr;
+        }
+        res->mtime.emplace_back(path, mtime.second);
+    }
+
+    if (!mgr_save_reverse(res.get())) {
+        return nullptr;
     }
 
     return res.release();
@@ -63,7 +131,6 @@ fds_iemgr_copy(fds_iemgr_t *mgr)
         mgr->err_msg = "Allocation error while copying manager";
         return nullptr;
     }
-
 
     return res;
 }
@@ -109,33 +176,6 @@ fds_iemgr_destroy(fds_iemgr_t *mgr)
     mgr = nullptr;
 }
 
-/**
- * \brief Sort scopes in a manager
- * \param mgr Manager
- */
-void
-mgr_sort(fds_iemgr_t* mgr)
-{
-    sort_vec(mgr->pens);
-    sort_vec(mgr->prefixes);
-
-    const auto func_pred = [](const pair<string, timespec>& lhs,
-                              const pair<string, timespec>& rhs)
-    { return lhs.first < rhs.first; }; // TODO neccessary?
-    sort(mgr->mtime.begin(), mgr->mtime.end(), func_pred);
-}
-
-/**
- * \brief Remve all temporary vectors etc. from a manager
- * \param mgr Manager
- */
-void
-mgr_remove_temp(fds_iemgr_t* mgr)
-{
-    mgr->overwrite_scope.second.clear();
-    mgr->parsed_ids.clear();
-}
-
 bool
 fds_iemgr_compare_timestamps(fds_iemgr *mgr)
 {
@@ -150,7 +190,10 @@ fds_iemgr_compare_timestamps(fds_iemgr *mgr)
             return false;
         }
 
-        if (mtime.second.tv_sec != sb.st_mtim.tv_sec) { // TODO is it enough?
+        if (mtime.second.tv_sec != sb.st_mtim.tv_sec) {
+            return false;
+        }
+        if (mtime.second.tv_nsec != sb.st_mtim.tv_nsec) {
             return false;
         }
     }
@@ -175,43 +218,6 @@ scope_save(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope)
 }
 
 /**
- * \brief Create reverse scope
- * \param[in] scope Scope
- * \return Reverse scope on success, otherwise nullptr
- */
-fds_iemgr_scope_inter*
-scope_create_reverse(const fds_iemgr_scope_inter* scope)
-{
-    auto res = unique_scope(new fds_iemgr_scope_inter, &::scope_remove);
-    res->head.pen         = scope->head.biflow_id;
-    res->head.name        = copy_reverse(scope->head.name);
-    res->head.biflow_id   = scope->head.pen;
-    res->head.biflow_mode = scope->head.biflow_mode;
-
-    if (!elements_copy_reverse(res.get(), scope)) {
-        return nullptr;
-    }
-
-    return res.release();
-}
-
-/**
- * \brief Overwrite reverse scope
- * \param[in,out] mgr   Manager
- * \param[in]     scope Scope with elements that will be written to reverse scope
- * \return True on success, otherwise False
- */
-// TODO don't remove all elements when it's not needed
-bool
-scope_set_biflow_overwrite(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope)
-{
-    auto res = find_second(mgr->pens, scope->head.biflow_id);
-    scope_remove_elements(res);
-
-    return elements_copy_reverse(res, scope);
-}
-
-/**
  * \brief Create reverse copy of a scope in a manager, if exists overwrite
  * \param[in,out] mgr   Manager
  * \param[in]     scope Scope
@@ -229,36 +235,6 @@ scope_set_biflow_pen(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope)
         return false;
     }
     scope_save(mgr, res);
-    return true;
-}
-
-/**
- * \brief Split scope and create reverse elements
- * \param[in,out] mgr   Manager
- * \param[in,out] scope Scope
- * \return True on success, otherwise False
- */
-bool
-scope_set_biflow_split(fds_iemgr_t *mgr, fds_iemgr_scope_inter *scope)
-{
-    // TODO don't make another vector
-    auto ids = scope->ids;
-    uint16_t new_id;
-    for (const auto& elem: ids) {
-
-        if ((elem.second->id & (1 << scope->head.biflow_id)) != 0) {
-            mgr->err_msg = "Element with ID '" +to_string(elem.second->id)+ "' in the scope with PEN '" +to_string(scope->head.pen)+ "' have defined ID reversed for reverse element. Bit in element ID on position '" +to_string(scope->head.biflow_id)+ "' can't be set.";
-            return false;
-        }
-
-        new_id = static_cast<uint16_t>(elem.second->id | (1 << scope->head.biflow_id));
-        auto res = element_create_reverse(elem.second, new_id);
-        if (res == nullptr) {
-            return false;
-        }
-        element_save(scope, res);
-    }
-    scope_sort(scope);
     return true;
 }
 
@@ -283,34 +259,6 @@ scope_set_biflow(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope)
     }
 
     return true;
-}
-
-/**
- * \brief Overwrite \p src with \p temp
- * \param mgr Manager
- * \param scope Scope
- * \return Overwritten scope on success, otherwise nullptr
- */
-fds_iemgr_scope_inter *
-scope_overwrite(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope)
-{
-    if (!mgr->overwrite_scope.first) {
-        mgr->err_msg = "Scope with PEN '" +to_string(scope->head.pen)+
-                       "' is defined multiple times in 'system/elements' folder";
-        return nullptr;
-    }
-    if (mgr->overwrite_scope.second.find(scope->head.pen) != mgr->overwrite_scope.second.end()) {
-        mgr->err_msg = "Scope with PEN '" +to_string(scope->head.pen)+
-                       "' is defined multiple times in 'user/elements' folder";
-        return nullptr;
-    }
-
-    if (!elements_remove_reverse(scope)) {
-        return nullptr;
-    }
-
-    mgr->overwrite_scope.second.insert(scope->head.pen);
-    return scope;
 }
 
 /**
@@ -389,18 +337,6 @@ scope_read_biflow(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, struct fds_iemgr_scope_i
         }
     }
     return true;
-}
-
-unique_scope
-scope_create()
-{
-    auto scope = unique_scope(new fds_iemgr_scope_inter, &::scope_remove);
-    scope->head.name        = nullptr;
-    scope->head.pen         = 0;
-    scope->head.biflow_id   = 0;
-    scope->head.biflow_mode = FDS_BW_INVALID;
-
-    return scope;
 }
 
 /**
@@ -482,6 +418,32 @@ scope_set(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx)
 }
 
 /**
+ * \brief Save modification time of a file to the manager
+ * \param[in,out] mgr  Manager
+ * \param[in]     path Path and name of the file e.g. 'tmp/user/elements/iana.xml'
+ * \return True on success, otherwise False
+ */
+// TODO change file_path to string, not necessary
+bool
+mtime_save(fds_iemgr_t* mgr, const string& path)
+{
+    char* file_path = realpath(path.c_str(), nullptr);
+    if (file_path == nullptr) {
+        mgr->err_msg = "Relative path '"+path+ "' could not be changed to absolute";
+        return false;
+    }
+
+    struct stat sb;
+    if (stat(file_path, &sb) != 0) {
+        mgr->err_msg = "Could not read information about the file '" +string(file_path)+ "'";
+        return false;
+    }
+
+    mgr->mtime.emplace_back(file_path, sb.st_mtim);
+    return true;
+}
+
+/**
  * \brief Check if scope meets all requirements
  * \param[in,out] mgr   Manager
  * \param[in]     scope Scope
@@ -533,32 +495,6 @@ file_read(fds_iemgr_t* mgr, FILE* file, fds_xml_t* parser)
 
     scope_sort(scope);
     return scope_check(mgr, scope);
-}
-
-/**
- * \brief Save modification time of a file to the manager
- * \param[in,out] mgr  Manager
- * \param[in]     path Path and name of the file e.g. 'tmp/user/elements/iana.xml'
- * \return True on success, otherwise False
- */
-// TODO change file_path to string, not necessary
-bool
-mtime_save(fds_iemgr_t* mgr, const string& path)
-{
-    char* file_path = realpath(path.c_str(), nullptr);
-    if (file_path == nullptr) {
-        mgr->err_msg = "Relative path '"+path+ "' could not be changed to absolute";
-        return false;
-    }
-
-    struct stat sb;
-    if (stat(file_path, &sb) != 0) {
-        mgr->err_msg = "Could not read information about the file '" +string(file_path)+ "'";
-        return false;
-    }
-
-    mgr->mtime.emplace_back(file_path, sb.st_mtim);
-    return true;
 }
 
 /**
@@ -860,13 +796,47 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t 
         }
 
         auto res = unique_elem(element_copy(scope, elem), &::element_remove);
-        if (res->reverse_elem != nullptr) {
-            element_push(mgr, scope, move(res), elem->reverse_elem->id);
-        } else {
-            element_push(mgr, scope, move(res), -1);
-        }
+        element_push(mgr, scope, move(res), -1);
     } catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_elem_add' while allocating memory for element adding.";
+        return FDS_IEMGR_ERR;
+    }
+
+    return FDS_IEMGR_OK;
+}
+
+int
+fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t  id, bool overwrite)
+{
+    if (mgr == nullptr) {
+        return FDS_IEMGR_ERR;
+    }
+
+    auto scope = find_second(mgr->pens, pen);
+    if (scope == nullptr) {
+        mgr->err_msg;
+        return FDS_IEMGR_ERR;
+    }
+
+    auto elem = find_second(scope->ids, id);
+    if (elem == nullptr) {
+        mgr->err_msg;
+        return FDS_IEMGR_ERR;
+    }
+
+    if (elem->reverse_elem != nullptr && !overwrite) {
+        mgr->err_msg; // TODO
+        return FDS_IEMGR_ERR;
+    }
+
+    fds_iemgr_elem* rev = nullptr;
+    try {
+        rev = element_get_reverse(mgr, scope, elem, id);
+    }
+    catch (...) {
+        mgr->err_msg = "Error while allocating memory for creating new reverse element.";
+    }
+    if (rev == nullptr) {
         return FDS_IEMGR_ERR;
     }
 

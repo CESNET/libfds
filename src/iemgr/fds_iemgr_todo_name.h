@@ -30,6 +30,7 @@ struct fds_iemgr_scope_inter {
     struct fds_iemgr_scope                      head;   /**< Scope head              */
     vector <pair <uint16_t, fds_iemgr_elem *> > ids;    /**< Elements sorted by ID   */
     vector <pair <string,   fds_iemgr_elem *> > names;  /**< Elements sorted by NAME */
+    bool                                        is_reverse; /**< True if scope is reverse */
 };
 
 /** Saved elements and sorted pointers by different values (PEN, PREFIX, etc.)               */
@@ -226,6 +227,25 @@ scope_remove_elements(fds_iemgr_scope_inter* scope);
 
 fds_iemgr_scope_inter*
 scope_copy(const fds_iemgr_scope_inter* scope);
+
+fds_iemgr_scope_inter*
+scope_create_reverse(const fds_iemgr_scope_inter* scope);
+
+unique_scope
+scope_create();
+
+bool
+scope_save_reverse_elem(fds_iemgr_scope_inter *scope);
+
+bool
+scope_set_biflow_overwrite(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope);
+
+bool
+scope_set_biflow_split(fds_iemgr_t *mgr, fds_iemgr_scope_inter *scope);
+
+fds_iemgr_scope_inter *
+scope_overwrite(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope);
+
 
 // TODO move out of header
 /**

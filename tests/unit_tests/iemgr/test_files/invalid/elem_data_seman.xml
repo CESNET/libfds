@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Scope of IPFIX elements -->
+<ipfix-elements>
+    <scope>
+        <pen>0</pen>
+        <name>iana</name>
+        <biflow mode="split">0</biflow>
+    </scope>
+
+    <element>
+        <id>0</id>
+        <name>b</name>
+        <dataType>unsigned8</dataType>
+        
+        <dataSemantics>invalid</dataSemantics>
+        
+        <units>octets</units>
+        <status>current</status>
+    </element>
+</ipfix-elements>

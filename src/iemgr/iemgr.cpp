@@ -12,7 +12,10 @@
 #include <sys/stat.h>
 #include <libfds/xml_parser.h>
 #include <libfds/iemgr.h>
-#include "fds_iemgr_todo_name.h"
+#include <assert.h>
+#include "iemgr_common.h"
+#include "iemgr_scope.h"
+#include "iemgr_element.h"
 
 fds_iemgr_t *
 fds_iemgr_create()
@@ -25,95 +28,6 @@ fds_iemgr_create()
     }
 
     return mgr;
-}
-
-/**
- * \brief Save reverse elements from scopes
- * \param[in,out] mgr Manager
- * \return True on success, otherwise False
- * \warning Manager cannot contain reverse scopes
- */
-bool
-mgr_save_reverse(fds_iemgr_t* mgr)
-{
-    fds_iemgr_scope_inter* tmp;
-    auto vec = mgr->pens;
-
-    for (const auto& scope: vec) {
-        if (scope.second->head.biflow_mode == FDS_BW_PEN) {
-            tmp = scope_create_reverse(scope.second);
-
-            mgr->pens.emplace_back(tmp->head.pen, tmp);
-            mgr->prefixes.emplace_back(tmp->head.name, tmp);
-        }
-        else {
-            if (!scope_save_reverse_elem(scope.second)) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-/**
- * \brief Remve all temporary vectors etc. from a manager
- * \param mgr Manager
- */
-void
-mgr_remove_temp(fds_iemgr_t* mgr)
-{
-    mgr->overwrite_scope.second.clear();
-    mgr->parsed_ids.clear();
-}
-
-/**
- * \brief Sort scopes in a manager
- * \param mgr Manager
- */
-void
-mgr_sort(fds_iemgr_t* mgr)
-{
-    sort_vec(mgr->pens);
-    sort_vec(mgr->prefixes);
-
-    const auto func_pred = [](const pair<string, timespec>& lhs,
-                              const pair<string, timespec>& rhs)
-    { return lhs.first < rhs.first; }; // TODO neccessary?
-    sort(mgr->mtime.begin(), mgr->mtime.end(), func_pred);
-}
-
-fds_iemgr_t*
-mgr_copy(fds_iemgr_t* mgr)
-{
-    auto res = unique_mgr(new fds_iemgr_t, &::fds_iemgr_destroy);
-    res->err_msg = mgr->err_msg;
-
-    fds_iemgr_scope_inter* scope;
-    for (const auto& tmp: mgr->pens) {
-        if (tmp.second->is_reverse) {
-            continue;
-        }
-
-        scope = scope_copy(tmp.second);
-
-        res->pens.emplace_back(scope->head.pen, scope);
-        res->prefixes.emplace_back(scope->head.name, scope);
-    }
-
-    for (const auto& mtime: mgr->mtime) {
-        char *path = strdup(mtime.first);
-        if (path == nullptr) {
-            return nullptr;
-        }
-        res->mtime.emplace_back(path, mtime.second);
-    }
-
-    if (!mgr_save_reverse(res.get())) {
-        return nullptr;
-    }
-
-    return res.release();
 }
 
 fds_iemgr_t *
@@ -141,10 +55,6 @@ fds_iemgr_copy(fds_iemgr_t *mgr)
  */
 void mtime_remove(fds_iemgr_t *mgr)
 {
-    if (mgr == nullptr) {
-        return;
-    }
-
     for (const auto& mtime: mgr->mtime) {
         free(mtime.first);
     }
@@ -154,9 +64,7 @@ void mtime_remove(fds_iemgr_t *mgr)
 void
 fds_iemgr_clear(fds_iemgr_t *mgr)
 {
-    if (mgr == nullptr) {
-        return;
-    }
+    assert(mgr != nullptr);
 
     for (const auto &scope: mgr->pens) {
         scope_remove(scope.second);
@@ -173,248 +81,29 @@ fds_iemgr_destroy(fds_iemgr_t *mgr)
 {
     fds_iemgr_clear(mgr);
     delete mgr;
-    mgr = nullptr;
 }
 
-bool
+int
 fds_iemgr_compare_timestamps(fds_iemgr *mgr)
 {
-    if (mgr == nullptr) {
-        return false;
-    }
+    assert(mgr != nullptr);
 
     struct stat sb;
     for (const auto& mtime: mgr->mtime) {
         if (stat(mtime.first, &sb) != 0) {
             mgr->err_msg = "Could not read information about the file '" +string(mtime.first)+ "'";
-            return false;
+            return FDS_IEMGR_ERR;
         }
 
         if (mtime.second.tv_sec != sb.st_mtim.tv_sec) {
-            return false;
+            return FDS_IEMGR_DIFF_MTIME;
         }
         if (mtime.second.tv_nsec != sb.st_mtim.tv_nsec) {
-            return false;
+            return FDS_IEMGR_DIFF_MTIME;
         }
     }
 
-    return true;
-}
-
-/**
- * \brief Save scope to the manager
- * \param[in,out] mgr   Manager
- * \param[in]     scope Saved scope
- * \return Saved scope on success, otherwise nullptr
- */
-fds_iemgr_scope_inter *
-scope_save(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope)
-{
-    mgr->prefixes.emplace_back(scope->head.name, scope);
-    mgr->pens.emplace_back(scope->head.pen, scope);
-
-    mgr_sort(mgr);
-    return scope;
-}
-
-/**
- * \brief Create reverse copy of a scope in a manager, if exists overwrite
- * \param[in,out] mgr   Manager
- * \param[in]     scope Scope
- * \return True on success, otherwise False
- */
-bool
-scope_set_biflow_pen(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope)
-{
-    if (mgr->overwrite_scope.second.find(scope->head.pen) != mgr->overwrite_scope.second.end()) {
-        return scope_set_biflow_overwrite(mgr, scope);
-    }
-
-    fds_iemgr_scope_inter* res = scope_create_reverse(scope);
-    if (res == nullptr) {
-        return false;
-    }
-    scope_save(mgr, res);
-    return true;
-}
-
-/**
- * \brief Find scope's biflow mode and set in manager in appropriate way
- * \param[in,out] mgr   Manager
- * \param[in]     scope Scope
- * \return True on success, otherwise False
- */
-bool
-scope_set_biflow(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope)
-{
-    if (scope->head.biflow_mode == FDS_BW_PEN) {
-        if (!scope_set_biflow_pen(mgr, scope)) {
-            return false;
-        }
-    }
-    else if (scope->head.biflow_mode == FDS_BW_SPLIT) {
-        if (!scope_set_biflow_split(mgr, scope)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-/**
- * \brief Write \p scope to a manager
- * \param[in,out] mgr         Manager
- * \param[in]     scope       Scope
- * \param[in]     biflow_read True if scope biflow parameters were read
- * \return Written scope on success, otherwise nullptr
- */
-fds_iemgr_scope_inter *
-scope_write(fds_iemgr_t* mgr, unique_scope scope, bool biflow_read)
-{
-    if (scope->head.name == nullptr) {
-        mgr->err_msg = "Name of the scope with PEN '" +to_string(scope->head.pen)+
-                       "' wasn't defined";
-        return nullptr;
-    }
-    if (!biflow_read) {
-        mgr->err_msg = "Biflow of the scope with PEN " +to_string(scope->head.pen)+
-                       " wasn't defined";
-        return nullptr;
-    }
-
-    return scope_save(mgr, scope.release());
-}
-
-/**
- * \brief Try to find a scope in the manager with same PEN
- * \param[in,out] mgr         Manager
- * \param[in]     scope       Scope
- * \param[in]     biflow_read Biflow was read
- * \return Founded scope if exist, created scope or nullptr on failure
- */
-fds_iemgr_scope_inter *
-scope_push(fds_iemgr_t* mgr, unique_scope scope, bool biflow_read)
-{
-    auto res = find_second(mgr->pens, scope->head.pen);
-    if (res != nullptr) {
-        return scope_overwrite(mgr, res);
-    }
-
-    return scope_write(mgr, move(scope), biflow_read);
-}
-
-/**
- * \brief Save scope from a context to a manager
- * \param[out] mgr   Manager
- * \param[in]  ctx   Context with scope
- * \param[out] scope Scope
- * \return True on success, otherwise False
- */
-bool
-scope_read_biflow(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, struct fds_iemgr_scope_inter* scope)
-{
-    int64_t id;
-
-    const struct fds_xml_cont *cont;
-    while(fds_xml_next(ctx, &cont) != FDS_XML_EOC) {
-        switch (cont->id) {
-        case BIFLOW_MODE:
-            scope->head.biflow_mode  = get_biflow(cont->ptr_string);
-            if (scope->head.biflow_mode == FDS_BW_INVALID) {
-                mgr->err_msg = "Biflow mode doesn't have a type " + string(cont->ptr_string);
-                return false;
-            }
-            break;
-        case BIFLOW_TEXT:
-            id = get_biflow_id(mgr, scope, cont->val_int);
-            if (id < 0) {
-                return false;
-            }
-            scope->head.biflow_id = static_cast<uint32_t>(id);
-            break;
-        default:
-            break;
-        }
-    }
-    return true;
-}
-
-/**
- * \brief Save scope with elements from a context to a manager
- * \param[out] mgr   Manager
- * \param[in]  ctx   Context
- * \param[out] scope Scope
- * \return Created scope on success, otherwise nullptr
- */
-fds_iemgr_scope_inter *
-scope_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx)
-{
-    auto scope = scope_create();
-    bool biflow_read = false;
-
-    const struct fds_xml_cont *cont;
-    while(fds_xml_next(ctx, &cont) != FDS_XML_EOC) {
-        switch (cont->id) {
-        case SCOPE_PEN:
-            if (!get_pen(mgr, scope->head.pen, cont->val_uint)) {
-                return nullptr;
-            }
-            break;
-        case SCOPE_NAME:
-            if (!strcmp(cont->ptr_string, "")) {
-                mgr->err_msg = "Scope name cannot be empty";
-                return nullptr;
-            }
-            scope->head.name = copy_str(cont->ptr_string);
-            break;
-        case SCOPE_BIFLOW:
-            biflow_read = true;
-            if (!scope_read_biflow(mgr, cont->ptr_ctx, scope.get())) {
-                return nullptr;
-            }
-            break;
-        default:
-            break;
-        }
-    }
-    return scope_push(mgr, move(scope), biflow_read);
-}
-
-/**
- * \brief Find content with scope
- * \param mgr Manager
- * \param ctx Context
- * \return Content with scope on success, otherwise nullptr
- */
-const fds_xml_cont *
-scope_find_cont(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx)
-{
-    const struct fds_xml_cont *cont;
-    while(fds_xml_next(ctx, &cont) != FDS_XML_EOC) {
-        if (cont->id == SCOPE) {
-            return cont;
-        }
-    }
-    mgr->err_msg = "Scope must be defined on a top level of the file";
-    return nullptr;
-}
-
-/**
- * \brief Save scope details from a context to a manager
- * \param[out] mgr Manager
- * \param[in]  ctx Context
- * \return Scope with saved detail on success, on error return nullptr
- */
-fds_iemgr_scope_inter *
-scope_set(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx)
-{
-    const fds_xml_cont *cont = scope_find_cont(mgr, ctx);
-    if (cont == nullptr) {
-        return nullptr;
-    }
-
-    fds_xml_rewind(ctx);
-    return scope_read(mgr, cont->ptr_ctx);
+    return FDS_IEMGR_OK;
 }
 
 /**
@@ -444,25 +133,6 @@ mtime_save(fds_iemgr_t* mgr, const string& path)
 }
 
 /**
- * \brief Check if scope meets all requirements
- * \param[in,out] mgr   Manager
- * \param[in]     scope Scope
- * \return True on success, otherwise False
- */
-bool
-scope_check(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope)
-{
-    const auto pair = find_pair(scope->names);
-    if(pair != scope->names.end()) {
-        mgr->err_msg = "Element with name '" +string(pair.base()->first)+
-                       "' is defined multiple times";
-        return false;
-    }
-
-    return true;
-}
-
-/**
  * \brief Read elements defined by parser from a file and save them to a manager
  * \param[out] mgr    Manager
  * \param[in]  file   XML file
@@ -478,7 +148,7 @@ file_read(fds_iemgr_t* mgr, FILE* file, fds_xml_t* parser)
         return false;
     }
 
-    fds_iemgr_scope_inter *scope = scope_set(mgr, ctx);
+    fds_iemgr_scope_inter *scope = scope_parse_and_store(mgr, ctx);
     if (scope == nullptr) {
         return false;
     }
@@ -492,7 +162,6 @@ file_read(fds_iemgr_t* mgr, FILE* file, fds_xml_t* parser)
     }
 
     mgr->parsed_ids.clear();
-
     scope_sort(scope);
     return scope_check(mgr, scope);
 }
@@ -535,13 +204,16 @@ dir_read(fds_iemgr_t* mgr, const char* path, fds_xml_t* parser, const string& na
 
     auto dir = unique_dir(opendir(dir_path.c_str()), &::closedir);
     if (dir == nullptr) {
-        mgr->err_msg = "Folder with relative path '" +string(path)+ "' doesn't exist";
+        mgr->err_msg = "Folder with path '" +string(path)+ "' doesn't exist";
         return false;
     }
 
     struct dirent *ent;
     while ((ent = readdir(dir.get())) != nullptr) {
-        if (ent->d_type != 0x8 /*isFile*/) {
+        if (ent->d_type != DT_REG) {
+            continue;
+        }
+        if (ent->d_name[0] == '.') {
             continue;
         }
 
@@ -663,9 +335,8 @@ mgr_check(fds_iemgr_t *mgr)
 int
 fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path)
 {
-    if (mgr == nullptr) {
-        return FDS_IEMGR_ERR;
-    }
+    assert(mgr != nullptr);
+
     if (path == nullptr) {
         mgr->err_msg = "No directory specified in fds_iemgr_read_dir";
         return FDS_IEMGR_ERR;
@@ -691,9 +362,8 @@ fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path)
 int
 fds_iemgr_read_file(fds_iemgr_t *mgr, const char *path, bool overwrite)
 {
-    if (mgr == nullptr) {
-        return FDS_IEMGR_ERR;
-    }
+    assert(mgr != nullptr);
+
     if (path == nullptr) {
         mgr->err_msg = "No file specified in fds_iemgr_read_file";
         return FDS_IEMGR_ERR;
@@ -722,16 +392,14 @@ fds_iemgr_read_file(fds_iemgr_t *mgr, const char *path, bool overwrite)
 const fds_iemgr_elem *
 fds_iemgr_elem_find_id(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
 {
-    if (mgr == nullptr) {
-        return nullptr;
-    }
+    assert(mgr != nullptr);
 
-    auto scope = find_second(mgr->pens, pen);
+    auto scope = binary_find(mgr->pens, pen);
     if (scope == nullptr) {
         return nullptr;
     }
 
-    const auto elem = find_second(scope->ids, id);
+    const auto elem = binary_find(scope->ids, id);
     if (elem == nullptr) {
         return nullptr;
     }
@@ -742,13 +410,8 @@ fds_iemgr_elem_find_id(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
 const fds_iemgr_elem *
 fds_iemgr_elem_find_name(fds_iemgr_t *mgr, const char *name)
 {
-    if (mgr == nullptr) {
-        return nullptr;
-    }
-    if (name == nullptr) {
-        mgr->err_msg = "Name of the element and the scope not defined";
-        return nullptr;
-    }
+    assert(mgr  != nullptr);
+    assert(name != nullptr);
 
     pair<string, string> split;
     try {
@@ -761,12 +424,12 @@ fds_iemgr_elem_find_name(fds_iemgr_t *mgr, const char *name)
         return nullptr;
     }
 
-    auto scope = find_second(mgr->prefixes, split.first);
+    auto scope = binary_find(mgr->prefixes, split.first);
     if (scope == nullptr) {
         return nullptr;
     }
 
-    const auto elem = find_second(scope->names, split.second);
+    const auto elem = binary_find(scope->names, split.second);
     if (elem == nullptr) {
         return nullptr;
     }
@@ -777,61 +440,67 @@ fds_iemgr_elem_find_name(fds_iemgr_t *mgr, const char *name)
 int
 fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t pen, bool overwrite)
 {
-    if (mgr == nullptr) {
-        return FDS_IEMGR_ERR;
-    }
+    assert(mgr != nullptr);
+
     if (elem == nullptr) {
-        mgr->err_msg = "Element what should be added is not defined";
+        mgr->err_msg = "Element that should be added is not defined";
         return FDS_IEMGR_ERR;
     }
 
     mgr->can_overwrite_elem = overwrite;
+    auto scope = find_second(mgr->pens, pen);
     try {
-        auto scope = find_second(mgr->pens, pen);
         if (scope == nullptr) {
-            scope = new fds_iemgr_scope_inter;
+            scope = scope_create().release();
             scope->head.pen = pen;
+            scope->head.biflow_mode = FDS_BF_INDIVIDUAL;
             mgr->pens.emplace_back(scope->head.pen, scope);
             mgr_sort(mgr);
         }
 
         auto res = unique_elem(element_copy(scope, elem), &::element_remove);
-        element_push(mgr, scope, move(res), -1);
+        if (!element_push(mgr, scope, move(res), -1)) {
+            return FDS_IEMGR_ERR;
+        }
     } catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_elem_add' while allocating memory for element adding.";
         return FDS_IEMGR_ERR;
     }
 
+    scope_sort(scope);
     return FDS_IEMGR_OK;
 }
 
 int
-fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t  id, bool overwrite)
+fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id,
+                           const uint16_t new_id, bool overwrite)
 {
-    if (mgr == nullptr) {
-        return FDS_IEMGR_ERR;
-    }
+    assert(mgr != nullptr);
 
-    auto scope = find_second(mgr->pens, pen);
+    auto scope = binary_find(mgr->pens, pen);
     if (scope == nullptr) {
-        mgr->err_msg;
+        mgr->err_msg = "Scope with PEN '" +to_string(pen)+ "' cannot be found.";
+        return FDS_IEMGR_NOT_FOUND;
+    }
+    if (scope->head.biflow_mode != FDS_BF_INDIVIDUAL) {
+        mgr->err_msg = "Reverse element can be defined only to the scope with INDIVIDUAL biflow mode.";
         return FDS_IEMGR_ERR;
     }
 
-    auto elem = find_second(scope->ids, id);
+    auto elem = binary_find(scope->ids, id);
     if (elem == nullptr) {
-        mgr->err_msg;
-        return FDS_IEMGR_ERR;
+        mgr->err_msg = "Element with ID '" +to_string(id)+ "' cannot be found.";
+        return FDS_IEMGR_NOT_FOUND;
     }
 
     if (elem->reverse_elem != nullptr && !overwrite) {
-        mgr->err_msg; // TODO
+        mgr->err_msg = "Element with ID '" +to_string(id)+ "' already has reverse element.";
         return FDS_IEMGR_ERR;
     }
 
     fds_iemgr_elem* rev = nullptr;
     try {
-        rev = element_get_reverse(mgr, scope, elem, id);
+        rev = element_add_reverse(mgr, scope, elem, new_id);
     }
     catch (...) {
         mgr->err_msg = "Error while allocating memory for creating new reverse element.";
@@ -840,15 +509,14 @@ fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t 
         return FDS_IEMGR_ERR;
     }
 
+    scope_sort(scope);
     return FDS_IEMGR_OK;
 }
 
 int
 fds_iemgr_elem_remove(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
 {
-    if (mgr == nullptr) {
-        return FDS_IEMGR_ERR;
-    }
+    assert(mgr != nullptr);
 
     try {
         const int ret = element_destroy(mgr, pen, id);
@@ -866,11 +534,9 @@ fds_iemgr_elem_remove(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
 const fds_iemgr_scope *
 fds_iemgr_scope_find_pen(fds_iemgr_t *mgr, const uint32_t pen)
 {
-    if (mgr == nullptr) {
-        return nullptr;
-    }
+    assert(mgr != nullptr);
 
-    const auto res = find_second(mgr->pens, pen);
+    const auto res = binary_find(mgr->pens, pen);
     if (res == nullptr) {
         return nullptr;
     }
@@ -880,15 +546,14 @@ fds_iemgr_scope_find_pen(fds_iemgr_t *mgr, const uint32_t pen)
 const fds_iemgr_scope *
 fds_iemgr_scope_find_name(fds_iemgr_t *mgr, const char *name)
 {
-    if (mgr == nullptr) {
-        return nullptr;
-    }
+    assert(mgr != nullptr);
+
     if (name == nullptr) {
         mgr->err_msg = "Name of a scope was not defined.";
         return nullptr;
     }
 
-    const auto res = find_second(mgr->prefixes, string(name));
+    const auto res = binary_find(mgr->prefixes, string(name));
     if (res == nullptr) {
         return nullptr;
     }
@@ -898,9 +563,7 @@ fds_iemgr_scope_find_name(fds_iemgr_t *mgr, const char *name)
 const char *
 fds_iemgr_last_err(const fds_iemgr_t *mgr)
 {
-    if (mgr == nullptr) {
-        return nullptr;
-    }
+    assert(mgr != nullptr);
 
     if (mgr->err_msg.empty()) {
         return "No error";

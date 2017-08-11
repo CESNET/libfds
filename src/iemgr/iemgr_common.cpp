@@ -6,7 +6,8 @@
 #include <limits>
 #include <utility>
 #include <libfds/iemgr.h>
-#include "fds_iemgr_todo_name.h"
+#include "iemgr_common.h"
+#include "iemgr_scope.h"
 
 bool
 split_name(const string& str, pair<string, string>& res)
@@ -54,8 +55,8 @@ copy_reverse(const char *str)
 
     const char *rev = reverse_name;
 
-    auto len = static_cast<const int>(strlen(str) + strlen(rev) + 1);
-    auto res = new char[len];
+    int len = static_cast<const int>(strlen(str) + strlen(rev) + 1);
+    char* res = new char[len];
     strcpy(res, (string(str)+rev).c_str());
 
     return res;
@@ -108,11 +109,6 @@ get_data_unit(const char *unit)
         return FDS_EU_UNASSIGNED;
 }
 
-/**
- * \brief Get semantics of an element
- * \param[in] semantic Semantic of an element in string
- * \return In what semantic is the element
- */
 fds_iemgr_element_semantic
 get_data_semantic(const char *semantic)
 {
@@ -135,11 +131,6 @@ get_data_semantic(const char *semantic)
         return FDS_ES_UNASSIGNED;
 }
 
-/**
- * \brief Get data type of an element
- * \param[in] type Data type in string
- * \return Data type of the element
- */
 fds_iemgr_element_type
 get_data_type(const char *type)
 {
@@ -193,11 +184,6 @@ get_data_type(const char *type)
         return FDS_ET_UNASSIGNED;
 }
 
-/**
- * \brief Get element status
- * \param[in] status Element status
- * \return Element status
- */
 fds_iemgr_element_status
 get_status(const char *status)
 {
@@ -209,33 +195,21 @@ get_status(const char *status)
         return FDS_ST_INVALID;
 }
 
-/**
- * \brief Get biflow mode
- * \param[in]  mode Biflow mode in a string
- * \return Biflow mode
- */
 fds_iemgr_element_biflow
 get_biflow(const char *mode)
 {
     if (!strcasecmp(mode,        "pen"))
-        return FDS_BW_PEN;
+        return FDS_BF_PEN;
     else if (!strcasecmp(mode,   "none"))
-        return FDS_BW_NONE;
+        return FDS_BF_NONE;
     else if (!strcasecmp(mode,   "split"))
-        return FDS_BW_SPLIT;
+        return FDS_BF_SPLIT;
     else if (!strcasecmp(mode,   "individual"))
-        return FDS_BW_INDIVIDUAL;
+        return FDS_BF_INDIVIDUAL;
     else
-        return FDS_BW_INVALID;
+        return FDS_BF_INVALID;
 }
 
-/**
- * \brief Check biflow ID and return converted ID
- * \param[in,out] mgr   Manager
- * \param[in]     scope Scope
- * \param[in]     id    ID
- * \return Return ID on success, otherwise return -1
- */
 int64_t
 get_biflow_id(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope, int64_t id)
 {
@@ -248,7 +222,7 @@ get_biflow_id(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope, int64_t id)
         return false;
     }
 
-    if (scope->head.biflow_mode == FDS_BW_SPLIT) {
+    if (scope->head.biflow_mode == FDS_BF_SPLIT) {
         if (id > 14) { // TODO count from 0 or 1 ?
             mgr->err_msg = "Number '" +to_string(id)+ "' defined as ID of a scope with PEN '" +to_string(scope->head.pen)+ "' must define which bit will be used for biflow SPLIT mode, thus can't be bigger than 14";
             return -1;
@@ -258,13 +232,6 @@ get_biflow_id(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope, int64_t id)
     return static_cast<uint32_t>(id);
 }
 
-/**
- * \brief Get ID of the element from the value
- * \param[in,out] mgr     Manager
- * \param[out]    elem_id Element ID
- * \param[in]     val     Value
- * \return True on success, otherwise False
- */
 bool
 get_id(fds_iemgr_t *mgr, uint16_t& elem_id, int64_t val)
 {
@@ -281,12 +248,6 @@ get_id(fds_iemgr_t *mgr, uint16_t& elem_id, int64_t val)
     return true;
 }
 
-/**
- * \brief Get ID of reverse element
- * \param[in,out] mgr Manager
- * \param[in]     id  ID
- * \return
- */
 int
 get_biflow_elem_id(fds_iemgr_t* mgr, const int64_t id)
 {
@@ -301,13 +262,6 @@ get_biflow_elem_id(fds_iemgr_t* mgr, const int64_t id)
     return static_cast<uint16_t>(id);
 }
 
-/**
- * \brief Get PEN of the scope from the value
- * \param[in,out] mgr       Manager
- * \param[out]    scope_pen Scope PEN
- * \param[in]     val       Value
- * \return True on success, otherwise False
- */
 bool
 get_pen(fds_iemgr_t *mgr, uint32_t& scope_pen, const int64_t val)
 {
@@ -322,4 +276,81 @@ get_pen(fds_iemgr_t *mgr, uint32_t& scope_pen, const int64_t val)
 
     scope_pen = (uint32_t) val;
     return true;
+}
+
+bool
+mgr_save_reverse(fds_iemgr_t* mgr)
+{
+    fds_iemgr_scope_inter* tmp;
+    auto vec = mgr->pens;
+
+    for (const auto& scope: vec) {
+        if (scope.second->head.biflow_mode == FDS_BF_PEN) {
+            tmp = scope_create_reverse(scope.second);
+
+            mgr->pens.emplace_back(tmp->head.pen, tmp);
+            mgr->prefixes.emplace_back(tmp->head.name, tmp);
+        }
+        else {
+            if (!scope_save_reverse_elem(scope.second)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+void
+mgr_remove_temp(fds_iemgr_t* mgr)
+{
+    mgr->overwrite_scope.second.clear();
+    mgr->parsed_ids.clear();
+}
+
+void
+mgr_sort(fds_iemgr_t* mgr)
+{
+    sort_vec(mgr->pens);
+    sort_vec(mgr->prefixes);
+
+    const auto func_pred = [](const pair<string, timespec>& lhs,
+                              const pair<string, timespec>& rhs)
+    { return lhs.first < rhs.first; };
+    sort(mgr->mtime.begin(), mgr->mtime.end(), func_pred);
+}
+
+fds_iemgr_t*
+mgr_copy(fds_iemgr_t* mgr)
+{
+    auto res = unique_mgr(new fds_iemgr_t, &::fds_iemgr_destroy);
+    if (!mgr->err_msg.empty()) {
+        res->err_msg = mgr->err_msg;
+    }
+
+    fds_iemgr_scope_inter* scope;
+    for (const auto& tmp: mgr->pens) {
+        if (tmp.second->is_reverse) {
+            continue;
+        }
+
+        scope = scope_copy(tmp.second);
+
+        res->pens.emplace_back(scope->head.pen, scope);
+        res->prefixes.emplace_back(scope->head.name, scope);
+    }
+
+    for (const auto& mtime: mgr->mtime) {
+        char *path = strdup(mtime.first);
+        if (path == nullptr) {
+            return nullptr;
+        }
+        res->mtime.emplace_back(path, mtime.second);
+    }
+
+    if (!mgr_save_reverse(res.get())) {
+        return nullptr;
+    }
+
+    return res.release();
 }

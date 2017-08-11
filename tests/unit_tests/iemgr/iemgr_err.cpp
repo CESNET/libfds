@@ -9,5 +9,5 @@
 
 TEST_F(Mgr, null)
 {
-    EXPECT_EQ(fds_iemgr_last_err(nullptr), nullptr);
+    EXPECT_NE(fds_iemgr_last_err(mgr), nullptr);
 }

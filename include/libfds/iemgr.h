@@ -327,16 +327,16 @@ enum fds_iemgr_element_status {
 
 /** Modes for biflow configuration                                                         */
 enum fds_iemgr_element_biflow {
-    FDS_BW_INVALID,    /**< Invalid type (for internal use only)                           */
-    FDS_BW_NONE,       /**< No reverse IEs are set                                         */
-    FDS_BW_PEN,        /**< Separated PEN for reverse IEs                                  */
-    FDS_BW_SPLIT,      /**< IDs 0-16383 for normal director and 16384-32767 for reverse    */
-    FDS_BW_INDIVIDUAL, /**< Individually configured for each normal element within the PEN */
+    FDS_BF_INVALID,    /**< Invalid type (for internal use only)                           */
+    FDS_BF_NONE,       /**< No reverse IEs are set                                         */
+    FDS_BF_PEN,        /**< Separated PEN for reverse IEs                                  */
+    FDS_BF_SPLIT,      /**< IDs 0-16383 for normal director and 16384-32767 for reverse    */
+    FDS_BF_INDIVIDUAL, /**< Individually configured for each normal element within the PEN */
 };
 
 /** Metadata for a scope                                                          */
 struct fds_iemgr_scope {
-    uint32_t pen;                                 /**< Personal Enterprise Number */
+    uint32_t pen;                                 /**< Private Enterprise Number */
     char *name;                                   /**< Scope name                 */
     enum fds_iemgr_element_biflow biflow_mode;    /**< Mode for reverse IEs       */
     uint32_t biflow_id;                           /**< Biflow ID                  */
@@ -421,9 +421,11 @@ fds_iemgr_destroy(fds_iemgr_t *mgr);
 /**
  * \brief Compare last modified time of parsed files
  * \param[in,out] mgr Manager
- * \return True if nothing changed, otherwise False
+ * \return #FDS_IEMGR_OK if nothing changed,
+ * #FDS_IEMGR_DIFF_MTIME if at least one file changed timestamp
+ * and #FDS_IEMGR_ERR when error occurred
  */
-FDS_API bool // TODO
+FDS_API int
 fds_iemgr_compare_timestamps(fds_iemgr *mgr);
 
 /**
@@ -435,6 +437,7 @@ fds_iemgr_compare_timestamps(fds_iemgr *mgr);
  * \note Scope name and biflow is ignored when are defined new elements to the existing scope
  * \note Element that overwrite another element can have only ID of element and information
  * that will be rewritten
+ * \note All files which starts with '.' in the name are ignored (hidden files)
  * \warning Each element can be rewritten only once
  * \warning All previously parsed elements will be removed
  */
@@ -458,7 +461,7 @@ fds_iemgr_read_file(fds_iemgr_t *mgr, const char *file_path, bool overwrite);
 /**
  * \brief Find element with ID in the manager
  * \param[in] mgr Manager
- * \param[in] pen Personal Enterprise Number
+ * \param[in] pen Private Enterprise Number
  * \param[in] id  ID of element
  * \return Element on success, otherwise NULL
  */
@@ -481,7 +484,7 @@ fds_iemgr_elem_find_name(fds_iemgr_t *mgr, const char *name);
  * \param[in,out] mgr        Manager
  * \param[in]     elem       Element
  * \param[in]     pen        Private enterprise number
- * \param[in]     overwrite overwrite previously defined element
+ * \param[in]     overwrite  Overwrite previously defined element
  * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR_NOMEM or #FDS_IEMGR_ERR
  * \note Element's \p scope is ignored.
  * \note Element's \p reverse element is ignored.
@@ -493,17 +496,19 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t 
  * \brief Add reverse element to the manager
  * \param[in,out] mgr       Manager
  * \param[in]     pen       Private enterprise number of the scope
- * \param[in]     id        ID of the reverse elements
+ * \param[in]     id        ID of the forward element
+ * \param[in]     new_id    ID of a new reverse element
  * \param[in]     overwrite Overwrite previously defined reverse element
  * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR_NOMEM or #FDS_IEMGR_ERR
  */
 FDS_API int
-fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t  id, bool overwrite);
+fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id,
+                           const uint16_t new_id, bool overwrite);
 
 /**
  * \brief Remove element from the manager
  * \param[in,out] mgr  Manager
- * \param[in]     pen  Personal Enterprise Number
+ * \param[in]     pen  Private Enterprise Number
  * \param[in]     id   ID of an element
  * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR_NOMEM or #FDS_IEMGR_ERR
  */
@@ -513,7 +518,7 @@ fds_iemgr_elem_remove(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id);
 /**
  * \brief Find a scope in the manager by a PEN
  * \param[in,out] mgr Manager
- * \param[in]     pen Personal Enterprise Number
+ * \param[in]     pen Private Enterprise Number
  * \return Scope on success, otherwise NULL
  */
 FDS_API const fds_iemgr_scope *

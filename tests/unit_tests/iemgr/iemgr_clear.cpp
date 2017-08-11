@@ -26,7 +26,3 @@ TEST_F(Mgr, success)
     fds_iemgr_destroy(temp);
 }
 
-TEST_F(Mgr, null)
-{
-    EXPECT_NO_THROW(fds_iemgr_clear(nullptr));
-}

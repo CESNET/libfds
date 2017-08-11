@@ -7,19 +7,6 @@
 #include <libfds/iemgr.h>
 #include "iemgr_common.h"
 
-TEST_F(Mgr, null)
-{
-    EXPECT_EQ(fds_iemgr_read_file(mgr, nullptr, true), FDS_IEMGR_ERR);
-    EXPECT_ERROR;
-    EXPECT_EQ(fds_iemgr_read_file(nullptr, "test", true), FDS_IEMGR_ERR);
-    EXPECT_EQ(fds_iemgr_read_file(nullptr, nullptr, true), FDS_IEMGR_ERR);
-
-    EXPECT_EQ(fds_iemgr_read_dir(mgr, nullptr), FDS_IEMGR_ERR);
-    EXPECT_ERROR;
-    EXPECT_EQ(fds_iemgr_read_dir(nullptr, "test"), FDS_IEMGR_ERR);
-    EXPECT_EQ(fds_iemgr_read_dir(nullptr, nullptr), FDS_IEMGR_ERR);
-}
-
 TEST_F(Mgr, file_empty)
 {
     EXPECT_NE(fds_iemgr_read_file(mgr, FILES_VALID "empty.xml", true), FDS_IEMGR_OK);
@@ -337,14 +324,14 @@ TEST_F(Mgr, file_elem_invalid_status)
     EXPECT_ERROR;
 }
 
-//TEST_F(Mgr, dir_no_file) // TODO git doesn't preserve empty dirs
-//{
-//    EXPECT_EQ(fds_iemgr_read_dir(mgr, FILES_VALID "no_file"), FDS_IEMGR_OK);
-//    EXPECT_NO_ERROR;
-//}
+TEST_F(Mgr, dir_no_file)
+{
+    EXPECT_EQ(fds_iemgr_read_dir(mgr, FILES_VALID "no_file"), FDS_IEMGR_OK);
+    EXPECT_NO_ERROR;
+}
 
-//TEST_F(Mgr, dir_success)
-//{
-//    EXPECT_EQ(fds_iemgr_read_dir(mgr, FILES_VALID "valid"), FDS_IEMGR_OK);
-//    EXPECT_NO_ERROR;
-//}
+TEST_F(Mgr, dir_success)
+{
+    EXPECT_EQ(fds_iemgr_read_dir(mgr, FILES_VALID "valid"), FDS_IEMGR_OK);
+    EXPECT_NO_ERROR;
+}

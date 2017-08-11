@@ -4,7 +4,9 @@ set(IEMGR_SRC
 	iemgr_element.cpp
 	iemgr_scope.cpp
 	iemgr.cpp
-	fds_iemgr_todo_name.h
+	iemgr_common.h
+	iemgr_scope.h
+	iemgr_element.h
 )
 
 add_library(iemgr_obj OBJECT ${IEMGR_SRC})

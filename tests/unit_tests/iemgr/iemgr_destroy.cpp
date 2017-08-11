@@ -7,11 +7,6 @@
 #include <libfds/iemgr.h>
 #include "iemgr_common.h"
 
-TEST(Destroy, null)
-{
-    EXPECT_NO_THROW(fds_iemgr_destroy(nullptr));
-}
-
 TEST(Destroy, success)
 {
     auto mgr = fds_iemgr_create();

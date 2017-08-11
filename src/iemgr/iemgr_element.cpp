@@ -1,9 +1,10 @@
-//
-// Created by Michal Režňák on 8/7/17.
-//
-
+/**
+ * \author Michal Režňák
+ * \date   11.8.17
+ */
 #include <libfds/iemgr.h>
-#include "fds_iemgr_todo_name.h"
+#include "iemgr_common.h"
+#include "iemgr_scope.h"
 
 fds_iemgr_elem *
 element_create()
@@ -42,7 +43,7 @@ element_copy(fds_iemgr_scope_inter* scope, const fds_iemgr_elem* elem)
 fds_iemgr_elem *
 element_create_reverse(fds_iemgr_elem* src, uint16_t new_id)
 {
-    auto *res          = new fds_iemgr_elem;
+    auto res           = unique_elem(new fds_iemgr_elem, &::element_remove);
     res->id            = new_id;
     res->name          = copy_reverse(src->name);
     res->scope         = src->scope;
@@ -53,14 +54,10 @@ element_create_reverse(fds_iemgr_elem* src, uint16_t new_id)
     res->is_reverse    = true;
     res->reverse_elem  = src;
 
-    src->reverse_elem  = res;
-    return res;
+    src->reverse_elem  = res.get();
+    return res.release();
 }
 
-/**
- * \brief Remove element
- * \param[in,out] elem Element
- */
 void
 element_remove(fds_iemgr_elem* elem)
 {
@@ -68,12 +65,6 @@ element_remove(fds_iemgr_elem* elem)
     delete elem;
 }
 
-/**
- * \brief Check if element can be overwritten in a manager
- * \param[in,out] mgr  Manager
- * \param[in]     elem Element
- * \return True on success, otherwise False
- */
 bool
 element_can_overwritten(fds_iemgr_t* mgr, const fds_iemgr_elem* elem)
 {
@@ -85,34 +76,19 @@ element_can_overwritten(fds_iemgr_t* mgr, const fds_iemgr_elem* elem)
     return true;
 }
 
-/**
- * \brief Save the element to the scope
- * \param[out] mgr   Manager
- * \param[out] scope Scope
- * \param[in]  elem  Saved element
- * \return True on success, otherwise False
- */
 bool
 element_save(fds_iemgr_scope_inter* scope, fds_iemgr_elem* elem)
 {
     scope->ids.emplace_back(elem->id, elem);
     scope->names.emplace_back(elem->name, elem);
-
-    scope_sort(scope);
     return true;
 }
 
-/**
- * \brief Check conditions if elemnt can overwrite previously defined element
- * \param[in,out] mgr   Manager
- * \param[in]     scope Scope
- * \param[in]     id    ID
- * \return True if can, otherwise False
- */
 bool
-element_check_overwrite(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, uint64_t id)
+element_check_reverse_param(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_iemgr_elem* elem,
+                            uint64_t id)
 {
-    if (scope->head.biflow_mode != FDS_BW_INDIVIDUAL) {
+    if (scope->head.biflow_mode != FDS_BF_INDIVIDUAL) {
         mgr->err_msg = "Reverse element, with ID '"+to_string(id)+
                        "' in a scope with PEN '" +to_string(scope->head.pen)+
                        "', can be defined only when scope biflow mode is INDIVIDUAL";
@@ -125,23 +101,20 @@ element_check_overwrite(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, uint64_t
         return false;
     }
 
+    if (elem->id == id) {
+        mgr->err_msg = "ID '"+to_string(id)+
+                "' of the reverse element is already defined defined to the forward element.";
+        return false;
+    }
+
     return true;
 }
 
-/**
- * \brief Get reverse element with \p biflow_id
- * \param[in,out] mgr       Manager
- * \param[in,out] scope     Scope
- * \param[in]     elem      Copied element
- * \param[in]     biflow_id New id of the element
- * \return Reverse element on success, otherwise nullptr
- * \note Function already save element to the manager
- */
 fds_iemgr_elem *
-element_get_reverse(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_iemgr_elem* elem,
+element_add_reverse(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_iemgr_elem* elem,
                     uint16_t biflow_id)
 {
-    if (!element_check_overwrite(mgr, scope, biflow_id)) {
+    if (!element_check_reverse_param(mgr, scope, elem, biflow_id)) {
         return nullptr;
     }
 
@@ -156,15 +129,6 @@ element_get_reverse(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_iemgr_el
     return res.release();
 }
 
-/**
- * \brief Overwrite values of the \p dst element with values from the \p src element
- * \param mgr Manager
- * \param scope Scope
- * \param dst Destination element
- * \param src Source element
- * \return True on success, otherwise False
- * \fixme Function doesn't allocate memory for element name, just copy pointer
- */
 bool
 element_overwrite_values(fds_iemgr_t *mgr, fds_iemgr_scope_inter *scope, fds_iemgr_elem *dst,
                          fds_iemgr_elem *src)
@@ -179,7 +143,7 @@ element_overwrite_values(fds_iemgr_t *mgr, fds_iemgr_scope_inter *scope, fds_iem
         *index = src->name;
 
         delete[] dst->name;
-        dst->name            = src->name; // TODO copy memory
+        dst->name            = copy_str(src->name);
     }
     if (src->data_type      != FDS_ET_UNASSIGNED) {
         dst->data_type       = src->data_type;
@@ -194,24 +158,14 @@ element_overwrite_values(fds_iemgr_t *mgr, fds_iemgr_scope_inter *scope, fds_iem
         dst->status          = src->status;
     }
 
-    scope_sort(scope);
     return true;
 }
 
-/**
- * \brief Overwrite reverse element with the \p src if \p id is bigger than 0, new element will have ID \p id
- * \param[in,out] mgr   Manager
- * \param[in,out] scope Scope
- * \param[out]    rev   Reverse element
- * \param[in]     src   Source element
- * \param[in]     id    New ID
- * \return True on success, otherwise False
- */
 bool
 element_overwrite_reverse(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_iemgr_elem* rev, fds_iemgr_elem* src, int id)
 {
     fds_iemgr_scope_inter* tmp_scope = scope;
-    if (scope->head.biflow_mode == FDS_BW_PEN) {
+    if (scope->head.biflow_mode == FDS_BF_PEN) {
         tmp_scope = find_second(mgr->pens, scope->head.biflow_id);
         if (tmp_scope == nullptr) {
             mgr->err_msg = "Reverse scope with PEN '" +to_string(scope->head.biflow_id)+ "' cannot be found";
@@ -227,12 +181,12 @@ element_overwrite_reverse(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_ie
         if (!parsed_id_save(mgr, scope, static_cast<const uint16_t>(id))) {
             return false;
         }
-        fds_iemgr_elem *tmp = element_get_reverse(mgr, tmp_scope, src, static_cast<uint16_t>(id));
+        fds_iemgr_elem *tmp = element_add_reverse(mgr, tmp_scope, src, static_cast<uint16_t>(id));
         return tmp != nullptr;
     }
 
     if (id >= 0) {
-        if (src->scope->biflow_mode != FDS_BW_INDIVIDUAL) {
+        if (src->scope->biflow_mode != FDS_BF_INDIVIDUAL) {
             mgr->err_msg = "Scope with PEN '" +to_string(src->scope->pen)+ "' cannot define biflowID in elements, because it doesn't have biflow mode INDIVIDUAL.";
             return false;
         }
@@ -243,17 +197,12 @@ element_overwrite_reverse(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_ie
         }
     }
 
-    src->name = copy_reverse(src->name);
+    char *tmp = copy_reverse(src->name);
+    delete[] src->name;
+    src->name = tmp;
     return element_overwrite_values(mgr, tmp_scope, rev, src);
 }
 
-/**
- * \brief Overwrite \p temp with \p res
- * \param[in,out] mgr  Manager
- * \param[out]    dst  Overwritten Element
- * \param[in]     src Temporary element
- * \return True on success, otherwise False
- */
 bool
 element_overwrite(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_iemgr_elem* dst,
                   unique_elem src, int biflow_id)
@@ -266,21 +215,9 @@ element_overwrite(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_iemgr_elem
         return false;
     }
 
-    if (!element_overwrite_reverse(mgr, scope, dst->reverse_elem, src.get(), biflow_id)) {
-        return false;
-    }
-
-    delete src.release();
-    return true;
+    return element_overwrite_reverse(mgr, scope, dst->reverse_elem, src.get(), biflow_id);
 }
 
-/**
- * \brief Write element to the scope and to the manager
- * \param[in,out] mgr   Manager
- * \param[out]    scope Scope
- * \param[in]     elem  Written element
- * \return True on success, otherwise False
- */
 bool
 element_write(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, unique_elem elem, int biflow_id)
 {
@@ -298,7 +235,7 @@ element_write(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, unique_elem elem, 
     }
 
     if (biflow_id >= 0) {
-        elem->reverse_elem = element_get_reverse(mgr, scope, elem.get(),
+        elem->reverse_elem = element_add_reverse(mgr, scope, elem.get(),
                                                  static_cast<uint16_t>(biflow_id));
         if (elem->reverse_elem == nullptr) {
             return false;
@@ -308,16 +245,6 @@ element_write(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, unique_elem elem, 
     return element_save(scope, elem.release());
 }
 
-/**
- * \brief Push an element to the scope
- * Try to find the element with same ID in a scope, if success overwrite information in founded
- * element, else check name and data type in element and create new element
- *
- * \param[out]    mgr   Manager
- * \param[in,out] scope Scope
- * \param[in]     elem  Element
- * \return True on success, otherwise False
- */
 bool
 element_push(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, unique_elem elem, int biflow_id)
 {
@@ -332,13 +259,6 @@ element_push(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, unique_elem elem, i
     return element_write(mgr, scope, move(elem), biflow_id);
 }
 
-/**
- * \brief Save an element from a context to the manager
- * \param[out] mgr   Manager
- * \param[in]  ctx   Context
- * \param[out] scope Scope
- * \return True on success, otherwise False
- */
 bool
 element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
 {
@@ -412,13 +332,6 @@ element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
     return element_push(mgr, scope, move(elem), biflow_id);
 }
 
-/**
- * \brief Save all elements from a context to a manager
- * \param[out] mgr   Manager
- * \param[in]  ctx   Context
- * \param[out] scope Scope
- * \return True on success, otherwise False
- */
 bool
 elements_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
 {
@@ -435,20 +348,11 @@ elements_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope
     return true;
 }
 
-/**
- * \brief Copy reverse elements from \p src to \p dst
- * \param[out] dst Destination scope
- * \param[in]  src Source scope
- * \return True on success, otherwise False
- */
 bool
 elements_copy_reverse(fds_iemgr_scope_inter* dst, const fds_iemgr_scope_inter* src)
 {
     for (auto& elem: src->ids) {
         auto res = element_create_reverse(elem.second, elem.second->id);
-        if (res == nullptr) {
-            return false;
-        }
         res->scope        = &dst->head;
         element_save(dst, res);
     }
@@ -456,16 +360,9 @@ elements_copy_reverse(fds_iemgr_scope_inter* dst, const fds_iemgr_scope_inter* s
     return true;
 }
 
-/**
- * \brief Remove all reverse elements from a split scope
- * \param[in,out] mgr   Manager
- * \param[in,out] scope Scope
- * \return True on success, otherwise false
- */
-bool
+void
 elements_remove_reverse_split(fds_iemgr_scope_inter* scope)
 {
-    // TODO better
     for (auto iter = scope->names.begin(); iter != scope->names.end(); ) {
         if ((iter.base()->second->id & (1 << scope->head.biflow_id)) != 0) {
             iter = scope->names.erase(iter);
@@ -483,28 +380,18 @@ elements_remove_reverse_split(fds_iemgr_scope_inter* scope)
             ++iter;
         }
     }
-    return true;
 }
 
 bool
 elements_remove_reverse(fds_iemgr_scope_inter* scope)
 {
-    if (scope->head.biflow_mode == FDS_BW_SPLIT) {
-        if (!elements_remove_reverse_split(scope)) {
-            return false;
-        }
+    if (scope->head.biflow_mode == FDS_BF_SPLIT) {
+        elements_remove_reverse_split(scope);
     }
 
     return true;
 }
 
-/**
- * \brief Remove an element from all vectors that contains element
- * \param[in,out] mgr Manager
- * \param[in]     pen Scope with the element
- * \param[in]     id  ID of the element
- * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR_NOMEM or #FDS_IEMGR_ERR
- */
 int
 element_destroy(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
 {
@@ -527,7 +414,15 @@ element_destroy(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
         return FDS_IEMGR_NOT_FOUND;
     }
 
-    if (elem->reverse_elem != nullptr && !elem->is_reverse) {
+    scope->ids.erase(elem_id_it);
+    scope->names.erase(elem_name_it);
+
+    if (elem->is_reverse) {
+        element_remove(elem);
+        return FDS_IEMGR_OK;
+    }
+
+    if (elem->reverse_elem != nullptr) {
         const int ret = element_destroy(mgr, elem->reverse_elem->scope->pen,
                                               elem->reverse_elem->id);
         if (ret != FDS_IEMGR_OK) {
@@ -543,10 +438,12 @@ element_destroy(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
         scope_remove(scope);
         mgr->pens.erase(scope_pen_it);
         mgr->prefixes.erase(scope_prefix_it);
+        mgr_sort(mgr);
+    }
+    else {
+        scope_sort(scope);
     }
 
-    scope->ids.erase(elem_id_it);
-    scope->names.erase(elem_name_it);
     element_remove(elem);
     return FDS_IEMGR_OK;
 }

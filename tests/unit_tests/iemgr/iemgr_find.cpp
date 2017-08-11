@@ -16,13 +16,7 @@ TEST_F(Fill, elem_id_success)
     EXPECT_EQ(elem->id, 1);
     EXPECT_FALSE(elem->is_reverse);
     EXPECT_EQ(elem->scope->pen, 0);
-    EXPECT_EQ(elem->scope->biflow_mode, FDS_BW_INDIVIDUAL);
-}
-
-TEST_F(Fill, elem_id_null)
-{
-    auto elem = fds_iemgr_elem_find_id(nullptr, 0, 1);
-    EXPECT_EQ(elem, nullptr);
+    EXPECT_EQ(elem->scope->biflow_mode, FDS_BF_INDIVIDUAL);
 }
 
 TEST_F(Fill, elem_id_out_of_range)
@@ -48,20 +42,7 @@ TEST_F(Fill, elem_name_success)
     EXPECT_EQ(elem->id, 1);
     EXPECT_FALSE(elem->is_reverse);
     EXPECT_EQ(elem->scope->pen, 0);
-    EXPECT_EQ(elem->scope->biflow_mode, FDS_BW_INDIVIDUAL);
-}
-
-TEST_F(Fill, elem_name_null)
-{
-    auto elem = fds_iemgr_elem_find_name(nullptr, "iana:a");
-    EXPECT_EQ(elem, nullptr);
-
-    elem = fds_iemgr_elem_find_name(nullptr, nullptr);
-    EXPECT_EQ(elem, nullptr);
-
-    elem = fds_iemgr_elem_find_name(mgr, nullptr);
-    EXPECT_EQ(elem, nullptr);
-    EXPECT_ERROR;
+    EXPECT_EQ(elem->scope->biflow_mode, FDS_BF_INDIVIDUAL);
 }
 
 TEST_F(Fill, elem_name_invalid)
@@ -86,14 +67,8 @@ TEST_F(Fill, scope_pen_success)
     EXPECT_NO_ERROR;
 
     EXPECT_EQ(scope->pen, 0);
-    EXPECT_EQ(scope->biflow_mode, FDS_BW_INDIVIDUAL);
+    EXPECT_EQ(scope->biflow_mode, FDS_BF_INDIVIDUAL);
     EXPECT_STREQ(scope->name, "iana");
-}
-
-TEST_F(Fill, scope_pen_null)
-{
-    auto elem = fds_iemgr_scope_find_pen(nullptr, 0);
-    EXPECT_EQ(elem, nullptr);
 }
 
 TEST_F(Fill, scope_pen_out_of_range)

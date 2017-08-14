@@ -50,7 +50,7 @@ extern "C" {
 #include "api.h"
 
 /**
- * \enum FDS_ELEMENT_TYPE
+ * \enum fds_iemgr_element_type
  * \brief IPFIX Element data type
  *
  * This enumeration describes the set of valid abstract data types of the
@@ -60,7 +60,7 @@ extern "C" {
  * \warning
  * The abstract data type definitions in this section are intended only to
  * define the values which can be taken by Information Elements of each type.
- * For example, #FDS_ET_UNSIGNED_64 does NOT mean that an element with this
+ * For example, FDS_ET_UNSIGNED_64 does NOT mean that an element with this
  * type occupies 8 bytes, because it can be stored on 1,2,3,4,5,6,7 or 8 bytes.
  * The encodings of these data types for use with the IPFIX protocol are
  * defined in RFC 7011, Section 6.1.
@@ -208,7 +208,7 @@ enum fds_iemgr_element_type {
 };
 
 /**
- * \enum FDS_ELEMENT_SEMANTIC
+ * \enum fds_iemgr_element_semantic
  * \brief IPFIX Element semantic type
  *
  * This enumeration describes the set of valid data type semantics of the
@@ -264,13 +264,28 @@ enum fds_iemgr_element_semantic {
     FDS_ES_LIST,
 
     /**
+     * An integral value reporting the value of a counter, identical to
+     * the Counter32 and Counter64 semantics, as determined by the Field Length.
+     *
+     * This is similar to IPFIX's totalCounter semantic, except that total
+     * counters have an initial value of 0 but SNMP counters do not.
+     */
+    FDS_ES_SNMP_COUNTER,
+
+    /**
+     * An integral value identical to the Gauge32 semantic
+     * and the Gauge64 semantic, as determined by the Field Length.
+     */
+    FDS_ES_SNMP_GAUGE,
+
+    /**
      * An unassigned sematic type (invalid value).
      */
     FDS_ES_UNASSIGNED = 255
 };
 
 /**
- * \enum FDS_ELEMENT_UNIT
+ * \enum fds_iemgr_element_unit
  * \brief IPFIX data unit
  *
  * A description of the units of an IPFIX Information Element. Further data
@@ -310,7 +325,7 @@ enum fds_iemgr_element_unit {
 };
 
 /**
- * \enum FDS_ELEMENT_STATUS
+ * \enum fds_iemgr_element_status
  * \brief IPFIX element status
  *
  * A description of statuses of an IPFIX Information Element. Further data
@@ -339,6 +354,11 @@ struct fds_iemgr_scope {
     uint32_t pen;                                 /**< Private Enterprise Number */
     char *name;                                   /**< Scope name                 */
     enum fds_iemgr_element_biflow biflow_mode;    /**< Mode for reverse IEs       */
+    /**
+     * If Biflow mode PEN is set, biflow ID define PEN of the reverse scope.
+     * If Biflow mode SPLIT is set, biflow ID define base on which bit scope is split
+     * Else biflow ID is ignored.
+     */
     uint32_t biflow_id;                           /**< Biflow ID                  */
 };
 
@@ -377,7 +397,6 @@ struct fds_iemgr_elem {
 /** Manager with elements                   */
 typedef struct fds_iemgr fds_iemgr_t;
 
-// TODO error states for all components together?
 /** Status code for success                     */
 #define FDS_IEMGR_OK         (0)
 /** Status code for memory allocation error     */
@@ -421,9 +440,9 @@ fds_iemgr_destroy(fds_iemgr_t *mgr);
 /**
  * \brief Compare last modified time of parsed files
  * \param[in,out] mgr Manager
- * \return #FDS_IEMGR_OK if nothing changed,
- * #FDS_IEMGR_DIFF_MTIME if at least one file changed timestamp
- * and #FDS_IEMGR_ERR when error occurred
+ * \return FDS_IEMGR_OK if nothing changed,
+ * FDS_IEMGR_DIFF_MTIME if at least one file changed timestamp
+ * and FDS_IEMGR_ERR when error occurred
  */
 FDS_API int
 fds_iemgr_compare_timestamps(fds_iemgr *mgr);
@@ -432,7 +451,9 @@ fds_iemgr_compare_timestamps(fds_iemgr *mgr);
  * \brief Load XML files from dir and save elements to the manager
  * \param[in,out] mgr  Manager
  * \param[in]     path Path to the directories with saved XML files
- * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR_NOMEM or #FDS_IEMGR_ERR
+ * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
+ * and an error message is set (see fds_iemgr_last_err())
+ *
  * \note Load only files in 'system/elements' and 'user/elements'
  * \note Scope name and biflow is ignored when are defined new elements to the existing scope
  * \note Element that overwrite another element can have only ID of element and information
@@ -449,7 +470,9 @@ fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path);
  * \param[in,out] mgr       Manager with elements
  * \param[in]     file_path Path with XML file
  * \param[in]     overwrite On collision overwrite elements previously defined
- * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR_NOMEM or #FDS_IEMGR_ERR
+ * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
+ * and an error message is set (see fds_iemgr_last_err())
+ *
  * \note If \p overwrite is false, then elements can be only added, they cannot be rewritten
  * \note Element that overwrite another element can have only ID of element and information
  * that will be rewritten
@@ -463,7 +486,7 @@ fds_iemgr_read_file(fds_iemgr_t *mgr, const char *file_path, bool overwrite);
  * \param[in] mgr Manager
  * \param[in] pen Private Enterprise Number
  * \param[in] id  ID of element
- * \return Element on success, otherwise NULL
+ * \return Element if exists, otherwise NULL and an error message is set (see fds_iemgr_last_err())
  */
 FDS_API const fds_iemgr_elem *
 fds_iemgr_elem_find_id(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id);
@@ -472,8 +495,9 @@ fds_iemgr_elem_find_id(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id);
  * \brief Find element with name in the manager
  * \param[in] mgr  Manager
  * \param[in] name Prefix and Name of element separated by ':', e.g. 'prefix:name'
- * \return Element on success, otherwise NULL
- * \note When name doesn't contain ':', prefix 'iana:' is set
+ * \return Element if exists, otherwise NULL and an error message is set (see fds_iemgr_last_err())
+ *
+ * \note When name doesn't contain ':', scope with name 'iana' is used
  * \warning Name of a element and name of a scope cannot contain only numbers or ':'
  */
 FDS_API const fds_iemgr_elem *
@@ -485,7 +509,9 @@ fds_iemgr_elem_find_name(fds_iemgr_t *mgr, const char *name);
  * \param[in]     elem       Element
  * \param[in]     pen        Private enterprise number
  * \param[in]     overwrite  Overwrite previously defined element
- * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR_NOMEM or #FDS_IEMGR_ERR
+ * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
+ * and an error message is set (see fds_iemgr_last_err())
+ *
  * \note Element's \p scope is ignored.
  * \note Element's \p reverse element is ignored.
  */
@@ -499,7 +525,8 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t 
  * \param[in]     id        ID of the forward element
  * \param[in]     new_id    ID of a new reverse element
  * \param[in]     overwrite Overwrite previously defined reverse element
- * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR_NOMEM or #FDS_IEMGR_ERR
+ * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
+ * and an error message is set (see fds_iemgr_last_err())
  */
 FDS_API int
 fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id,
@@ -510,7 +537,8 @@ fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t 
  * \param[in,out] mgr  Manager
  * \param[in]     pen  Private Enterprise Number
  * \param[in]     id   ID of an element
- * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR_NOMEM or #FDS_IEMGR_ERR
+ * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
+ * and an error message is set (see fds_iemgr_last_err())
  */
 FDS_API int
 fds_iemgr_elem_remove(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id);
@@ -519,7 +547,7 @@ fds_iemgr_elem_remove(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id);
  * \brief Find a scope in the manager by a PEN
  * \param[in,out] mgr Manager
  * \param[in]     pen Private Enterprise Number
- * \return Scope on success, otherwise NULL
+ * \return Scope if exists, otherwise NULL and an error message is set (see fds_iemgr_last_err())
  */
 FDS_API const fds_iemgr_scope *
 fds_iemgr_scope_find_pen(fds_iemgr_t *mgr, const uint32_t pen);
@@ -528,7 +556,7 @@ fds_iemgr_scope_find_pen(fds_iemgr_t *mgr, const uint32_t pen);
  * \brief Find a scope in the manager by a name
  * \param[in,out] mgr    Manager
  * \param[in]     name   Scope name
- * \return Scope on success, otherwise NULL
+ * \return Scope if exists, otherwise NULL and an error message is set (see fds_iemgr_last_err())
  */
 FDS_API const fds_iemgr_scope *
 fds_iemgr_scope_find_name(fds_iemgr_t *mgr, const char *name);

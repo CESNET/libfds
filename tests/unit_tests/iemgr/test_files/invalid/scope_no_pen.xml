@@ -3,7 +3,7 @@
 <ipfix-elements>
     <scope>
         <name>iana</name>
-        <biflow mode="split">1</biflow>
+        <biflow mode="split">2</biflow>
     </scope>
 
     <element>

@@ -1,6 +1,42 @@
 /**
+ * \file   include/libfds/iemgr.h
  * \author Michal Režňák
+ * \brief  Definition of the iemgr
  * \date   8. August 2017
+ */
+
+/* Copyright (C) 2017 CESNET, z.s.p.o.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * ALTERNATIVELY, provided that this notice is retained in full, this
+ * product may be distributed under the terms of the GNU General Public
+ * License (GPL) version 2 or later, in which case the provisions
+ * of the GPL apply INSTEAD OF those given above.
+ *
+ * This software is provided ``as is'', and any express or implied
+ * warranties, including, but not limited to, the implied warranties of
+ * merchantability and fitness for a particular purpose are disclaimed.
+ * In no event shall the company or contributors be liable for any
+ * direct, indirect, incidental, special, exemplary, or consequential
+ * damages (including, but not limited to, procurement of substitute
+ * goods or services; loss of use, data, or profits; or business
+ * interruption) however caused and on any theory of liability, whether
+ * in contract, strict liability, or tort (including negligence or
+ * otherwise) arising in any way out of the use of this software, even
+ * if advised of the possibility of such damage.
+ *
  */
 
 #include <iostream>
@@ -61,6 +97,31 @@ void mtime_remove(fds_iemgr_t *mgr)
     mgr->mtime.clear();
 }
 
+/**
+ * \brief Save modification time of a file to the manager
+ * \param[in,out] mgr  Manager
+ * \param[in]     path Path and name of the file e.g. 'tmp/user/elements/iana.xml'
+ * \return True on success, otherwise False
+ */
+bool
+mtime_save(fds_iemgr_t* mgr, const string& path)
+{
+    char* file_path = realpath(path.c_str(), nullptr);
+    if (file_path == nullptr) {
+        mgr->err_msg = "Relative path '"+path+ "' could not be changed to absolute";
+        return false;
+    }
+
+    struct stat sb;
+    if (stat(file_path, &sb) != 0) {
+        mgr->err_msg = "Could not read information about the file '" +string(file_path)+ "'";
+        return false;
+    }
+
+    mgr->mtime.emplace_back(file_path, sb.st_mtim);
+    return true;
+}
+
 void
 fds_iemgr_clear(fds_iemgr_t *mgr)
 {
@@ -107,32 +168,6 @@ fds_iemgr_compare_timestamps(fds_iemgr *mgr)
 }
 
 /**
- * \brief Save modification time of a file to the manager
- * \param[in,out] mgr  Manager
- * \param[in]     path Path and name of the file e.g. 'tmp/user/elements/iana.xml'
- * \return True on success, otherwise False
- */
-// TODO change file_path to string, not necessary
-bool
-mtime_save(fds_iemgr_t* mgr, const string& path)
-{
-    char* file_path = realpath(path.c_str(), nullptr);
-    if (file_path == nullptr) {
-        mgr->err_msg = "Relative path '"+path+ "' could not be changed to absolute";
-        return false;
-    }
-
-    struct stat sb;
-    if (stat(file_path, &sb) != 0) {
-        mgr->err_msg = "Could not read information about the file '" +string(file_path)+ "'";
-        return false;
-    }
-
-    mgr->mtime.emplace_back(file_path, sb.st_mtim);
-    return true;
-}
-
-/**
  * \brief Read elements defined by parser from a file and save them to a manager
  * \param[out] mgr    Manager
  * \param[in]  file   XML file
@@ -167,11 +202,11 @@ file_read(fds_iemgr_t* mgr, FILE* file, fds_xml_t* parser)
 }
 
 /**
- * \brief Parse file to the manager
+ * \brief Parse file and save scope with all elements to the manager
  * \param[in,out] mgr    Manager
  * \param[in]     parser Parser
  * \param[in]     path   Path to the file
- * \return True on success, otherwise False
+ * \return True if scope and elements where created successfully, otherwise False
  */
 bool
 file_parse(fds_iemgr_t *mgr, fds_xml_t* parser, const char *path)
@@ -335,12 +370,8 @@ mgr_check(fds_iemgr_t *mgr)
 int
 fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path)
 {
-    assert(mgr != nullptr);
-
-    if (path == nullptr) {
-        mgr->err_msg = "No directory specified in fds_iemgr_read_dir";
-        return FDS_IEMGR_ERR;
-    }
+    assert(mgr  != nullptr);
+    assert(path != nullptr);
 
     if (!mgr->pens.empty()) {
         fds_iemgr_clear(mgr);
@@ -362,12 +393,8 @@ fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path)
 int
 fds_iemgr_read_file(fds_iemgr_t *mgr, const char *path, bool overwrite)
 {
-    assert(mgr != nullptr);
-
-    if (path == nullptr) {
-        mgr->err_msg = "No file specified in fds_iemgr_read_file";
-        return FDS_IEMGR_ERR;
-    }
+    assert(mgr  != nullptr);
+    assert(path != nullptr);
 
     mgr->can_overwrite_elem = overwrite;
     mgr->overwrite_scope.first = true;
@@ -459,7 +486,7 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t 
         }
 
         auto res = unique_elem(element_copy(scope, elem), &::element_remove);
-        if (!element_push(mgr, scope, move(res), -1)) {
+        if (!element_push(mgr, scope, move(res), BIFLOW_ID_INVALID)) {
             return FDS_IEMGR_ERR;
         }
     } catch (...) {
@@ -547,11 +574,7 @@ const fds_iemgr_scope *
 fds_iemgr_scope_find_name(fds_iemgr_t *mgr, const char *name)
 {
     assert(mgr != nullptr);
-
-    if (name == nullptr) {
-        mgr->err_msg = "Name of a scope was not defined.";
-        return nullptr;
-    }
+    assert(name != nullptr);
 
     const auto res = binary_find(mgr->prefixes, string(name));
     if (res == nullptr) {

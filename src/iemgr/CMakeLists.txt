@@ -10,4 +10,3 @@ set(IEMGR_SRC
 )
 
 add_library(iemgr_obj OBJECT ${IEMGR_SRC})
-

@@ -24,3 +24,9 @@ TEST_F(Mgr, elem_remove)
     EXPECT_EQ(elem, nullptr);
     EXPECT_NO_ERROR;
 }
+
+TEST_F(Mgr, no_scope)
+{
+    EXPECT_EQ(fds_iemgr_elem_remove(mgr, 0, 0), FDS_IEMGR_NOT_FOUND);
+    EXPECT_NO_ERROR;
+}

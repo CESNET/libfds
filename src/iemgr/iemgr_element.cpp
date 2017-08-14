@@ -1,7 +1,44 @@
 /**
+ * \file   src/iemgr/iemgr_element.cpp
  * \author Michal Režňák
- * \date   11.8.17
+ * \brief  Implementation of the iemgr element
+ * \date   8. August 2017
  */
+
+/* Copyright (C) 2017 CESNET, z.s.p.o.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * ALTERNATIVELY, provided that this notice is retained in full, this
+ * product may be distributed under the terms of the GNU General Public
+ * License (GPL) version 2 or later, in which case the provisions
+ * of the GPL apply INSTEAD OF those given above.
+ *
+ * This software is provided ``as is'', and any express or implied
+ * warranties, including, but not limited to, the implied warranties of
+ * merchantability and fitness for a particular purpose are disclaimed.
+ * In no event shall the company or contributors be liable for any
+ * direct, indirect, incidental, special, exemplary, or consequential
+ * damages (including, but not limited to, procurement of substitute
+ * goods or services; loss of use, data, or profits; or business
+ * interruption) however caused and on any theory of liability, whether
+ * in contract, strict liability, or tort (including negligence or
+ * otherwise) arising in any way out of the use of this software, even
+ * if advised of the possibility of such damage.
+ *
+ */
+
 #include <libfds/iemgr.h>
 #include "iemgr_common.h"
 #include "iemgr_scope.h"
@@ -66,13 +103,20 @@ element_remove(fds_iemgr_elem* elem)
 }
 
 bool
-element_can_overwritten(fds_iemgr_t* mgr, const fds_iemgr_elem* elem)
+element_can_overwritten(fds_iemgr_t* mgr, const fds_iemgr_elem* dst, const fds_iemgr_elem* src)
 {
     if (!mgr->can_overwrite_elem) {
-        mgr->err_msg = "Element with ID '" +to_string(elem->id)+ "' in scope with PEN '"
-                       +to_string(elem->scope->pen)+ "' cannot be overwritten.";
+        mgr->err_msg = "Element with ID '" +to_string(src->id)+ "' in scope with PEN '"
+                       +to_string(src->scope->pen)+ "' cannot be overwritten.";
         return false;
     }
+
+    if (dst->is_reverse != src->is_reverse) {
+        mgr->err_msg = "Element with ID '" +to_string(src->id)+ "' in scope with PEN '"
+                       +to_string(src->scope->pen)+ "' cannot overwrite reverse element with same ID.";
+        return false;
+    }
+
     return true;
 }
 
@@ -95,15 +139,15 @@ element_check_reverse_param(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_
         return false;
     }
 
-    if (id > uint15_limit) {
+    if (id > UINT15_LIMIT) {
         mgr->err_msg = "ID '" +to_string(id)+
-                       "' of a new reverse element is bigger than limit '" +to_string(uint15_limit);
+                       "' of a new reverse element is bigger than limit '" +to_string(UINT15_LIMIT);
         return false;
     }
 
     if (elem->id == id) {
         mgr->err_msg = "ID '"+to_string(id)+
-                "' of the reverse element is already defined defined to the forward element.";
+                "' of the reverse element is already defined to the forward element.";
         return false;
     }
 
@@ -207,7 +251,7 @@ bool
 element_overwrite(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_iemgr_elem* dst,
                   unique_elem src, int biflow_id)
 {
-    if (!element_can_overwritten(mgr, dst)) {
+    if (!element_can_overwritten(mgr, dst, src.get())) {
         return false;
     }
 
@@ -263,7 +307,7 @@ bool
 element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
 {
     auto elem = unique_elem(element_create(), &::element_remove);
-    int biflow_id = -1;
+    int biflow_id = BIFLOW_ID_INVALID;
 
     const struct fds_xml_cont *cont;
     while(fds_xml_next(ctx, &cont) != FDS_XML_EOC) {
@@ -279,11 +323,6 @@ element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
                 return false;
             }
             elem->name = copy_str(cont->ptr_string);
-            if (elem->name == nullptr) {
-                mgr->err_msg = "Name of the element with ID '" +to_string(elem->id)+
-                        "' in scope with PEN '" +to_string(scope->head.pen)+ "' not recognised.";
-                return false;
-            }
             break;
         case ELEM_DATA_TYPE:
             elem->data_type = get_data_type(cont->ptr_string);
@@ -364,7 +403,7 @@ void
 elements_remove_reverse_split(fds_iemgr_scope_inter* scope)
 {
     for (auto iter = scope->names.begin(); iter != scope->names.end(); ) {
-        if ((iter.base()->second->id & (1 << scope->head.biflow_id)) != 0) {
+        if ((iter.base()->second->id & SPLIT_BIT) != 0) {
             iter = scope->names.erase(iter);
         } else {
             ++iter;
@@ -372,7 +411,7 @@ elements_remove_reverse_split(fds_iemgr_scope_inter* scope)
     }
 
     for (auto iter = scope->ids.begin(); iter != scope->ids.end(); ) {
-        if ((iter.base()->second->id & (1 << scope->head.biflow_id)) != 0) {
+        if ((iter.base()->second->id & SPLIT_BIT) != 0) {
             element_remove(iter.base()->second);
             iter = scope->ids.erase(iter);
         } else {
@@ -382,14 +421,12 @@ elements_remove_reverse_split(fds_iemgr_scope_inter* scope)
     }
 }
 
-bool
+void
 elements_remove_reverse(fds_iemgr_scope_inter* scope)
 {
     if (scope->head.biflow_mode == FDS_BF_SPLIT) {
         elements_remove_reverse_split(scope);
     }
-
-    return true;
 }
 
 int

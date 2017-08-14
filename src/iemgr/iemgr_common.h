@@ -1,8 +1,51 @@
 /**
+ * \file   src/iemgr/iemgr_common.h
  * \author Michal Režňák
- * \date   11.8.17
+ * \brief  Internal common definitions
+ * \date   8. August 2017
  */
+
+/* Copyright (C) 2017 CESNET, z.s.p.o.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * ALTERNATIVELY, provided that this notice is retained in full, this
+ * product may be distributed under the terms of the GNU General Public
+ * License (GPL) version 2 or later, in which case the provisions
+ * of the GPL apply INSTEAD OF those given above.
+ *
+ * This software is provided ``as is'', and any express or implied
+ * warranties, including, but not limited to, the implied warranties of
+ * merchantability and fitness for a particular purpose are disclaimed.
+ * In no event shall the company or contributors be liable for any
+ * direct, indirect, incidental, special, exemplary, or consequential
+ * damages (including, but not limited to, procurement of substitute
+ * goods or services; loss of use, data, or profits; or business
+ * interruption) however caused and on any theory of liability, whether
+ * in contract, strict liability, or tort (including negligence or
+ * otherwise) arising in any way out of the use of this software, even
+ * if advised of the possibility of such damage.
+ *
+ */
+
 #pragma once
+
+/**
+ * This only remove warning when compiling with gcc. Should be fixed soon
+ * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=69884
+ */
+#pragma GCC diagnostic ignored "-Wignored-attributes"
 
 #include <iostream>
 #include <vector>
@@ -23,29 +66,52 @@ using std::sort;
 using std::move;
 using std::to_string;
 
-#define uint32_limit (std::numeric_limits<uint32_t>::max()     )
-#define uint15_limit (std::numeric_limits<uint16_t>::max() >> 1)
-#define reverse_name ("@reverse")
+/** Maximal value of the uint32                                  */
+#define UINT32_LIMIT      (std::numeric_limits<uint32_t>::max()     )
+/** Maximal value of the uint15                                  */
+#define UINT15_LIMIT      (std::numeric_limits<uint16_t>::max() >> 1)
+/** Postfix to the name of the reverse element                   */
+#define REVERSE_NAME      ("@reverse")
+/** Define when invalid biflow ID is defined                     */
+#define BIFLOW_ID_INVALID (-1)
+/** Defines one bit which in normal elements must be 0 and in reverse elements must be 1 */
+#define SPLIT_BIT         (1 << (scope->head.biflow_id -1))
 
-/** Saved elements with same PEN and same PREFIX                                     */
+/** Saved elements with same PEN and same PREFIX                                          */
 struct fds_iemgr_scope_inter {
-    struct fds_iemgr_scope                      head;   /**< Scope head              */
-    vector <pair <uint16_t, fds_iemgr_elem *> > ids;    /**< Elements sorted by ID   */
-    vector <pair <string,   fds_iemgr_elem *> > names;  /**< Elements sorted by NAME */
+    struct fds_iemgr_scope                      head;       /**< Scope head               */
+    vector <pair <uint16_t, fds_iemgr_elem *> > ids;        /**< Elements sorted by ID    */
+    vector <pair <string,   fds_iemgr_elem *> > names;      /**< Elements sorted by NAME  */
     bool                                        is_reverse; /**< True if scope is reverse */
 };
 
-/** Saved elements and sorted pointers by different values (PEN, PREFIX, etc.)               */
+/** Saved elements and sorted pointers by different values (PEN, PREFIX, etc.) */
 struct fds_iemgr {
-    string                         err_msg;                     /**< Error message           */
-    vector<pair<char*, timespec> > mtime;                 /**< Modification time of files */
+    /** Error message              */
+    string                         err_msg;
+    /** First is absolute path to the file and second is modification time */
+    vector<pair<char*, timespec> > mtime;
+    /**
+     * First is scope's PEN and second points to the scope with that PEN.
+     * PENs are sorted from the lowest value to the highest.
+     */
+    vector<pair<uint32_t, fds_iemgr_scope_inter *> > pens;
+    /**
+     * First is scope's PREFIX and second points to the scope with that PREFIX.
+     * Prefixes are sorted alphabetically.
+     */
+    vector<pair<string,   fds_iemgr_scope_inter *> > prefixes;
 
-    vector<pair<uint32_t, fds_iemgr_scope_inter *> > pens;     /**< Elements sorted by PEN     */
-    vector<pair<string, fds_iemgr_scope_inter *> > prefixes;/**< Elements sorted by PREFIX  */
-
-    set<uint16_t>              parsed_ids;       /**< IDs of parsed elements from one file **/
-    bool                       can_overwrite_elem;             /**< Can overwrite elements */
-    pair<bool, set<uint32_t> > overwrite_scope;                /**< PENs of overwritten scopes */
+    /**
+     * These are used only as a temporary values for overwriting.
+     * On the end of the parsing should be empty
+     */
+    /** IDs of parsed elements from one file **/
+    set<uint16_t>              parsed_ids;
+    /** Define if can overwrite elements */
+    bool                       can_overwrite_elem;
+    /** First define if can overwrite scope and second are PENs of overwritten scopes */
+    pair<bool, set<uint32_t> > overwrite_scope;
 };
 
 /** IDs of XML args */
@@ -66,7 +132,8 @@ enum FDS_XML_ID {
     ELEM_BIFLOW,
 };
 
-/** This declarations must be here because of the unique pointers */ // TODO
+/** \cond DOXYGEN_SKIP_THIS */
+/** These declarations must be here because unique pointers use them */
 void scope_remove(fds_iemgr_scope_inter* scope);
 void element_remove(fds_iemgr_elem* elem);
 
@@ -76,6 +143,7 @@ using unique_dir    = std::unique_ptr<DIR,                   decltype(&::closedi
 using unique_file   = std::unique_ptr<FILE,                  decltype(&::fclose)>;
 using unique_parser = std::unique_ptr<fds_xml_t,             decltype(&::fds_xml_destroy)>;
 using unique_mgr    = std::unique_ptr<fds_iemgr_t,           decltype(&::fds_iemgr_destroy)>;
+/** \endcond */
 
 /**
  * \brief Find iterator in vector
@@ -146,10 +214,22 @@ auto find_second(P& vector, const T value) -> decltype(vector.begin().base()->se
 template<typename V, typename P>
 struct func_pred_pair
 {
+    /**
+     * \brief Compare first element of the pair with a value
+     * \param[in] value Value
+     * \param[in] pair  Pair
+     * \return Comparison between \p value and first element of \p pair
+     */
     bool operator() (const V value, const pair<V, P>& pair) const {
         return value < pair.first;
     }
 
+    /**
+     * \brief Compare first element of the pair with a value
+     * \param[in] pair  Pair
+     * \param[in] value Value
+     * \return Comparison between \p value and first element of \p pair
+     */
     bool operator() (const pair<V, P>& pair, const V value) const {
         return pair.first < value;
     }
@@ -340,6 +420,11 @@ mgr_remove_temp(fds_iemgr_t* mgr);
 void
 mgr_sort(fds_iemgr_t* mgr);
 
-// TODO
+/**
+ * \brief Create copy of the manager. Don't copy temporary parts of the manager.
+ * \param[in] mgr Manager
+ * \return Copied manager on success,
+ * otherwise nullptr and an error message is set (see fds_iemgr_last_err())
+ */
 fds_iemgr_t*
 mgr_copy(fds_iemgr_t* mgr);

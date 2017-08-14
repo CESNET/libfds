@@ -4,7 +4,7 @@
     <scope>
         <pen>3</pen>
         <name>next</name>
-        <biflow mode="split">0</biflow>
+        <biflow mode="split">1</biflow>
     </scope>
 
     <element>

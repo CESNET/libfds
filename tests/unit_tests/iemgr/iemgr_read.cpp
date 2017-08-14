@@ -140,6 +140,18 @@ TEST_F(Mgr, file_scope_invalid_mode)
     EXPECT_ERROR;
 }
 
+TEST_F(Mgr, biflow_same_normal)
+{
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "biflow_same_normal.xml", true), FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
+TEST_F(Mgr, normal_over_reverse)
+{
+    EXPECT_NE(fds_iemgr_read_dir(mgr, FILES_INVALID "normal_over_reverse"), FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
 TEST_F(Mgr, file_else_if)
 {
     ASSERT_EQ(fds_iemgr_read_file(mgr, FILES_VALID "else_if.xml", true), FDS_IEMGR_OK);
@@ -292,6 +304,85 @@ TEST_F(Mgr, file_elem_empty_name)
     EXPECT_ERROR;
 }
 
+TEST_F(Mgr, file_pen_with_biflowId)
+{
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "pen_with_biflowId.xml", true),
+              FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
+TEST_F(Mgr, scope_name_empty)
+{
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "scope_name_empty.xml", true),
+              FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
+TEST_F(Mgr, two_same_elements)
+{
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "two_same_elem.xml", true),
+              FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
+TEST_F(Mgr, scope_invalid_biflow)
+{
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "scope_big_biflowId.xml", true),
+              FDS_IEMGR_OK);
+    EXPECT_ERROR;
+
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "scope_negative_biflowId.xml", true),
+              FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+TEST_F(Mgr, scope_invalid_pen)
+{
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "scope_big_pen.xml", true),
+              FDS_IEMGR_OK);
+    EXPECT_ERROR;
+
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "scope_negative_pen.xml", true),
+              FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
+TEST_F(Mgr, no_scope)
+{
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "no_scope.xml", true),
+              FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
+TEST_F(Mgr, elem_big_biflowId)
+{
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "elem_big_biflowId.xml", true),
+              FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
+TEST_F(Mgr, add_reverse)
+{
+    EXPECT_EQ(fds_iemgr_read_file(mgr, FILES_VALID "individual.xml", true),
+              FDS_IEMGR_OK);
+    EXPECT_NO_ERROR;
+
+    fds_iemgr_elem elem{};
+    elem.id = 1;
+    elem.name = const_cast<char *>("a");
+    elem.data_unit = FDS_EU_FRAMES;
+
+    EXPECT_EQ(fds_iemgr_elem_add(mgr, &elem, 0, true),
+              FDS_IEMGR_OK);
+    EXPECT_NO_ERROR;
+}
+
+TEST_F(Mgr, not_existing_dir)
+{
+    EXPECT_NE(fds_iemgr_read_dir(mgr, FILES_INVALID "not_existing_dir"),
+              FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
 TEST_F(Mgr, file_remove_reverse_split)
 {
     ASSERT_EQ(fds_iemgr_read_file(mgr, FILES_VALID "split.xml", true), FDS_IEMGR_OK);
@@ -303,6 +394,12 @@ TEST_F(Mgr, file_remove_reverse_split)
 TEST_F(Mgr, file_elem_invalid_type)
 {
     EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "elem_data_type.xml", true), FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
+TEST_F(Mgr, file_invalid_biflow_mode)
+{
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "invalid_biflow_mode.xml", true), FDS_IEMGR_OK);
     EXPECT_ERROR;
 }
 
@@ -324,14 +421,44 @@ TEST_F(Mgr, file_elem_invalid_status)
     EXPECT_ERROR;
 }
 
+TEST_F(Mgr, scope_split_with_reserve)
+{
+    EXPECT_NE(fds_iemgr_read_file(mgr, FILES_INVALID "scope_split_with_reserve.xml", true), FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
 TEST_F(Mgr, dir_no_file)
 {
     EXPECT_EQ(fds_iemgr_read_dir(mgr, FILES_VALID "no_file"), FDS_IEMGR_OK);
     EXPECT_NO_ERROR;
 }
 
+TEST_F(Mgr, dir_same_name)
+{
+    EXPECT_NE(fds_iemgr_read_dir(mgr, FILES_INVALID "same_name"), FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
 TEST_F(Mgr, dir_success)
 {
     EXPECT_EQ(fds_iemgr_read_dir(mgr, FILES_VALID "valid"), FDS_IEMGR_OK);
     EXPECT_NO_ERROR;
+}
+
+TEST_F(Mgr, file_add_to_reverse)
+{
+    EXPECT_EQ(fds_iemgr_read_file(mgr, FILES_VALID "individual.xml", true), FDS_IEMGR_OK);
+    EXPECT_NO_ERROR;
+
+    EXPECT_NE(fds_iemgr_elem_add_reverse(mgr, 0, 1, 42, false), FDS_IEMGR_OK);
+    EXPECT_ERROR;
+}
+
+TEST_F(Mgr, dir_double)
+{
+    EXPECT_NE(fds_iemgr_read_dir(mgr, FILES_INVALID "multiple_system"), FDS_IEMGR_OK);
+    EXPECT_ERROR;
+
+    EXPECT_NE(fds_iemgr_read_dir(mgr, FILES_INVALID "multiple_user"), FDS_IEMGR_OK);
+    EXPECT_ERROR;
 }

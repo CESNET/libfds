@@ -3,7 +3,8 @@
 <ipfix-elements>
     <scope>
         <pen>0</pen>
-        <biflow mode="split">2</biflow>
+        <name>iana</name>
+        <biflow mode="individual">29</biflow>
     </scope>
 
     <element>
@@ -13,6 +14,19 @@
         <dataSemantics>deltaCounter</dataSemantics>
         <units>octets</units>
         <status>current</status>
+        <biflowId>41</biflowId>
     </element>
+    
+    <element>
+        <id>1</id>
+        <name>a</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+        <biflowId>41</biflowId>
+    </element>
+    
 </ipfix-elements>
 
+ 

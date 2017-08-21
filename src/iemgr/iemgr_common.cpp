@@ -261,7 +261,7 @@ get_biflow_id(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope, int64_t id)
     if (id < 0) {
         mgr->err_msg = "Number '" +to_string(id)+
                 "' defined as biflow ID of the scope with PEN cannot be negative.";
-        return false;
+        return BIFLOW_ID_INVALID;
     }
 
     if (scope->head.biflow_mode == FDS_BF_SPLIT) {

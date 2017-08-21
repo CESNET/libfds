@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <libxml2/libxml/parser.h>
+#include <libfds/common.h>
 
 extern "C" {
 	#include <libfds/xml_parser.h>
@@ -139,7 +140,7 @@ TEST_F(Parse, valid)
 
     EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
-    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_EOC);
 
     EXPECT_EQ(content->id, 1);
     EXPECT_EQ(content->type, OPTS_T_UINT);
@@ -207,7 +208,7 @@ TEST_F(Parse, no_trim)
 
     EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
-    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_EOC);
 
     EXPECT_EQ(content->id, 1);
     EXPECT_EQ(content->type, OPTS_T_STRING);
@@ -235,13 +236,13 @@ TEST_F(Parse, multi)
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
     // first elem
-    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_EOC);
     EXPECT_EQ(content->id, 1);
     EXPECT_EQ(content->type, OPTS_T_STRING);
     EXPECT_STREQ(content->ptr_string, "retezec");
 
     // second elem
-    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_EOC);
     EXPECT_EQ(content->id, 1);
     EXPECT_EQ(content->type, OPTS_T_STRING);
     EXPECT_STREQ(content->ptr_string, "retezec");
@@ -544,9 +545,9 @@ TEST_F(Parse, properties_valid)
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
 
     // get attribute
-    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_EOC);
     ctx = content->ptr_ctx;
-    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_EOC);
     EXPECT_STREQ(content->ptr_string, "  some text  ");
 }
 
@@ -615,10 +616,10 @@ TEST_F(Parse, raw_valid)
                 "</raw>"
             "</root>";
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_OK);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_OK);
     ctx = fds_xml_parse_mem(parser, mem, true);
 
-    EXPECT_EQ(fds_xml_next(ctx, &content), FDS_XML_OK);
+    EXPECT_EQ(fds_xml_next(ctx, &content), FDS_OK);
 
     EXPECT_EQ(content->id, 1);
     EXPECT_EQ(content->type, OPTS_T_STRING);

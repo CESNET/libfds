@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <libxml2/libxml/parser.h>
+#include <libfds/common.h>
 
 extern "C" {
 	#include <libfds/xml_parser.h>
@@ -74,7 +75,7 @@ TEST_F(Rewind, nested)
             OPTS_NESTED(1, "nested", nested, 0),
             OPTS_END
     };
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_OK);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_OK);
 
     const char *mem =
             "<root>"
@@ -84,9 +85,9 @@ TEST_F(Rewind, nested)
             "</root>";
     ctx = fds_xml_parse_mem(parser, mem, true);
 
-    EXPECT_NE(fds_xml_next(ctx, &cont), FDS_XML_EOC);
+    EXPECT_NE(fds_xml_next(ctx, &cont), FDS_EOC);
     fds_xml_ctx *cur_ctx = cont->ptr_ctx;
-    EXPECT_NE(fds_xml_next(cur_ctx, &cont), FDS_XML_EOC);
+    EXPECT_NE(fds_xml_next(cur_ctx, &cont), FDS_EOC);
 
     fds_xml_rewind(ctx);
 }
@@ -112,6 +113,6 @@ TEST_F(Rewind, over)
     fds_xml_rewind(ctx);
     fds_xml_next(ctx, &content_after);
 
-    EXPECT_EQ(fds_xml_next(ctx, &content_after), FDS_XML_EOC);
+    EXPECT_EQ(fds_xml_next(ctx, &content_after), FDS_EOC);
 }
 

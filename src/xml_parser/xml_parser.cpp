@@ -1,6 +1,43 @@
-//
-// Created by Michal Režňák on 5/31/17.
-//
+/**
+ * \file   src/xml_parser/xml_parser.cpp
+ * \author Michal Režňák <xrezna04@stud.fit.vutbr.cz>
+ * \brief  XML parser implementation
+ * \date   10. July 2017
+ */
+
+/* Copyright (C) 2016 CESNET, z.s.p.o.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * ALTERNATIVELY, provided that this notice is retained in full, this
+ * product may be distributed under the terms of the GNU General Public
+ * License (GPL) version 2 or later, in which case the provisions
+ * of the GPL apply INSTEAD OF those given above.
+ *
+ * This software is provided ``as is'', and any express or implied
+ * warranties, including, but not limited to, the implied warranties of
+ * merchantability and fitness for a particular purpose are disclaimed.
+ * In no event shall the company or contributors be liable for any
+ * direct, indirect, incidental, special, exemplary, or consequential
+ * damages (including, but not limited to, procurement of substitute
+ * goods or services; loss of use, data, or profits; or business
+ * interruption) however caused and on any theory of liability, whether
+ * in contract, strict liability, or tort (including negligence or
+ * otherwise) arising in any way out of the use of this software, even
+ * if advised of the possibility of such damage.
+ *
+ */
 
 #include <iostream>
 #include <vector>
@@ -9,17 +46,19 @@
 #include <limits>
 #include <set>
 #include <libfds/xml_parser.h>
-//#include "../../include/libfds/xml_parser.h"
-
+#include <libfds/common.h>
 #include <bits/unique_ptr.h>
+
+/** \cond DOXYGEN_SKIP_THIS */
 using unique_ctx = std::unique_ptr<xmlParserCtxt, decltype(&::xmlFreeParserCtxt)>;
 using unique_doc = std::unique_ptr<xmlDoc,        decltype(&::xmlFreeDoc)>;
+/** \endcond */
 
-/** Parser structure.                                            */
+/** Parser structure.                                              */
 struct fds_xml {
-    const fds_xml_args *opts; /**< saved user defined conditions */
-    fds_xml_ctx *ctx;         /**< parsed context                */
-    std::string error_msg;    /**< error message                 */
+    const fds_xml_args *opts{}; /**< saved user defined conditions */
+    fds_xml_ctx *ctx{};         /**< parsed context                */
+    std::string error_msg;      /**< error message                 */
 };
 
 /** Context of one level of xml.                                      */
@@ -53,19 +92,19 @@ struct attributes {
 int
 fds_xml_create(fds_xml_t **parser)
 {
-    if (parser == NULL) {
-        return FDS_XML_ERR_FMT;
+    if (parser == nullptr) {
+        return FDS_ERR_FMT;
     }
 
     *parser = new (std::nothrow) fds_xml;
     if (*parser == nullptr) {
-        return FDS_XML_ERR_NOMEM;
+        return FDS_ERR_NOMEM;
     }
 
     (*parser)->ctx = nullptr;
     (*parser)->opts = nullptr;
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -76,7 +115,7 @@ fds_xml_create(fds_xml_t **parser)
 void
 destroy_context(fds_xml_ctx *ctx)
 {
-    if (ctx == NULL) {
+    if (ctx == nullptr) {
         return;
     }
 
@@ -99,7 +138,7 @@ destroy_context(fds_xml_ctx *ctx)
 void
 fds_xml_destroy(fds_xml_t *parser)
 {
-    if (parser == NULL) {
+    if (parser == nullptr) {
         return;
     }
 
@@ -116,7 +155,7 @@ fds_xml_destroy(fds_xml_t *parser)
 const std::string
 get_type(const fds_xml_args *opt)
 {
-    if (opt == NULL) {
+    if (opt == nullptr) {
         return "";
     }
 
@@ -145,7 +184,7 @@ get_type(const fds_xml_args *opt)
         break;
     }
 
-    if (opt->name != NULL)
+    if (opt->name != nullptr)
         res += " '" + std::string(opt->name) + "'";
 
     return res;
@@ -154,12 +193,12 @@ get_type(const fds_xml_args *opt)
 /**
  * Find name in vector
  *
- * \paramp[in,out] names Vector with saved names
+ * \param[in,out]  names Vector with saved names
  * \param[in]      name  Searched name
  * \return True on success, otherwise False
  */
 bool
-check_common_find_name(std::vector<std::string> &names, const std::string name)
+check_common_find_name(std::vector<std::string> &names, const std::string &name)
 {
     // only one occurrence of element name
     for (const auto &cur_name : names) {
@@ -168,7 +207,7 @@ check_common_find_name(std::vector<std::string> &names, const std::string name)
         }
     }
     // save name
-    names.push_back(std::string(name));
+    names.emplace_back(name);
 
     return false;
 }
@@ -178,7 +217,7 @@ check_common_find_name(std::vector<std::string> &names, const std::string name)
  *
  * \param[in]     opt    One element.
  * \param[out]    parser Parsed user defined conditions
- * \param[in,out] names  Saved names of elements, attributes and their IDs
+ * \param[in,out] attr   Saved names of elements, attributes and their IDs
  * \return OK on success, or Err.
  */
 int
@@ -190,35 +229,36 @@ check_common(
     // ID
     if (opt.id < 0) {
         parser->error_msg = "Wrong ID of element " + get_type(&opt);
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     // each element must have unique ID
     if (opt.id != 0 && attr.ids.find(opt.id) != attr.ids.end()) { // founded
         parser->error_msg = "ID of element " + get_type(&opt) + " is previously used";
-        return FDS_XML_ERR_FMT;
-    } else if (opt.id != 0) {
+        return FDS_ERR_FMT;
+    }
+    if (opt.id != 0) {
         attr.ids.insert(opt.id);
     }
 
     // FLAGS
     if (opt.flags < 0) {
         parser->error_msg = "Wrong flags of element " + get_type(&opt);
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     // don't check name in element text and root
     if (opt.comp == OPTS_C_TEXT || opt.comp == OPTS_C_ROOT) {
-        return FDS_XML_OK;
+        return FDS_OK;
     }
 
     // NAME
-    if (opt.name == NULL) {
+    if (opt.name == nullptr) {
         parser->error_msg = "Name of the " + get_type(&opt) + " is missing";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -226,7 +266,7 @@ check_common(
  *
  * \param[in]     opt    One element.
  * \param[out]    parser Parsed user defined conditions
- * \param[in,out] names  Saved names of elements, attributes and their IDs
+ * \param[in,out] attr   Saved names of elements, attributes and their IDs
  * \return OK on success, or Err.
  */
 int
@@ -236,34 +276,34 @@ check_root(
     // check if it's really root
     if (opt.comp != OPTS_C_ROOT) {
         parser->error_msg = "First element must be root, not " + get_type(&opt);
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     if (opt.type != OPTS_T_NONE) {
         parser->error_msg = "Root element " + get_type(&opt) + " must have type OPTS_T_NONE";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    if (opt.next != NULL) {
+    if (opt.next != nullptr) {
         parser->error_msg = "Root element cannot be nested (have pointer to another struct)";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     if (opt.flags != 0) {
         parser->error_msg = "Root element cannot have flags";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     if (opt.name == nullptr) {
         parser->error_msg = "Root element must have name";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    if (check_common(opt, parser, attr) != FDS_XML_OK) { // TODO
-        return FDS_XML_ERR_FMT;
+    if (check_common(opt, parser, attr) != FDS_OK) {
+        return FDS_ERR_FMT;
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -278,19 +318,19 @@ int
 check_element(
     const struct fds_xml_args opt, fds_xml_t *parser, struct names &names, struct attributes &attr)
 {
-    if (check_common(opt, parser, attr) != FDS_XML_OK) {
-        return FDS_XML_ERR_FMT;
+    if (check_common(opt, parser, attr) != FDS_OK) {
+        return FDS_ERR_FMT;
     }
 
-    if (opt.next != NULL) {
-        parser->error_msg = "Element cannot be nested (opinter to next must be NULL)";
-        return FDS_XML_ERR_FMT;
+    if (opt.next != nullptr) {
+        parser->error_msg = "Element cannot be nested (opinter to next must be nullptr)";
+        return FDS_ERR_FMT;
     }
 
     // find element with same name
     if (check_common_find_name(names.elem, opt.name)) {
         parser->error_msg = "More than one occurrence of element " + get_type(&opt);
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     if (opt.type != OPTS_T_UINT && opt.type != OPTS_T_STRING && opt.type != OPTS_T_DOUBLE
@@ -302,10 +342,10 @@ check_element(
               "OPTS_T_DOUBLE\n"
               "OPTS_T_BOOL\n"
               "OPTS_T_INT";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -320,13 +360,13 @@ int
 check_attr(
     const struct fds_xml_args opt, fds_xml_t *parser, struct names &names, struct attributes &attr)
 {
-    if (check_common(opt, parser, attr) != FDS_XML_OK) {
-        return FDS_XML_ERR_FMT;
+    if (check_common(opt, parser, attr) != FDS_OK) {
+        return FDS_ERR_FMT;
     }
     // find attribute with same name
     if (check_common_find_name(names.attr, opt.name)) {
         parser->error_msg = "More than one occurrence of attribute " + get_type(&opt);
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     if (opt.type != OPTS_T_UINT && opt.type != OPTS_T_STRING && opt.type != OPTS_T_DOUBLE
@@ -338,20 +378,20 @@ check_attr(
               "OPTS_T_DOUBLE\n"
               "OPTS_T_BOOL\n"
               "OPTS_T_INT";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    if (opt.next != NULL) {
+    if (opt.next != nullptr) {
         parser->error_msg = "Attribute " + get_type(&opt) + " cannot be nested";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    if (opt.flags & OPTS_P_MULTI) {
+    if ((opt.flags & OPTS_P_MULTI) != 0) {
         parser->error_msg = "Attribute '" + get_type(&opt) + "' cannot have MULTI flag";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -359,33 +399,32 @@ check_attr(
  *
  * \param[in]     opt    One element.
  * \param[out]    parser Parsed user defined conditions
- * \param[in,out] names  Saved names of elements, attributes and their IDs
+ * \param[in,out] attr   Saved names of elements, attributes and their IDs
  * \return OK on success, or Err.
  */
 int
 check_text(
     const struct fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
 {
-    if (check_common(opt, parser, attr) != FDS_XML_OK) {
-        return FDS_XML_ERR_FMT;
+    if (check_common(opt, parser, attr) != FDS_OK) {
+        return FDS_ERR_FMT;
     }
 
-    if (opt.name != NULL) {
+    if (opt.name != nullptr) {
         parser->error_msg = "Element " + get_type(&opt) + " cannot have name";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    if (opt.next != NULL) {
+    if (opt.next != nullptr) {
         parser->error_msg = "Element " + get_type(&opt) + " cannot be nested";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     if (attr.text) {
         parser->error_msg = "Element text can be defined only once, second definition is " + get_type(&opt);
-        return FDS_XML_ERR_FMT;
-    } else {
-        attr.text = true;
+        return FDS_ERR_FMT;
     }
+    attr.text = true;
 
     if (opt.type != OPTS_T_UINT && opt.type != OPTS_T_STRING && opt.type != OPTS_T_DOUBLE
         && opt.type != OPTS_T_BOOL && opt.type != OPTS_T_INT) {
@@ -396,10 +435,10 @@ check_text(
               "OPTS_T_DOUBLE\n"
               "OPTS_T_BOOL\n"
               "OPTS_T_INT";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -416,33 +455,32 @@ check_nested(
 {
     // same tests for all components types
     int ret = check_common(opt, parser, attr);
-    if (ret != FDS_XML_OK) {
+    if (ret != FDS_OK) {
         return ret;
     }
 
     if (check_common_find_name(names.elem, opt.name)) {
         parser->error_msg = "More than one occurrence of element " + get_type(&opt);
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     if (opt.type != OPTS_T_CONTEXT) {
         parser->error_msg = "Element " + get_type(&opt) + " must have type OPTS_T_CONTEXT";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    if (opt.next == NULL) {
+    if (opt.next == nullptr) {
         parser->error_msg =
             "Next element of nested element '" + std::string(opt.name) + "' is missing";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     // called nested structure that was previously parsed (cyclic structures)
     if (attr.pointers.find(opt.next) != attr.pointers.end()) // founded
         return FDS_XML_NESTED;
-    else
-        attr.pointers.insert(opt.next);
 
-    return FDS_XML_OK;
+    attr.pointers.insert(opt.next);
+    return FDS_OK;
 }
 
 /**
@@ -455,22 +493,22 @@ check_nested(
 int
 check_end(const struct fds_xml_args opt, fds_xml_t *parser)
 {
-    if (opt.next != NULL) {
+    if (opt.next != nullptr) {
         parser->error_msg = get_type(&opt) + " cannot have nested element";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     if (opt.id < 0) {
         parser->error_msg = get_type(&opt) + " cant' have negative id";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     if (opt.type != OPTS_T_NONE) {
         parser->error_msg = "Element " + get_type(&opt) + " must have type OPTS_T_NONE";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 int
@@ -478,33 +516,33 @@ check_raw(const struct fds_xml_args opt, fds_xml_t *parser, struct names &names,
 {
     // same tests for all components types
     int ret = check_common(opt, parser, attr);
-    if (ret != FDS_XML_OK) {
+    if (ret != FDS_OK) {
         return ret;
     }
 
     // find element with same name
     if (check_common_find_name(names.elem, opt.name)) {
         parser->error_msg = "More than one occurrence of element " + get_type(&opt);
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    if (opt.next != NULL) {
+    if (opt.next != nullptr) {
         parser->error_msg = get_type(&opt) + " cannot have nested element";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     if (opt.type != OPTS_T_STRING) {
         parser->error_msg = "Element " + get_type(&opt) + " must have type OPTS_T_STRING";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
  * Check all conditions for all elements
  *
- * \param[in]  opt    Elements.
+ * \param[in]  opts    Elements.
  * \param[out] parser Parsed user defined conditions
  * \return OK on success, or Err.
  */
@@ -531,12 +569,12 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
         case OPTS_C_NESTED:
             ret = check_nested(opts[i], parser, names, attr);
             if (ret == FDS_XML_NESTED)
-                return FDS_XML_OK;
-            else if (ret != FDS_XML_OK)
+                return FDS_OK;
+            if (ret != FDS_OK)
                 return ret;
             // check nested recursively
             rec = check_all(opts[i].next, parser, attr);
-            if (rec != FDS_XML_OK)
+            if (rec != FDS_OK)
                 return rec;
             break;
         case OPTS_C_RAW:
@@ -544,27 +582,27 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
             break;
         case OPTS_C_ROOT:
             parser->error_msg = get_type(&opts[i]) + " should be only on beginning of args";
-            return FDS_XML_ERR_FMT;
+            return FDS_ERR_FMT;
         default:
             parser->error_msg = "Wrong definition of arg component in args with root '"
                 + std::string(opts->name) + "'\n"
                 + "It's possible that OPTS_END is missing after element '"
                 + std::string(opts[i - 1].name) + "'";
-            return FDS_XML_ERR_FMT;
+            return FDS_ERR_FMT;
         }
 
         // check return value from switch case
-        if (ret != FDS_XML_OK)
+        if (ret != FDS_OK)
             return ret;
     }
 
     // check last end
     ret = check_end(opts[i], parser);
-    if (ret != FDS_XML_OK) {
+    if (ret != FDS_OK) {
         return ret;
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -577,8 +615,8 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
 int
 fds_xml_set_args(const fds_xml_args *opts, fds_xml_t *parser)
 {
-    if (opts == NULL || parser == NULL) {
-        return FDS_XML_ERR_FMT;
+    if (opts == nullptr || parser == nullptr) {
+        return FDS_ERR_FMT;
     }
 
     struct attributes attr = {};
@@ -586,7 +624,7 @@ fds_xml_set_args(const fds_xml_args *opts, fds_xml_t *parser)
 
     // check first if it's root
     int retr = check_root(*opts, parser, attr);
-    if (retr != FDS_XML_OK) {
+    if (retr != FDS_OK) {
         return retr;
     }
 
@@ -596,16 +634,16 @@ fds_xml_set_args(const fds_xml_args *opts, fds_xml_t *parser)
         ret = check_all(opts+1, parser, attr);
     } catch (...) {
         parser->error_msg = "Memory allocation problem";
-        return FDS_XML_ERR_NOMEM;
+        return FDS_ERR_NOMEM;
     }
-    if (ret != FDS_XML_OK) {
-        parser->opts = NULL;
+    if (ret != FDS_OK) {
+        parser->opts = nullptr;
         return ret;
     }
 
     parser->opts = opts;
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -618,31 +656,31 @@ fds_xml_set_args(const fds_xml_args *opts, fds_xml_t *parser)
 const fds_xml_args *
 find_arg(const fds_xml_args *opts, const xmlChar *name)
 {
-    if (name == NULL || opts == NULL) {
-        return NULL;
+    if (name == nullptr || opts == nullptr) {
+        return nullptr;
     }
 
     for (int i = 0; opts[i].comp != OPTS_C_TERMINATOR; ++i) {
         // have same name
-        if (!xmlStrcmp(name, (const xmlChar *) opts[i].name)) {
+        if (xmlStrcmp(name, (const xmlChar *) opts[i].name) == 0) {
             return &opts[i];
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 /**
  * Try to find in args argument with text component.
  *
  * \param[in] opt Args with user defined conditions
- * \return Found text component on success, otherwise NULL
+ * \return Found text component on success, otherwise nullptr
  */
 const fds_xml_args *
 find_text(const fds_xml_args *opt)
 {
-    if (opt == NULL) {
-        return NULL;
+    if (opt == nullptr) {
+        return nullptr;
     }
 
     for (int i = 0; opt[i].comp != OPTS_C_TERMINATOR; ++i) {
@@ -651,7 +689,7 @@ find_text(const fds_xml_args *opt)
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 /**
@@ -660,14 +698,13 @@ find_text(const fds_xml_args *opt)
  * \param[in]     content   Content
  * \param[in,out] ctx       Context
  * \param[in]     opt       Contents ID.
- * \param[out]    error_msg Error message
  * \return Ok on success, otherwise Err
  */
 int
 parse_string(
-    const std::string content, fds_xml_ctx *ctx, const fds_xml_args *opt)
+    const std::string &content, fds_xml_ctx *ctx, const fds_xml_args *opt)
 {
-    fds_xml_cont cont;
+    fds_xml_cont cont{};
     char *res = new char[content.length() + 1];
     std::size_t len = content.copy(res, content.length(), 0);
     res[len] = '\0';
@@ -679,7 +716,7 @@ parse_string(
 
     // save context
     ctx->cont.push_back(cont);
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -693,22 +730,23 @@ parse_string(
  */
 int
 parse_int(
-    const std::string content, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
+    const std::string &content, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
 {
     long long res;                                     // string to number
     char *err;                                         // if char contains some string
-    fds_xml_cont cont;                                 // saved content to vector of fds_xml_cont
+    fds_xml_cont cont{};                               // saved content to vector of fds_xml_cont
     int64_t max = std::numeric_limits<int64_t>::max(); // max value of long
 
     res = std::strtoull(content.c_str(), &err, 10);
     if (*err != '\0') {
         error_msg = "In element '" + std::string(opt->name) + "' should be only number (int), not "
             + content;
-        return FDS_XML_ERR_FMT;
-    } else if (res > max) {
+        return FDS_ERR_FMT;
+    }
+    if (res > max) {
         error_msg =
             "Number in element '" + std::string(opt->name) + "' is bigger than limit of int";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     // save node to content
@@ -718,7 +756,7 @@ parse_int(
 
     // save context
     ctx->cont.push_back(cont);
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -732,17 +770,17 @@ parse_int(
  */
 int
 parse_double(
-    const std::string content, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
+    const std::string &content, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
 {
     double res;
     char *err;
-    fds_xml_cont cont;
+    fds_xml_cont cont{};
 
     res = std::strtod(content.c_str(), &err);
     if (*err != '\0') {
         error_msg = "In element '" + std::string(opt->name)
             + "' should be only number (double), not " + content;
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     // save node to content
@@ -752,13 +790,13 @@ parse_double(
 
     // save context
     ctx->cont.push_back(cont);
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
  * Convert bool from content and save to context
  *
- * \param[in]     content   Content
+ * \param[in]     text      Bool value in a string
  * \param[in,out] ctx       Context
  * \param[in]     opt       Contents ID.
  * \param[out]    error_msg Error message
@@ -766,22 +804,24 @@ parse_double(
  */
 int
 parse_bool(
-    const std::string text, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
+    const std::string &text, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
 {
     bool res;
-    fds_xml_cont cont;
+    fds_xml_cont cont{};
 
     // find if boll value is true or false
-    if (!strcasecmp(text.c_str(), "true") || !strcasecmp(text.c_str(), "1")
-        || !strcasecmp(text.c_str(), "yes")) {
+    if ((strcasecmp(text.c_str(),    "true") == 0)
+        || (strcasecmp(text.c_str(), "1")    == 0)
+        || (strcasecmp(text.c_str(), "yes")  == 0)) {
         res = true;
-    } else if (!strcasecmp(text.c_str(), "false") || !strcasecmp(text.c_str(), "0")
-        || !strcasecmp(text.c_str(), "no")) {
+    } else if ((strcasecmp(text.c_str(), "false") == 0)
+           || (strcasecmp(text.c_str(),  "0")     == 0)
+           || (strcasecmp(text.c_str(),  "no")    == 0)) {
         res = false;
     } else {
         error_msg = "Incorrect bool value in element '" + std::string(opt->name)
             + "', valid values are: 'true', '1', 'yes', or negatives";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
     // save node to content
@@ -791,7 +831,7 @@ parse_bool(
 
     // save context
     ctx->cont.push_back(cont);
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -805,21 +845,22 @@ parse_bool(
  */
 int
 parse_uint(
-    const std::string content, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
+    const std::string &content, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
 {
     unsigned long long res;
     char *err;
-    fds_xml_cont cont;
+    fds_xml_cont cont{};
 
     res = std::strtoull(content.c_str(), &err, 10);
     if (*err != '\0') {
         error_msg = "In element '" + std::string(opt->name)
             + "' should be only number (unsigned int), not " + content;
-        return FDS_XML_ERR_FMT;
-    } else if (res > std::numeric_limits<uint64_t>::max()) {
+        return FDS_ERR_FMT;
+    }
+    if (res > std::numeric_limits<uint64_t>::max()) {
         error_msg = "Number in element '" + std::string(opt->name)
             + "' is bigger than limit of unsigned int";
-        return false;
+        return FDS_ERR_FMT;
     }
 
     // save node to content
@@ -829,7 +870,7 @@ parse_uint(
 
     // save context
     ctx->cont.push_back(cont);
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -842,21 +883,21 @@ parse_uint(
 int
 parse_context(fds_xml_ctx *ctx, const fds_xml_args *opt)
 {
-    fds_xml_cont cont;
+    fds_xml_cont cont{};
 
     cont.id = opt->id;
     cont.type = OPTS_T_CONTEXT;
-    cont.ptr_ctx = NULL;
+    cont.ptr_ctx = nullptr;
 
     // save context
     ctx->cont.push_back(cont);
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
  * Remove trailing and leading spaces from string
  *
- * \param[in] str String what wil be trimmed
+ * \param[in] text String what wil be trimmed
  * \return Trimmed string, input string must exist
  */
 void
@@ -886,46 +927,46 @@ parse_content(
     const xmlChar *content, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
 {
     std::string cur_content;
-    if (content != NULL) {
+    if (content != nullptr) {
         cur_content = std::string((char *) content);
     }
 
     // remove WS if TRIM, don't remove if NOTRIM flag is on
-    if (!(opt->flags & OPTS_P_NOTRIM)) {
+    if ((opt->flags & OPTS_P_NOTRIM) == 0) {
         remove_ws(cur_content);
     }
 
     switch (opt->type) {
     case OPTS_T_CONTEXT:
-        if (parse_context(ctx, opt) != FDS_XML_OK)
-            return FDS_XML_ERR_FMT;
+        if (parse_context(ctx, opt) != FDS_OK)
+            return FDS_ERR_FMT;
         break;
     case OPTS_T_UINT:
-        if (parse_uint(cur_content, ctx, opt, error_msg) != FDS_XML_OK)
-            return FDS_XML_ERR_FMT;
+        if (parse_uint(cur_content, ctx, opt, error_msg) != FDS_OK)
+            return FDS_ERR_FMT;
         break;
     case OPTS_T_BOOL:
-        if (parse_bool(cur_content, ctx, opt, error_msg) != FDS_XML_OK)
-            return FDS_XML_ERR_FMT;
+        if (parse_bool(cur_content, ctx, opt, error_msg) != FDS_OK)
+            return FDS_ERR_FMT;
         break;
     case OPTS_T_DOUBLE:
-        if (parse_double(cur_content, ctx, opt, error_msg) != FDS_XML_OK)
-            return FDS_XML_ERR_FMT;
+        if (parse_double(cur_content, ctx, opt, error_msg) != FDS_OK)
+            return FDS_ERR_FMT;
         break;
     case OPTS_T_INT:
-        if (parse_int(cur_content, ctx, opt, error_msg) != FDS_XML_OK)
-            return FDS_XML_ERR_FMT;
+        if (parse_int(cur_content, ctx, opt, error_msg) != FDS_OK)
+            return FDS_ERR_FMT;
         break;
     case OPTS_T_STRING:
-        if (parse_string(cur_content, ctx, opt) != FDS_XML_OK)
-            return FDS_XML_ERR_FMT;
+        if (parse_string(cur_content, ctx, opt) != FDS_OK)
+            return FDS_ERR_FMT;
         break;
     default:
         error_msg = "User element '" + std::string(opt->name) + "' has wrong type";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 int
@@ -940,7 +981,7 @@ parse_raw(xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *opt, std::strin
     parse_content(content, ctx, opt, error_msg);
 
     xmlBufferFree(buf);
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -951,7 +992,7 @@ parse_raw(xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *opt, std::strin
  * \return Ok on success, otherwise Err
  */
 int
-parse_all_check(const fds_xml_args *opt, const std::set<int> ids, std::string &error_msg)
+parse_all_check(const fds_xml_args *opt, const std::set<int> &ids, std::string &error_msg)
 {
     for (int i = 0; opt[i].comp != OPTS_C_TERMINATOR; ++i) {
         if (ids.find(opt[i].id) != ids.end()) {
@@ -959,17 +1000,17 @@ parse_all_check(const fds_xml_args *opt, const std::set<int> ids, std::string &e
         }
 
         // optional element
-        if (opt[i].flags & OPTS_P_OPT) {
+        if ((opt[i].flags & OPTS_P_OPT) != 0) {
             continue;
         }
 
         // not found
         error_msg = "Element " + get_type(&opt[i]) + " with ID " + std::to_string(opt[i].id)
             + " not found in xml";
-        return FDS_XML_ERR_FMT;
+        return FDS_ERR_FMT;
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -980,12 +1021,12 @@ parse_all_check(const fds_xml_args *opt, const std::set<int> ids, std::string &e
 bool
 is_empty(const char *str)
 {
-    if (str == NULL) {
+    if (str == nullptr) {
         return true;
     }
 
     for (int i = 0; str[i] != '\0'; ++i) {
-        if (!isspace(str[i])) {
+        if (isspace(str[i]) == 0) {
             return false;
         }
     }
@@ -1007,7 +1048,7 @@ have_text(const xmlNodePtr node, const fds_xml_args *opts, std::string& error_ms
     }
 
     const fds_xml_args *opt = find_text(opts);
-    if (opt == NULL) {
+    if (opt == nullptr) {
         std::string str = std::string((char *) node->content);
         remove_ws(str);
         error_msg = "Line: " +std::to_string(node->line)+
@@ -1036,33 +1077,33 @@ parse_all_contents(const xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *
     std::string &error_msg, std::set<int> &ids)
 {
     xmlNodePtr cur_node = node; // parsed node
-    const fds_xml_args *opt = NULL;
+    const fds_xml_args *opt = nullptr;
     int ret; // return value
 
     // when some element contain text and still is not nested
-    if (cur_node != NULL && cur_node->next == NULL && cur_node->children == NULL && cur_node->content != NULL) {
+    if (cur_node != nullptr && cur_node->next == nullptr && cur_node->children == nullptr && cur_node->content != nullptr) {
         opt = find_text(opts); // find element with text
-        if (opt == NULL) {
+        if (opt == nullptr) {
             if (pedantic) { // end
                 error_msg = "Line: " + std::to_string(cur_node->line) + " Node '"
                     + std::string((char *) cur_node->name)
                     + "' doesn't contain optional description: "
                     + std::string((char *) cur_node->content);
-                return FDS_XML_ERR_FMT;
+                return FDS_ERR_FMT;
             }
         } else { // parse
             ret = parse_content(cur_node->content, ctx, opt, error_msg);
-            if (ret != FDS_XML_OK) {
+            if (ret != FDS_OK) {
                 return ret;
             }
             ids.insert(opt->id); // save element ID
         }
     }
 
-    for (; cur_node != NULL; cur_node = cur_node->next) {
+    for (; cur_node != nullptr; cur_node = cur_node->next) {
         if (cur_node->type == XML_TEXT_NODE) {
             if (!have_text(cur_node, opts, error_msg)) {
-                return FDS_XML_ERR_FMT;
+                return FDS_ERR_FMT;
             }
         }
         if (cur_node->type != XML_ELEMENT_NODE) {
@@ -1071,34 +1112,34 @@ parse_all_contents(const xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *
 
         // find element with same name
         opt = find_arg(opts, cur_node->name);
-        if (opt == NULL) {
+        if (opt == nullptr) {
             if (!pedantic) {
                 continue;
             }
             error_msg = "Line: " + std::to_string(cur_node->line) + " Element '"
                 + std::string((char *) cur_node->name) + "' not defined";
-            return FDS_XML_ERR_FMT;
+            return FDS_ERR_FMT;
         }
 
         // only one occurrence
-        if (!(opt->flags & OPTS_P_MULTI)) {
+        if ((opt->flags & OPTS_P_MULTI) == 0) {
             if (ids.find(opt->id) != ids.end()) {
                 error_msg = "Line: " + std::to_string(cur_node->line)
                     + " More than one occurrence of element '"
                     + std::string((char *) cur_node->name) + "'";
-                return FDS_XML_ERR_FMT;
+                return FDS_ERR_FMT;
             }
         }
 
         // parse element
         if (opt->comp == OPTS_C_RAW) {
             ret = parse_raw(cur_node, ctx, opt, error_msg);
-        } else if (cur_node->children == NULL) {
+        } else if (cur_node->children == nullptr) {
             ret = parse_content((xmlChar *) "", ctx, opt, error_msg);
         } else {
             ret = parse_content(cur_node->children->content, ctx, opt, error_msg);
         }
-        if (ret != FDS_XML_OK) {
+        if (ret != FDS_OK) {
             return ret;
         }
         ids.insert(opt->id); // save element ID
@@ -1106,13 +1147,13 @@ parse_all_contents(const xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *
         // NESTED
         if (opt->comp == OPTS_C_NESTED) {
             ctx->cont.back().ptr_ctx = parse_all(opt->next, cur_node, pedantic, error_msg);
-            if (ctx->cont.back().ptr_ctx == NULL) {
-                return FDS_XML_ERR_FMT;
+            if (ctx->cont.back().ptr_ctx == nullptr) {
+                return FDS_ERR_FMT;
             }
         }
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -1123,28 +1164,28 @@ parse_all_contents(const xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *
  * \param[in]     opts      User defined conditions
  * \param[in]     pedantic  Stop on warning
  * \param[out]    error_msg Error message
- * \parama[out]   ids       Saved opt ID
+ * \param[out]    ids       Saved opt ID
  * \return OK on success, otherwise Err
  */
 int
 parse_all_properties(const xmlAttrPtr attr, fds_xml_ctx *ctx, const fds_xml_args *opts,
     bool pedantic, std::string &error_msg, std::set<int> &ids)
 {
-    const fds_xml_args *opt = NULL; // found element with same name
+    const fds_xml_args *opt = nullptr; // found element with same name
 
-    for (xmlAttrPtr cur_attr = attr; cur_attr != NULL; cur_attr = cur_attr->next) {
+    for (xmlAttrPtr cur_attr = attr; cur_attr != nullptr; cur_attr = cur_attr->next) {
         if (cur_attr->type != XML_ATTRIBUTE_NODE) {
             continue;
         }
 
         // find attribute with same name
         opt = find_arg(opts, cur_attr->name);
-        if (opt == NULL) {
+        if (opt == nullptr) {
             if (!pedantic) {
                 continue;
             }
             error_msg = "Attribute '" + std::string((char *) cur_attr->name) + "' not defined";
-            return FDS_XML_ERR_FMT;
+            return FDS_ERR_FMT;
         }
 
         // parse it, libxml2 auto check if property always contain some context
@@ -1152,7 +1193,7 @@ parse_all_properties(const xmlAttrPtr attr, fds_xml_ctx *ctx, const fds_xml_args
         ids.insert(opt->id);
     }
 
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -1162,34 +1203,34 @@ parse_all_properties(const xmlAttrPtr attr, fds_xml_ctx *ctx, const fds_xml_args
  * \param[in]  node      First node in XML file, except root node
  * \param[in]  pedantic  Strictly compare conditions
  * \param[out] error_msg If anything is wrong, fill this with error message
- * \return Context with parsed elements on success, otherwise NULL
+ * \return Context with parsed elements on success, otherwise nullptr
  */
 fds_xml_ctx *
 parse_all(const fds_xml_args *opts, xmlNodePtr node, bool pedantic, std::string &error_msg)
 {
     std::set<int> ids;                  // parsed IDs in one level
     int ret;                            // return value
-    fds_xml_ctx *ctx = new fds_xml_ctx; // new context
+    auto ctx = new fds_xml_ctx;         // new context
 
     // parse properties
     ret = parse_all_properties(node->properties, ctx, opts, pedantic, error_msg, ids);
-    if (ret != FDS_XML_OK) {
+    if (ret != FDS_OK) {
         destroy_context(ctx);
-        return NULL;
+        return nullptr;
     }
 
     // parse contents
     ret = parse_all_contents(node->children, ctx, opts, pedantic, error_msg, ids);
-    if (ret != FDS_XML_OK) {
+    if (ret != FDS_OK) {
         destroy_context(ctx);
-        return NULL;
+        return nullptr;
     }
 
     // check if all user defined elements are in xml
     ret = parse_all_check(opts, ids, error_msg);
-    if (ret != FDS_XML_OK) {
+    if (ret != FDS_OK) {
         destroy_context(ctx);
-        return NULL;
+        return nullptr;
     }
 
     return ctx;
@@ -1219,39 +1260,39 @@ error_handler(fds_xml *parser, const char *msg, ...)
 fds_xml_ctx_t*
 ctx_parse(fds_xml_t *parser, unique_doc conf, bool pedantic)
 {
-    if (parser->ctx != NULL) {
+    if (parser->ctx != nullptr) {
         destroy_context(parser->ctx);
-        parser->ctx = NULL;
+        parser->ctx = nullptr;
     }
 
     // fds_xml_set_args was not call
-    if (parser->opts == NULL) {
+    if (parser->opts == nullptr) {
         parser->error_msg = "Parser opts aren't set, first must be used fds_xml_set_args";
-        return NULL;
+        return nullptr;
     }
 
     // read and check first element
     // libxml auto check whether there is only one root element
     xmlNodePtr node = xmlDocGetRootElement(conf.get());
-    if (node == NULL || parser->error_msg != "") {
-        return NULL;
+    if (node == nullptr || !parser->error_msg.empty()) {
+        return nullptr;
     }
 
     if (xmlStrcmp(BAD_CAST parser->opts[0].name, node->name) != 0) {
         parser->error_msg = "Name of the root element in file is '" + std::string((char *) node->name) + "', should be " +get_type(&parser->opts[0]);
-        return NULL;
+        return nullptr;
     }
 
-    fds_xml_ctx *ctx = NULL;
+    fds_xml_ctx *ctx = nullptr;
     try {
         ctx = parse_all(parser->opts+1, node, pedantic, parser->error_msg);
     } catch (...) {
         parser->error_msg = "Memory allocation problem for context";
-        return NULL;
+        return nullptr;
     }
     // go through first level of XML, then recursively to other levels and parse XML mem to context
-    if (ctx == NULL) {
-        return NULL;
+    if (ctx == nullptr) {
+        return nullptr;
     }
 
     // save context to parser
@@ -1265,16 +1306,16 @@ ctx_parse(fds_xml_t *parser, unique_doc conf, bool pedantic)
  * \param[in] parser   User defined conditions.
  * \param[in] mem      Part of XML file.
  * \param[in] pedantic Strictly compare conditions.
- * \return Context with saved elements on success, otherwise NULL.
+ * \return Context with saved elements on success, otherwise nullptr.
  */
 fds_xml_ctx_t *
 fds_xml_parse_mem(fds_xml_t *parser, const char *mem, bool pedantic)
 {
-    if (parser == NULL)
-        return NULL;
-    if (mem == NULL) {
-        parser->error_msg = "Mem points to NULL";
-        return NULL;
+    if (parser == nullptr)
+        return nullptr;
+    if (mem == nullptr) {
+        parser->error_msg = "Mem points to nullptr";
+        return nullptr;
     }
 
     LIBXML_TEST_VERSION;
@@ -1286,18 +1327,18 @@ fds_xml_parse_mem(fds_xml_t *parser, const char *mem, bool pedantic)
 
     // create new parser context (multi thread safety)
     unique_ctx xmlCtx(xmlNewParserCtxt(), &::xmlFreeParserCtxt);
-    if (xmlCtx == NULL || !parser->error_msg.empty()) {
+    if (xmlCtx == nullptr || !parser->error_msg.empty()) {
         parser->error_msg = "Failed to create context";
-        return NULL;
+        return nullptr;
     }
 
     // read configuration
-    unique_doc conf(xmlCtxtReadMemory(xmlCtx.get(), mem, (int) strlen(mem), NULL /*??*/, NULL, 0),
+    unique_doc conf(xmlCtxtReadMemory(xmlCtx.get(), mem, (int) strlen(mem), nullptr /*??*/, nullptr, 0),
         &::xmlFreeDoc);
-    if (conf == NULL || !parser->error_msg.empty()) {
+    if (conf == nullptr || !parser->error_msg.empty()) {
         xmlCtx.reset(nullptr);
         xmlCleanupParser();
-        return NULL;
+        return nullptr;
     }
 
     fds_xml_ctx_t *ctx = ctx_parse(parser, std::move(conf), pedantic);
@@ -1311,18 +1352,18 @@ fds_xml_parse_mem(fds_xml_t *parser, const char *mem, bool pedantic)
  * Check XML file with user defined conditions and parse it to better form.
  *
  * \param[in] parser   User defined conditions.
- * \param[in] mem      Part of XML file.
+ * \param{in] file     File descriptor
  * \param[in] pedantic Strictly compare conditions.
- * \return Context with saved elements on success, otherwise NULL.
+ * \return Context with saved elements on success, otherwise nullptr.
  */
 fds_xml_ctx_t *
 fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic)
 {
-    if (parser == NULL)
-        return NULL;
-    if (file == NULL) {
-        parser->error_msg = "FILE points to NULL";
-        return NULL;
+    if (parser == nullptr)
+        return nullptr;
+    if (file == nullptr) {
+        parser->error_msg = "FILE points to nullptr";
+        return nullptr;
     }
 
     LIBXML_TEST_VERSION;
@@ -1334,18 +1375,18 @@ fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic)
 
     // create new parser context (multi thread safety)
     unique_ctx xmlCtx(xmlNewParserCtxt(), &::xmlFreeParserCtxt);
-    if (xmlCtx == NULL || parser->error_msg != "") {
+    if (xmlCtx == nullptr || !parser->error_msg.empty()) {
         parser->error_msg = "Failed to create context";
-        return NULL;
+        return nullptr;
     }
 
     // read configuration
-    unique_doc conf(xmlCtxtReadFd(xmlCtx.get(), fileno(file), NULL /*??*/, NULL, 0),
+    unique_doc conf(xmlCtxtReadFd(xmlCtx.get(), fileno(file), nullptr /*??*/, nullptr, 0),
         &::xmlFreeDoc);
-    if (conf == NULL || parser->error_msg != "") {
+    if (conf == nullptr || !parser->error_msg.empty()) {
         xmlCtx.reset(nullptr);
         xmlCleanupParser();
-        return NULL;
+        return nullptr;
     }
 
     fds_xml_ctx_t *ctx = ctx_parse(parser, std::move(conf), pedantic);
@@ -1358,18 +1399,18 @@ fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic)
 int
 fds_xml_next(fds_xml_ctx_t *ctx, const struct fds_xml_cont **content)
 {
-    if (ctx == NULL || content == NULL) {
-        return FDS_XML_ERR_FMT;
+    if (ctx == nullptr || content == nullptr) {
+        return FDS_ERR_FMT;
     }
 
     if (ctx->index >= ctx->cont.size()) {
-        return FDS_XML_EOC;
+        return FDS_EOC;
     }
 
     *content = &ctx->cont[ctx->index];
 
     ctx->index++;
-    return FDS_XML_OK;
+    return FDS_OK;
 }
 
 /**
@@ -1380,7 +1421,7 @@ fds_xml_next(fds_xml_ctx_t *ctx, const struct fds_xml_cont **content)
 void
 fds_xml_rewind(fds_xml_ctx_t *ctx)
 {
-    if (ctx == NULL) {
+    if (ctx == nullptr) {
         return;
     }
 
@@ -1403,11 +1444,11 @@ fds_xml_rewind(fds_xml_ctx_t *ctx)
 const char *
 fds_xml_last_err(fds_xml_t *parser)
 {
-    if (parser == NULL) {
-        return NULL;
+    if (parser == nullptr) {
+        return nullptr;
     }
 
-    if (parser->error_msg == "") {
+    if (parser->error_msg.empty()) {
         return "No error";
     }
 

@@ -39,6 +39,7 @@
  *
  */
 
+#include <libfds/common.h>
 #include "iemgr_common.h"
 #include "iemgr_element.h"
 
@@ -90,7 +91,7 @@ scope_create_reverse(const fds_iemgr_scope_inter* scope)
     res->head.name        = copy_reverse(scope->head.name);
     res->head.biflow_id   = scope->head.pen;
     res->head.biflow_mode = scope->head.biflow_mode;
-    res->is_reverse       = true; // TODO usefull in visible scope?
+    res->is_reverse       = true;
 
     if (!elements_copy_reverse(res.get(), scope)) {
         return nullptr;
@@ -288,7 +289,7 @@ scope_read_biflow(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, struct fds_iemgr_scope_i
     int64_t id;
 
     const struct fds_xml_cont *cont;
-    while(fds_xml_next(ctx, &cont) != FDS_XML_EOC) {
+    while(fds_xml_next(ctx, &cont) != FDS_EOC) {
         switch (cont->id) {
         case BIFLOW_MODE:
             scope->head.biflow_mode  = get_biflow(cont->ptr_string);
@@ -318,7 +319,7 @@ scope_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx)
     bool biflow_read = false;
 
     const struct fds_xml_cont *cont;
-    while(fds_xml_next(ctx, &cont) != FDS_XML_EOC) {
+    while(fds_xml_next(ctx, &cont) != FDS_EOC) {
         switch (cont->id) {
         case SCOPE_PEN:
             if (!get_pen(mgr, scope->head.pen, cont->val_uint)) {
@@ -326,7 +327,7 @@ scope_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx)
             }
             break;
         case SCOPE_NAME:
-            if (!strcmp(cont->ptr_string, "")) {
+            if (strcmp(cont->ptr_string, "") == 0) {
                 mgr->err_msg = "Scope name cannot be empty";
                 return nullptr;
             }
@@ -349,7 +350,7 @@ const fds_xml_cont *
 scope_find_cont(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx)
 {
     const struct fds_xml_cont *cont;
-    while(fds_xml_next(ctx, &cont) != FDS_XML_EOC) {
+    while(fds_xml_next(ctx, &cont) != FDS_EOC) {
         if (cont->id == SCOPE) {
             return cont;
         }

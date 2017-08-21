@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <libxml2/libxml/parser.h>
+#include <libfds/common.h>
 
 extern "C" {
 	#include <libfds/xml_parser.h>
@@ -31,10 +32,10 @@ protected:
 
 TEST_F(Create, all)
 {
-    EXPECT_EQ(fds_xml_create(&parser), FDS_XML_OK);
+    EXPECT_EQ(fds_xml_create(&parser), FDS_OK);
 }
 
 TEST_F(Create, parser_null)
 {
-    EXPECT_EQ(fds_xml_create(NULL), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_create(NULL), FDS_ERR_FMT);
 }

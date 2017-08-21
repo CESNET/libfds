@@ -269,7 +269,6 @@ auto binary_find(P& vector, const T value) -> decltype(vector.begin().base()->se
 template <typename P>
 typename P::const_iterator find_pair(const P& vector)
 {
-    // todo change P::value type to not define twice
     const auto Func = [](const typename P::value_type& lhs, const typename P::value_type& rhs)
     { return (lhs.first == rhs.first); };
 
@@ -305,7 +304,7 @@ split_name(const string& str, pair<string, string>& res);
  * \return True if not found, otherwise False
  */
 bool
-parsed_id_save(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope, const uint16_t id);
+parsed_id_save(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope, uint16_t id);
 
 char *
 copy_reverse(const char *str);
@@ -385,7 +384,7 @@ get_id(fds_iemgr_t *mgr, uint16_t& elem_id, int64_t val);
  * \return
  */
 int
-get_biflow_elem_id(fds_iemgr_t* mgr, const int64_t id);
+get_biflow_elem_id(fds_iemgr_t* mgr, int64_t id);
 
 /**
  * \brief Get PEN of the scope from the value
@@ -395,7 +394,7 @@ get_biflow_elem_id(fds_iemgr_t* mgr, const int64_t id);
  * \return True on success, otherwise False
  */
 bool
-get_pen(fds_iemgr_t *mgr, uint32_t& scope_pen, const int64_t val);
+get_pen(fds_iemgr_t *mgr, uint32_t& scope_pen, int64_t val);
 
 /**
  * \brief Save reverse elements from scopes

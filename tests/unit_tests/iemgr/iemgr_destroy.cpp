@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <libfds/iemgr.h>
+#include <libfds/common.h>
 #include "iemgr_common.h"
 
 TEST(Destroy, success)
@@ -15,10 +16,10 @@ TEST(Destroy, success)
 
 TEST_F(Mgr, elem_remove)
 {
-    ASSERT_EQ(fds_iemgr_read_file(mgr, FILES_VALID "one_elem.xml", true), FDS_IEMGR_OK);
+    ASSERT_EQ(fds_iemgr_read_file(mgr, FILES_VALID "one_elem.xml", true), FDS_OK);
     EXPECT_NO_ERROR;
 
-    EXPECT_EQ(fds_iemgr_elem_remove(mgr, 0, 1), FDS_IEMGR_OK);
+    EXPECT_EQ(fds_iemgr_elem_remove(mgr, 0, 1), FDS_OK);
 
     const fds_iemgr_elem* elem = fds_iemgr_elem_find_id(mgr, 0, 1);
     EXPECT_EQ(elem, nullptr);
@@ -27,6 +28,6 @@ TEST_F(Mgr, elem_remove)
 
 TEST_F(Mgr, no_scope)
 {
-    EXPECT_EQ(fds_iemgr_elem_remove(mgr, 0, 0), FDS_IEMGR_NOT_FOUND);
+    EXPECT_EQ(fds_iemgr_elem_remove(mgr, 0, 0), FDS_NOT_FOUND);
     EXPECT_NO_ERROR;
 }

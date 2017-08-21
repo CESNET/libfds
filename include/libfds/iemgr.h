@@ -1,5 +1,7 @@
 /**
- * \author Michal Reznak <xrezna04@stud.fit.vutbr.cz>
+ * \file   include/libfds/iemgr.h
+ * \author Michal Režňák <xrezna04@stud.fit.vutbr.cz>
+ * \brief  Manager of the informational elements
  * \date   10. July 2017
  */
 
@@ -397,17 +399,6 @@ struct fds_iemgr_elem {
 /** Manager with elements                   */
 typedef struct fds_iemgr fds_iemgr_t;
 
-/** Status code for success                     */
-#define FDS_IEMGR_OK         (0)
-/** Status code for memory allocation error     */
-#define FDS_IEMGR_NOMEM      (-1)
-/** Status code for error format                */
-#define FDS_IEMGR_ERR        (-2)
-/** Status code for different modification time */
-#define FDS_IEMGR_DIFF_MTIME (-3)
-/** Status code when scope or element with defined ID doesn't exist */
-#define FDS_IEMGR_NOT_FOUND  (-4)
-
 /**
  * \brief Create a manager
  * \return Manager on success, otherwise NULL;
@@ -476,7 +467,7 @@ fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path);
  * \note If \p overwrite is false, then elements can be only added, they cannot be rewritten
  * \note Element that overwrite another element can have only ID of element and information
  * that will be rewritten
- * \warning Biflow and name of a scope which overwrites another scope is ignored TODO
+ * \note Biflow and name of a scope which overwrites another scope are ignored
  */
 FDS_API int
 fds_iemgr_read_file(fds_iemgr_t *mgr, const char *file_path, bool overwrite);

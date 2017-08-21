@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <libxml2/libxml/parser.h>
+#include <libfds/common.h>
 
 extern "C" {
 	#include <libfds/xml_parser.h>
@@ -32,9 +33,9 @@ protected:
 
 TEST_F(Next, all_null)
 {
-    EXPECT_EQ(fds_xml_next(NULL, &content), FDS_XML_ERR_FMT);
-    EXPECT_EQ(fds_xml_next(ctx, NULL), FDS_XML_ERR_FMT);
-    EXPECT_EQ(fds_xml_next(NULL, NULL), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_next(NULL, &content), FDS_ERR_FMT);
+    EXPECT_EQ(fds_xml_next(ctx, NULL), FDS_ERR_FMT);
+    EXPECT_EQ(fds_xml_next(NULL, NULL), FDS_ERR_FMT);
 }
 
 TEST_F(Next, not_same)
@@ -82,7 +83,7 @@ TEST_F(Next, last)
 
     const struct fds_xml_cont *content;
 
-    EXPECT_NE(fds_xml_next(ctx, &content), FDS_XML_EOC);
-    EXPECT_EQ(fds_xml_next(ctx, &content), FDS_XML_EOC);
+    EXPECT_NE(fds_xml_next(ctx, &content), FDS_EOC);
+    EXPECT_EQ(fds_xml_next(ctx, &content), FDS_EOC);
 }
 

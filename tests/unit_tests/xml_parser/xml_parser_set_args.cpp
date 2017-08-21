@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <libxml2/libxml/parser.h>
+#include <libfds/common.h>
 
 extern "C" {
 	#include <libfds/xml_parser.h>
@@ -48,7 +49,7 @@ TEST_F(Set_args, working)
 
 TEST_F(Set_args, opts_null)
 {
-    EXPECT_EQ(fds_xml_set_args(NULL, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(NULL, parser), FDS_ERR_FMT);
 }
 
 TEST_F(Set_args, parser_null)
@@ -58,7 +59,7 @@ TEST_F(Set_args, parser_null)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args_main, NULL), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args_main, NULL), FDS_ERR_FMT);
 }
 
 TEST_F(Set_args, no_root)
@@ -68,7 +69,7 @@ TEST_F(Set_args, no_root)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args_main, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args_main, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -79,7 +80,7 @@ TEST_F(Set_args, root_context_type)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -90,7 +91,7 @@ TEST_F(Set_args, root_uint_type)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -101,7 +102,7 @@ TEST_F(Set_args, root_negative_id)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -112,7 +113,7 @@ TEST_F(Set_args, root_no_name)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -124,7 +125,7 @@ TEST_F(Set_args, root_two_same_name)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -138,7 +139,7 @@ TEST_F(Set_args, root_nested)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -149,7 +150,7 @@ TEST_F(Set_args, root_set_flags)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -161,7 +162,7 @@ TEST_F(Set_args, elem_wrong_type)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -173,7 +174,7 @@ TEST_F(Set_args, elem_negative_id)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -185,7 +186,7 @@ TEST_F(Set_args, elem_no_name)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -200,7 +201,7 @@ TEST_F(Set_args, elem_nested)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -212,7 +213,7 @@ TEST_F(Set_args, elem_negative_flags)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -225,7 +226,7 @@ TEST_F(Set_args, elem_same_def)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -238,7 +239,7 @@ TEST_F(Set_args, elem_same_ids)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -250,7 +251,7 @@ TEST_F(Set_args, attr_wrong_type)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -262,7 +263,7 @@ TEST_F(Set_args, attr_negative_id)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -274,7 +275,7 @@ TEST_F(Set_args, attr_no_name)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -287,7 +288,7 @@ TEST_F(Set_args, attr_same_name)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -299,7 +300,7 @@ TEST_F(Set_args, attr_multi_flag)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -314,7 +315,7 @@ TEST_F(Set_args, attr_nested)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -325,7 +326,7 @@ TEST_F(Set_args, end_wrong_type)
             {OPTS_C_TERMINATOR, OPTS_T_INT, 0, NULL, NULL, 0},
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -336,7 +337,7 @@ TEST_F(Set_args, end_negative_id)
             {OPTS_C_TERMINATOR, OPTS_T_NONE, -1, NULL, NULL, 0},
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -347,7 +348,7 @@ TEST_F(Set_args, end_with_name)
             {OPTS_C_TERMINATOR, OPTS_T_NONE, -1, "name", NULL, 0},
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -361,7 +362,7 @@ TEST_F(Set_args, end_nested)
             {OPTS_C_TERMINATOR, OPTS_T_UINT, 1, "name", nested, 0},
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -372,7 +373,7 @@ TEST_F(Set_args, end_set_flags)
             {OPTS_C_TERMINATOR, OPTS_T_UINT, 1, NULL, NULL, OPTS_P_MULTI},
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -382,7 +383,7 @@ TEST_F(Set_args, end_on_first_place)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -394,7 +395,7 @@ TEST_F(Set_args, text_wrong_type)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -406,7 +407,7 @@ TEST_F(Set_args, text_negative_id)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -418,7 +419,7 @@ TEST_F(Set_args, text_with_name)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -433,7 +434,7 @@ TEST_F(Set_args, text_nested)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -446,7 +447,7 @@ TEST_F(Set_args, text_same_def)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -461,7 +462,7 @@ TEST_F(Set_args, nested_wrong_type)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -476,7 +477,7 @@ TEST_F(Set_args, nested_negative_id)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -491,7 +492,7 @@ TEST_F(Set_args, nested_no_name)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -503,7 +504,7 @@ TEST_F(Set_args, nested_no_next)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -519,7 +520,7 @@ TEST_F(Set_args, nested_same_name)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -537,7 +538,7 @@ TEST_F(Set_args, nested_cyclic)
     main_args[2] = OPTS_NESTED(1, "nested", nested, 0);
     main_args[3] = OPTS_END;
 
-    EXPECT_EQ(fds_xml_set_args(main_args, parser), FDS_XML_OK);
+    EXPECT_EQ(fds_xml_set_args(main_args, parser), FDS_OK);
     EXPECT_STREQ(fds_xml_last_err(parser), "No error");
 }
 
@@ -549,7 +550,7 @@ TEST_F(Set_args, raw_wrong_type)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -561,7 +562,7 @@ TEST_F(Set_args, raw_negative_id)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -574,7 +575,7 @@ TEST_F(Set_args, raw_no_name)
     };
 
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -587,7 +588,7 @@ TEST_F(Set_args, raw_same_name)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 
@@ -603,18 +604,6 @@ TEST_F(Set_args, raw_nested)
             OPTS_END
     };
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
+    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_ERR_FMT);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
-
-// TODO not use -- dangerous
-//TEST_F(Set_args, no_end)
-//{
-//    static const struct fds_xml_args args[] = {
-//            OPTS_ROOT("root"),
-//    };
-//
-//    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_XML_ERR_FMT);
-//    EXPECT_NE(fds_xml_last_err(parser), "No error");
-//}
-

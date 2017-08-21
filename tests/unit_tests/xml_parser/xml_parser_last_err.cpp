@@ -19,7 +19,7 @@ class Last_err : public ::testing::Test
 protected:
     fds_xml_t *parser = NULL;
 
-    virtual void TearDown() {
+    void TearDown() override {
         fds_xml_destroy(parser);
     }
 };
@@ -34,6 +34,6 @@ TEST_F(Last_err, valid)
 
 TEST_F(Last_err, parser_null)
 {
-    EXPECT_EQ(fds_xml_last_err(NULL), (char *) NULL);
+    EXPECT_EQ(fds_xml_last_err(NULL), nullptr);
 }
 

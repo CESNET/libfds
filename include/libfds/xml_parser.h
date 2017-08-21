@@ -266,15 +266,6 @@ enum FDS_XML_TYPE {
         OPTS_C_TERMINATOR, OPTS_T_NONE, 0, NULL, NULL, 0                                           \
     }
 
-/** Status code for success                                                   */
-#define FDS_XML_OK 0
-/** Status code for the end of a context                                      */
-#define FDS_XML_EOC (-1)
-/** Status code for memory allocation error                                   */
-#define FDS_XML_ERR_NOMEM (-2)
-/** Invalid format description for parser                                     */
-#define FDS_XML_ERR_FMT (-3)
-
 /**
  * Component properties
  *

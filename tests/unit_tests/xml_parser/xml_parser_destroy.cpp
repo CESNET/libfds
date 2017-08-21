@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <libxml2/libxml/parser.h>
+#include <libfds/common.h>
 
 extern "C" {
 	#include <libfds/xml_parser.h>
@@ -30,7 +31,7 @@ TEST_F(Destroy, all)
 
 TEST_F(Destroy, valid)
 {
-    EXPECT_EQ(fds_xml_create(&parser), FDS_XML_OK);
+    EXPECT_EQ(fds_xml_create(&parser), FDS_OK);
     fds_xml_destroy(parser);
 }
 

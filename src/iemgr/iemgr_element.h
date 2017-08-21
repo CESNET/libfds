@@ -118,13 +118,13 @@ element_add_reverse(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, fds_iemgr_el
  * \param dst Destination element
  * \param src Source element
  * \return True on success, otherwise False
- * \todo Function doesn't allocate memory for element name, just copy pointer
  */
 bool
 element_overwrite_values(fds_iemgr_t *mgr, fds_iemgr_scope_inter *scope, fds_iemgr_elem *dst, fds_iemgr_elem *src);
 
 /**
- * \brief Overwrite reverse element with the \p src if \p id is bigger than 0, new element will have ID \p id TODO
+ * \brief Overwrite reverse element with the \p src
+ * If \p id is bigger than 0, new element will have ID \p id
  * \param[in,out] mgr   Manager
  * \param[in,out] scope Scope
  * \param[out]    rev   Reverse element
@@ -238,4 +238,4 @@ elements_remove_reverse(fds_iemgr_scope_inter* scope);
  * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
  */
 int
-element_destroy(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id);
+element_destroy(fds_iemgr_t *mgr, uint32_t pen, uint16_t id);

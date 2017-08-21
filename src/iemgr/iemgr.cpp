@@ -1,7 +1,7 @@
 /**
- * \file   include/libfds/iemgr.h
+ * \file   src/iemgr/iemgr.cpp
  * \author Michal Režňák
- * \brief  Definition of the iemgr
+ * \brief  Iemgr API functions implementation
  * \date   8. August 2017
  */
 
@@ -48,7 +48,8 @@
 #include <sys/stat.h>
 #include <libfds/xml_parser.h>
 #include <libfds/iemgr.h>
-#include <assert.h>
+#include <cassert>
+#include <libfds/common.h>
 #include "iemgr_common.h"
 #include "iemgr_scope.h"
 #include "iemgr_element.h"
@@ -112,7 +113,7 @@ mtime_save(fds_iemgr_t* mgr, const string& path)
         return false;
     }
 
-    struct stat sb;
+    struct stat sb{};
     if (stat(file_path, &sb) != 0) {
         mgr->err_msg = "Could not read information about the file '" +string(file_path)+ "'";
         return false;
@@ -149,22 +150,22 @@ fds_iemgr_compare_timestamps(fds_iemgr *mgr)
 {
     assert(mgr != nullptr);
 
-    struct stat sb;
+    struct stat sb{};
     for (const auto& mtime: mgr->mtime) {
         if (stat(mtime.first, &sb) != 0) {
             mgr->err_msg = "Could not read information about the file '" +string(mtime.first)+ "'";
-            return FDS_IEMGR_ERR;
+            return FDS_ERR_FMT;
         }
 
         if (mtime.second.tv_sec != sb.st_mtim.tv_sec) {
-            return FDS_IEMGR_DIFF_MTIME;
+            return FDS_DIFF_MTIME;
         }
         if (mtime.second.tv_nsec != sb.st_mtim.tv_nsec) {
-            return FDS_IEMGR_DIFF_MTIME;
+            return FDS_DIFF_MTIME;
         }
     }
 
-    return FDS_IEMGR_OK;
+    return FDS_OK;
 }
 
 /**
@@ -270,7 +271,7 @@ fds_xml_t *
 parser_create(fds_iemgr_t* mgr)
 {
     fds_xml_t *parser = nullptr;
-    if (fds_xml_create(&parser) != FDS_XML_OK) {
+    if (fds_xml_create(&parser) != FDS_OK) {
         mgr->err_msg = "No memory for creating a parser in fds_iemgr_read_dir";
         return nullptr;
     }
@@ -303,7 +304,7 @@ parser_create(fds_iemgr_t* mgr)
         OPTS_END
     };
 
-    if (fds_xml_set_args(args_main, parser) != FDS_XML_OK) {
+    if (fds_xml_set_args(args_main, parser) != FDS_OK) {
         mgr->err_msg = fds_xml_last_err(parser);
         fds_xml_destroy(parser);
         return nullptr;
@@ -315,8 +316,6 @@ parser_create(fds_iemgr_t* mgr)
  * \brief Read elements defined by XML from system/ and user/ folders and saved them to a manager
  * \param[out] mgr    Manager
  * \param[in]  path   Path to the directory with XML files
- * \param[out] parser Parser with set arguments
- * \param[in]  name   Name of the directory
  * \return True on success, otherwise False
  */
 bool
@@ -324,7 +323,7 @@ dirs_read(fds_iemgr_t* mgr, const char* path)
 {
     auto parser = unique_parser(parser_create(mgr), &::fds_xml_destroy);
     if (parser == nullptr) {
-        return FDS_IEMGR_ERR;
+        return FDS_ERR_FMT;
     }
 
     mgr->can_overwrite_elem = true;
@@ -345,7 +344,7 @@ dirs_read(fds_iemgr_t* mgr, const char* path)
 /**
  * \brief Check all definitions of a manager and sort manager
  * \param[in,out] mgr Manager
- * \return #FDS_IEMGR_OK on success, otherwise #FDS_IEMGR_ERR or #FDS_IEMGR_NO_MEM
+ * \return FDS_OK on success, otherwise FDS_ERR_FMT or FDS_NOMEM
  */
 int
 mgr_check(fds_iemgr_t *mgr)
@@ -355,16 +354,16 @@ mgr_check(fds_iemgr_t *mgr)
     const auto pen_pair_it = find_pair(mgr->pens);
     if (pen_pair_it != mgr->pens.end()) {
         mgr->err_msg = "PEN of a scope with PEN '" +to_string(pen_pair_it.base()->second->head.pen)+ "' is defined multiple times.";
-        return FDS_IEMGR_ERR;
+        return FDS_ERR_FMT;
     }
 
     const auto pref_pair_it = find_pair(mgr->prefixes);
     if (pref_pair_it != mgr->prefixes.end()) {
         mgr->err_msg = "Name '"+string(pref_pair_it.base()->second->head.name)+ "' of a scope is defined multiple times.";
-        return FDS_IEMGR_ERR;
+        return FDS_ERR_FMT;
     }
 
-    return FDS_IEMGR_OK;
+    return FDS_OK;
 }
 
 int
@@ -379,12 +378,12 @@ fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path)
 
     try {
         if (!dirs_read(mgr, path)) {
-            return FDS_IEMGR_ERR;
+            return FDS_ERR_FMT;
         }
     }
     catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_read_dir' while allocating memory for directory reading.";
-        return FDS_IEMGR_ERR;
+        return FDS_ERR_FMT;
     }
 
     return mgr_check(mgr);
@@ -401,15 +400,15 @@ fds_iemgr_read_file(fds_iemgr_t *mgr, const char *path, bool overwrite)
     try {
         auto parser = unique_parser(parser_create(mgr), &::fds_xml_destroy);
         if (parser == nullptr) {
-            return false;
+            return FDS_ERR_FMT;
         }
 
         if (!file_parse(mgr, parser.get(), path)) {
-            return FDS_IEMGR_ERR;
+            return FDS_ERR_FMT;
         }
     } catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_read_file' while allocating memory for file reading.";
-        return FDS_IEMGR_ERR;
+        return FDS_ERR_FMT;
     }
 
     mgr_remove_temp(mgr);
@@ -471,7 +470,7 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t 
 
     if (elem == nullptr) {
         mgr->err_msg = "Element that should be added is not defined";
-        return FDS_IEMGR_ERR;
+        return FDS_ERR_FMT;
     }
 
     mgr->can_overwrite_elem = overwrite;
@@ -487,15 +486,15 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t 
 
         auto res = unique_elem(element_copy(scope, elem), &::element_remove);
         if (!element_push(mgr, scope, move(res), BIFLOW_ID_INVALID)) {
-            return FDS_IEMGR_ERR;
+            return FDS_ERR_FMT;
         }
     } catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_elem_add' while allocating memory for element adding.";
-        return FDS_IEMGR_ERR;
+        return FDS_ERR_FMT;
     }
 
     scope_sort(scope);
-    return FDS_IEMGR_OK;
+    return FDS_OK;
 }
 
 int
@@ -507,22 +506,22 @@ fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t 
     auto scope = binary_find(mgr->pens, pen);
     if (scope == nullptr) {
         mgr->err_msg = "Scope with PEN '" +to_string(pen)+ "' cannot be found.";
-        return FDS_IEMGR_NOT_FOUND;
+        return FDS_NOT_FOUND;
     }
     if (scope->head.biflow_mode != FDS_BF_INDIVIDUAL) {
         mgr->err_msg = "Reverse element can be defined only to the scope with INDIVIDUAL biflow mode.";
-        return FDS_IEMGR_ERR;
+        return FDS_ERR_FMT;
     }
 
     auto elem = binary_find(scope->ids, id);
     if (elem == nullptr) {
         mgr->err_msg = "Element with ID '" +to_string(id)+ "' cannot be found.";
-        return FDS_IEMGR_NOT_FOUND;
+        return FDS_NOT_FOUND;
     }
 
     if (elem->reverse_elem != nullptr && !overwrite) {
         mgr->err_msg = "Element with ID '" +to_string(id)+ "' already has reverse element.";
-        return FDS_IEMGR_ERR;
+        return FDS_ERR_FMT;
     }
 
     fds_iemgr_elem* rev = nullptr;
@@ -533,11 +532,11 @@ fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t 
         mgr->err_msg = "Error while allocating memory for creating new reverse element.";
     }
     if (rev == nullptr) {
-        return FDS_IEMGR_ERR;
+        return FDS_ERR_FMT;
     }
 
     scope_sort(scope);
-    return FDS_IEMGR_OK;
+    return FDS_OK;
 }
 
 int
@@ -547,15 +546,15 @@ fds_iemgr_elem_remove(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
 
     try {
         const int ret = element_destroy(mgr, pen, id);
-        if (ret != FDS_IEMGR_OK) {
+        if (ret != FDS_OK) {
             return ret;
         }
     } catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_elem_remove' while removing element.";
-        return FDS_IEMGR_ERR;
+        return FDS_ERR_FMT;
     }
 
-    return FDS_IEMGR_OK;
+    return FDS_OK;
 }
 
 const fds_iemgr_scope *

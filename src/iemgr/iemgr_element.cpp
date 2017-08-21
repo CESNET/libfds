@@ -40,6 +40,7 @@
  */
 
 #include <libfds/iemgr.h>
+#include <libfds/common.h>
 #include "iemgr_common.h"
 #include "iemgr_scope.h"
 
@@ -310,7 +311,7 @@ element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
     int biflow_id = BIFLOW_ID_INVALID;
 
     const struct fds_xml_cont *cont;
-    while(fds_xml_next(ctx, &cont) != FDS_XML_EOC) {
+    while(fds_xml_next(ctx, &cont) != FDS_EOC) {
         switch (cont->id) {
         case ELEM_ID:
             if (!get_id(mgr, elem->id, cont->val_int)) {
@@ -318,7 +319,7 @@ element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
             }
             break;
         case ELEM_NAME:
-            if (!strcmp(cont->ptr_string, "")) {
+            if (strcmp(cont->ptr_string, "") == 0) {
                 mgr->err_msg = "Element name cannot be empty";
                 return false;
             }
@@ -375,7 +376,7 @@ bool
 elements_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
 {
     const struct fds_xml_cont *cont;
-    while(fds_xml_next(ctx, &cont) != FDS_XML_EOC) {
+    while(fds_xml_next(ctx, &cont) != FDS_EOC) {
         if (cont->id != ELEM) {
             continue;
         }
@@ -434,13 +435,13 @@ element_destroy(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
 {
     const auto scope_pen_it = find_iterator(mgr->pens, pen);
     if (scope_pen_it == mgr->pens.end()) {
-        return FDS_IEMGR_NOT_FOUND;
+        return FDS_NOT_FOUND;
     }
     const auto scope = scope_pen_it.base()->second;
 
     const auto elem_id_it = find_iterator(scope->ids, id);
     if (elem_id_it == scope->ids.end()) {
-        return FDS_IEMGR_NOT_FOUND;
+        return FDS_NOT_FOUND;
     }
 
     const auto elem = elem_id_it.base()->second;
@@ -448,7 +449,7 @@ element_destroy(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
 
     const auto elem_name_it = find_iterator(scope->names, name);
     if (elem_name_it == scope->names.end()) {
-        return FDS_IEMGR_NOT_FOUND;
+        return FDS_NOT_FOUND;
     }
 
     scope->ids.erase(elem_id_it);
@@ -456,13 +457,13 @@ element_destroy(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
 
     if (elem->is_reverse) {
         element_remove(elem);
-        return FDS_IEMGR_OK;
+        return FDS_OK;
     }
 
     if (elem->reverse_elem != nullptr) {
         const int ret = element_destroy(mgr, elem->reverse_elem->scope->pen,
                                               elem->reverse_elem->id);
-        if (ret != FDS_IEMGR_OK) {
+        if (ret != FDS_OK) {
             return ret;
         }
     }
@@ -470,7 +471,7 @@ element_destroy(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
     if (scope->ids.empty()) {
         const auto scope_prefix_it = find_iterator(mgr->prefixes, string(scope->head.name));
         if (scope_prefix_it == mgr->prefixes.end()) {
-            return FDS_IEMGR_NOT_FOUND;
+            return FDS_NOT_FOUND;
         }
         scope_remove(scope);
         mgr->pens.erase(scope_pen_it);
@@ -482,6 +483,6 @@ element_destroy(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
     }
 
     element_remove(elem);
-    return FDS_IEMGR_OK;
+    return FDS_OK;
 }
 

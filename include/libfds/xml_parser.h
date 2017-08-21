@@ -376,8 +376,8 @@ fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic);
  * filled to the \p content.
  * \param[in]  ctx Parser context
  * \param[out] content Value of the element (or attribute)
- * \return On success returns #FDS_XML_OK.
- *   If all options have been parsed, then returns #FDS_XML_EOC.
+ * \return On success returns FDS_XML_OK.
+ *   If all options have been parsed, then returns FDS_XML_EOC.
  */
 FDS_API int
 fds_xml_next(fds_xml_ctx_t *ctx, const struct fds_xml_cont **content);

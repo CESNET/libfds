@@ -312,6 +312,7 @@ check_root(
  * \param[in]     opt    One element.
  * \param[out]    parser Parsed user defined conditions
  * \param[in,out] names  Saved names of elements, attributes and their IDs
+ * \param[in,out] attr   Saved names of elements, attributes and their IDs
  * \return OK on success, or Err.
  */
 int
@@ -354,6 +355,7 @@ check_element(
  * \param[in]     opt    One element.
  * \param[out]    parser Parsed user defined conditions
  * \param[in,out] names  Saved names of elements, attributes and their IDs
+ * \param[in,out] attr   Saved names of elements, attributes and their IDs
  * \return OK on success, or Err.
  */
 int
@@ -447,6 +449,7 @@ check_text(
  * \param[in]     opt    One element.
  * \param[out]    parser Parsed user defined conditions
  * \param[in,out] names  Saved names of elements, attributes and their IDs
+ * \param[in,out] attr   Saved names of elements, attributes and their IDs
  * \return OK on success, or Err.
  */
 int
@@ -511,6 +514,14 @@ check_end(const struct fds_xml_args opt, fds_xml_t *parser)
     return FDS_OK;
 }
 
+/**
+ * \brief Check all conditions that must be true for OPTS_C_RAW
+ * \param[in]     opt    One element
+ * \param[in,out] parser Parser
+ * \param[in,out] names  Saved names of elements, attributes and their IDs
+ * \param[in]     attr   Saved names of elements, attributes and their IDs
+ * \return OK on success, or Err.
+ */
 int
 check_raw(const struct fds_xml_args opt, fds_xml_t *parser, struct names &names, struct attributes &attr)
 {
@@ -542,8 +553,9 @@ check_raw(const struct fds_xml_args opt, fds_xml_t *parser, struct names &names,
 /**
  * Check all conditions for all elements
  *
- * \param[in]  opts    Elements.
+ * \param[in]  opts   All elements. Must exist all the time. (when parsing, etc.)
  * \param[out] parser Parsed user defined conditions
+ * \param[in]  attr   Saved names of elements, attributes and their IDs.
  * \return OK on success, or Err.
  */
 int
@@ -969,6 +981,14 @@ parse_content(
     return FDS_OK;
 }
 
+/**
+ * \brief Parse all raw elements
+ * \param[in]  node      Node with raw element
+ * \param[in]  ctx       Context
+ * \param[in]  opt       User define elements
+ * \param[out] error_msg Error message
+ * \return Ok on success, otherwise Err
+ */
 int
 parse_raw(xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *opt, std::string &error_msg)
 {
@@ -987,8 +1007,9 @@ parse_raw(xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *opt, std::strin
 /**
  * Check if all user defined elements are in xml file
  *
- * \param[in] opt User defined elements
- * \param[in] ids Founded IDs in xml file
+ * \param[in] opt        User defined elements
+ * \param[in] ids        Founded IDs in xml file
+ * \param[out] error_msg Error message
  * \return Ok on success, otherwise Err
  */
 int
@@ -1070,6 +1091,7 @@ parse_all(const fds_xml_args *opts, xmlNodePtr node, bool pedantic, std::string 
  * \param[in]     opts      User defined conditions
  * \param[in]     pedantic  Stop on warning
  * \param[out]    error_msg Error message
+ * \param[in]     ids       Founded IDs in xml file
  * \return OK on success, otherwise Err
  */
 int
@@ -1257,6 +1279,13 @@ error_handler(fds_xml *parser, const char *msg, ...)
     parser->error_msg += std::string(message);
 }
 
+/**
+ * \brief Parse context
+ * \param[in,out] parser   Parser
+ * \param[in]     conf     Configuration
+ * \param[in]     pedantic Pedantic
+ * \return Parsed context on success, otherwise nullptr
+ */
 fds_xml_ctx_t*
 ctx_parse(fds_xml_t *parser, unique_doc conf, bool pedantic)
 {
@@ -1352,7 +1381,7 @@ fds_xml_parse_mem(fds_xml_t *parser, const char *mem, bool pedantic)
  * Check XML file with user defined conditions and parse it to better form.
  *
  * \param[in] parser   User defined conditions.
- * \param{in] file     File descriptor
+ * \param[in] file     File descriptor
  * \param[in] pedantic Strictly compare conditions.
  * \return Context with saved elements on success, otherwise nullptr.
  */

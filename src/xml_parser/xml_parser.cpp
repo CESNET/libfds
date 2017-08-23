@@ -221,8 +221,7 @@ check_common_find_name(std::vector<std::string> &names, const std::string &name)
  * \return OK on success, or Err.
  */
 int
-check_common(
-    const fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
+check_common(const fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
 {
     // TYPE
 
@@ -270,8 +269,7 @@ check_common(
  * \return OK on success, or Err.
  */
 int
-check_root(
-    const struct fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
+check_root(const struct fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
 {
     // check if it's really root
     if (opt.comp != OPTS_C_ROOT) {
@@ -405,8 +403,7 @@ check_attr(
  * \return OK on success, or Err.
  */
 int
-check_text(
-    const struct fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
+check_text(const struct fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
 {
     if (check_common(opt, parser, attr) != FDS_OK) {
         return FDS_ERR_FMT;
@@ -423,7 +420,8 @@ check_text(
     }
 
     if (attr.text) {
-        parser->error_msg = "Element text can be defined only once, second definition is " + get_type(&opt);
+        parser->error_msg = "Element text can be defined only once, second definition is " 
+        + get_type(&opt);
         return FDS_ERR_FMT;
     }
     attr.text = true;
@@ -523,7 +521,8 @@ check_end(const struct fds_xml_args opt, fds_xml_t *parser)
  * \return OK on success, or Err.
  */
 int
-check_raw(const struct fds_xml_args opt, fds_xml_t *parser, struct names &names, struct attributes &attr)
+check_raw(const struct fds_xml_args opt, fds_xml_t *parser, struct names &names, 
+        struct attributes &attr)
 {
     // same tests for all components types
     int ret = check_common(opt, parser, attr);
@@ -1103,7 +1102,8 @@ parse_all_contents(const xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *
     int ret; // return value
 
     // when some element contain text and still is not nested
-    if (cur_node != nullptr && cur_node->next == nullptr && cur_node->children == nullptr && cur_node->content != nullptr) {
+    if (cur_node != nullptr && cur_node->next == nullptr && cur_node->children == nullptr 
+    && cur_node->content != nullptr) {
         opt = find_text(opts); // find element with text
         if (opt == nullptr) {
             if (pedantic) { // end
@@ -1308,7 +1308,8 @@ ctx_parse(fds_xml_t *parser, unique_doc conf, bool pedantic)
     }
 
     if (xmlStrcmp(BAD_CAST parser->opts[0].name, node->name) != 0) {
-        parser->error_msg = "Name of the root element in file is '" + std::string((char *) node->name) + "', should be " +get_type(&parser->opts[0]);
+        parser->error_msg = "Name of the root element in file is '" 
+        +std::string((char *) node->name) + "', should be " +get_type(&parser->opts[0]);
         return nullptr;
     }
 

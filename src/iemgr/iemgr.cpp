@@ -59,7 +59,7 @@ fds_iemgr_create()
 {
     fds_iemgr_t *mgr = nullptr;
     try {
-         mgr = new fds_iemgr_t;
+        mgr = new fds_iemgr_t;
     } catch (...) {
         return nullptr;
     }
@@ -77,8 +77,7 @@ fds_iemgr_copy(fds_iemgr_t *mgr)
     fds_iemgr_t* res;
     try {
         res = mgr_copy(mgr);
-    }
-    catch (...) {
+    } catch (...) {
         mgr->err_msg = "Allocation error while copying manager";
         return nullptr;
     }
@@ -90,7 +89,8 @@ fds_iemgr_copy(fds_iemgr_t *mgr)
  * \brief Remove modification time from a manager
  * \param[in,out] mgr Manager
  */
-void mtime_remove(fds_iemgr_t *mgr)
+void 
+mtime_remove(fds_iemgr_t *mgr)
 {
     for (const auto& mtime: mgr->mtime) {
         free(mtime.first);

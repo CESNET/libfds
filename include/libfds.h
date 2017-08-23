@@ -56,6 +56,6 @@
 // #include <libfds/file.h>
 #include <libfds/dummy.h>
 #include <libfds/xml_parser.h>
-#include <loibfds/iemgr.h>
+#include <libfds/iemgr.h>
 
 #endif /* LIBFDS_H_ */

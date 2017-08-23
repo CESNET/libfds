@@ -393,7 +393,7 @@ struct fds_iemgr_elem {
     /** Reverse element                                                      */
     bool                            is_reverse;
     /** Reverse element, when individual mode is defined in a elements scope */
-    fds_iemgr_elem *                reverse_elem;
+    struct fds_iemgr_elem *                reverse_elem;
 };
 
 /** Manager with elements                   */
@@ -436,7 +436,7 @@ fds_iemgr_destroy(fds_iemgr_t *mgr);
  * and FDS_IEMGR_ERR when error occurred
  */
 FDS_API int
-fds_iemgr_compare_timestamps(fds_iemgr *mgr);
+fds_iemgr_compare_timestamps(fds_iemgr_t *mgr);
 
 /**
  * \brief Load XML files from dir and save elements to the manager
@@ -479,7 +479,7 @@ fds_iemgr_read_file(fds_iemgr_t *mgr, const char *file_path, bool overwrite);
  * \param[in] id  ID of element
  * \return Element if exists, otherwise NULL and an error message is set (see fds_iemgr_last_err())
  */
-FDS_API const fds_iemgr_elem *
+FDS_API const struct fds_iemgr_elem *
 fds_iemgr_elem_find_id(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id);
 
 /**
@@ -491,7 +491,7 @@ fds_iemgr_elem_find_id(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id);
  * \note When name doesn't contain ':', scope with name 'iana' is used
  * \warning Name of a element and name of a scope cannot contain only numbers or ':'
  */
-FDS_API const fds_iemgr_elem *
+FDS_API const struct fds_iemgr_elem *
 fds_iemgr_elem_find_name(fds_iemgr_t *mgr, const char *name);
 
 /**
@@ -507,7 +507,8 @@ fds_iemgr_elem_find_name(fds_iemgr_t *mgr, const char *name);
  * \note Element's \p reverse element is ignored.
  */
 FDS_API int
-fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t pen, bool overwrite);
+fds_iemgr_elem_add(fds_iemgr_t *mgr, const struct fds_iemgr_elem *elem, const uint32_t pen, bool
+overwrite);
 
 /**
  * \brief Add reverse element to the manager
@@ -540,7 +541,7 @@ fds_iemgr_elem_remove(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id);
  * \param[in]     pen Private Enterprise Number
  * \return Scope if exists, otherwise NULL and an error message is set (see fds_iemgr_last_err())
  */
-FDS_API const fds_iemgr_scope *
+FDS_API const struct fds_iemgr_scope *
 fds_iemgr_scope_find_pen(fds_iemgr_t *mgr, const uint32_t pen);
 
 /**
@@ -549,7 +550,7 @@ fds_iemgr_scope_find_pen(fds_iemgr_t *mgr, const uint32_t pen);
  * \param[in]     name   Scope name
  * \return Scope if exists, otherwise NULL and an error message is set (see fds_iemgr_last_err())
  */
-FDS_API const fds_iemgr_scope *
+FDS_API const struct fds_iemgr_scope *
 fds_iemgr_scope_find_name(fds_iemgr_t *mgr, const char *name);
 
 /**

@@ -46,7 +46,7 @@
 extern "C" {
 #endif
 
-#include <cstdint>
+#include <stdint.h>
 #include <stdio.h>
 #include <dirent.h>
 #include "api.h"

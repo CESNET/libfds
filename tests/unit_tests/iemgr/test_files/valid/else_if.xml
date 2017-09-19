@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Scope of IPFIX elements -->
+<ipfix-elements>
+    <scope>
+        <pen>0</pen>
+        <name>iana</name>
+        <biflow mode="none"></biflow>
+    </scope>
+    
+    <element>
+        <id>1</id>
+        <name>a</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>2</id>
+        <name>b</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <units>bits</units>
+        <status>deprecated</status>
+    </element>
+
+    <element>
+        <id>3</id>
+        <name>c</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>totalCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>4</id>
+        <name>d</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>packets</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>5</id>
+        <name>e</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <units>flows</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>6</id>
+        <name>f</name>
+        <dataType>signed8</dataType>
+        <dataSemantics>flags</dataSemantics>
+        <units>seconds</units>
+        <status>current</status>
+    </element>
+
+    <element>
+        <id>7</id>
+        <name>g</name>
+        <dataType>signed16</dataType>
+        <dataSemantics>list</dataSemantics>
+        <units>milliseconds</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>8</id>
+        <name>h</name>
+        <dataType>signed32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>microseconds</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>9</id>
+        <name>i</name>
+        <dataType>signed64</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>nanoseconds</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>10</id>
+        <name>j</name>
+        <dataType>float32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>4-octet words</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>11</id>
+        <name>k</name>
+        <dataType>float64</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>messages</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>12</id>
+        <name>l</name>
+        <dataType>boolean</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>hops</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>13</id>
+        <name>m</name>
+        <dataType>macAddress</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>entries</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>14</id>
+        <name>n</name>
+        <dataType>string</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>frames</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>15</id>
+        <name>o</name>
+        <dataType>dateTimeSeconds</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>16</id>
+        <name>p</name>
+        <dataType>dateTimeMilliseconds</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>17</id>
+        <name>q</name>
+        <dataType>dateTimeMicroseconds</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>18</id>
+        <name>r</name>
+        <dataType>dateTimeNanoseconds</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>19</id>
+        <name>s</name>
+        <dataType>ipv4Address</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+    </element>
+   
+   <element>
+        <id>20</id>
+        <name>t</name>
+        <dataType>ipv6Address</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>21</id>
+        <name>u</name>
+        <dataType>basicList</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>22</id>
+        <name>v</name>
+        <dataType>subTemplateList</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+    </element>
+    
+    <element>
+        <id>23</id>
+        <name>w</name>
+        <dataType>subTemplateMultiList</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+    </element>
+    
+</ipfix-elements>

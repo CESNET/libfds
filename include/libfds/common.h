@@ -1,11 +1,11 @@
-/*
- * \file libfds.h
- * \author Lukas Hutak <lukas.hutak@cesnet.cz>
- * \brief The main devel header for libfds (Flow Data Storage library)
- *
- * Copyright (C) 2017 CESNET, z.s.p.o.
- *
- * LICENSE TERMS
+/**
+ * \file   include/libfds/common.h
+ * \author Michal Režňák <xrezna04@stud.fit.vutbr.cz>
+ * \brief  Common definitions for libfds
+ * \date   21. August 2017
+ */
+
+/* Copyright (C) 2016 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,23 +39,15 @@
  *
  */
 
-#ifndef LIBFDS_H_
-#define LIBFDS_H_
-
-/**
- * \mainpage Flow Data Storage Library - Developer's Documentation
- *
- * This documents provides documentation of libfds.
- */
-
-/**
- * \defgroup publicAPIs Public libfds's APIs
- * \brief APIs for manipulation with flow files.
- */
-
-// #include <libfds/file.h>
-#include <libfds/dummy.h>
-#include <libfds/xml_parser.h>
-#include <libfds/iemgr.h>
-
-#endif /* LIBFDS_H_ */
+/** Status code for success                                                   */
+#define FDS_OK          (0)
+/** Status code for memory allocation error                                   */
+#define FDS_ERR_NOMEM  (-1)
+/** Status code for the end of a context                                      */
+#define FDS_EOC        (-2)
+/** Invalid format description                                                */
+#define FDS_ERR_FMT    (-3)
+/** Status code for different modification time                               */
+#define FDS_DIFF_MTIME (-4)
+/** Status code when some element cannot be found                             */
+#define FDS_NOT_FOUND  (-5)

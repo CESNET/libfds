@@ -1,0 +1,12 @@
+# List of test files
+unit_tests_register_test(iemgr_create.cpp             iemgr_common.h)
+unit_tests_register_test(iemgr_copy.cpp               iemgr_common.h)
+unit_tests_register_test(iemgr_clear.cpp              iemgr_common.h)
+unit_tests_register_test(iemgr_destroy.cpp            iemgr_common.h)
+unit_tests_register_test(iemgr_compare_timestamps.cpp iemgr_common.h)
+unit_tests_register_test(iemgr_read.cpp               iemgr_common.h)
+unit_tests_register_test(iemgr_find.cpp               iemgr_common.h)
+unit_tests_register_test(iemgr_err.cpp                iemgr_common.h)
+unit_tests_register_test(iemgr_add.cpp                iemgr_common.h)
+
+file(COPY test_files DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

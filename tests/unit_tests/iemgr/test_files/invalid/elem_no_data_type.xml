@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Scope of IPFIX elements -->
+<ipfix-elements>
+    <scope>
+        <pen>0</pen>
+        <name>iana</name>
+        <biflow mode="split">1</biflow>
+    </scope>
+
+    <element>
+        <id>0</id>
+        <name>a</name>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+        <status>current</status>
+    </element>
+</ipfix-elements>

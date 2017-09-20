@@ -9,6 +9,7 @@ set(SUB_HEADERS
 	libfds/file.h
 	libfds/xml_parser.h
 	libfds/iemgr.h
+	libfds/common.h
 )
 
 # Installation targets

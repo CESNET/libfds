@@ -23,7 +23,6 @@ include_directories(
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Subdirectories with auxiliary components
-add_subdirectory(dummy_dir)
 add_subdirectory(xml_parser)
 add_subdirectory(iemgr)
 
@@ -31,7 +30,6 @@ add_subdirectory(iemgr)
 add_library(
 	fds SHARED
 	${CORE_SOURCE}
-	$<TARGET_OBJECTS:dummy_obj>       # Dummy library
 	$<TARGET_OBJECTS:xml_parser_obj>  # xml_parser library
 	$<TARGET_OBJECTS:iemgr_obj>       # iemgr library
 )

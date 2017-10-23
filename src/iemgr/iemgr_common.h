@@ -406,7 +406,7 @@ bool
 mgr_save_reverse(fds_iemgr_t* mgr);
 
 /**
- * \brief Remve all temporary vectors etc. from a manager
+ * \brief Remove all temporary vectors etc. from a manager
  * \param mgr Manager
  */
 void
@@ -426,4 +426,4 @@ mgr_sort(fds_iemgr_t* mgr);
  * otherwise nullptr and an error message is set (see fds_iemgr_last_err())
  */
 fds_iemgr_t*
-mgr_copy(fds_iemgr_t* mgr);
+mgr_copy(const fds_iemgr_t* mgr);

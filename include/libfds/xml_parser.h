@@ -315,8 +315,8 @@ typedef struct fds_xml_ctx fds_xml_ctx_t;
 /**
  * \brief Create an XML parser
  * \param[out] parser Pointer to the newly created parser
- * \return On success returns #FDS_XML_OK. Otherwise #FDS_XML_ERR_NOMEM or
- *   #FDS_XML_ERR_FMT.
+ * \return On success returns #FDS_OK. Otherwise #FDS_ERR_NOMEM or
+ *   #FDS_ERR_FMT.
  */
 FDS_API int
 fds_xml_create(fds_xml_t **parser);
@@ -377,8 +377,8 @@ fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic);
  * filled to the \p content.
  * \param[in]  ctx Parser context
  * \param[out] content Value of the element (or attribute)
- * \return On success returns FDS_XML_OK.
- *   If all options have been parsed, then returns FDS_XML_EOC.
+ * \return On success returns FDS_OK.
+ *   If all options have been parsed, then returns FDS_EOC.
  */
 FDS_API int
 fds_xml_next(fds_xml_ctx_t *ctx, const struct fds_xml_cont **content);

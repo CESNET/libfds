@@ -53,7 +53,7 @@ TEST_F(Fill, elem_double_colon)
 {
     auto elem = fds_iemgr_elem_find_name(mgr, "iana:a:");
     EXPECT_EQ(elem, nullptr);
-    EXPECT_ERROR;
+    EXPECT_NO_ERROR;
 }
 
 TEST_F(Fill, elem_name_invalid)

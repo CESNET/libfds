@@ -67,7 +67,7 @@ fds_iemgr_create()
 }
 
 fds_iemgr_t *
-fds_iemgr_copy(fds_iemgr_t *mgr)
+fds_iemgr_copy(const fds_iemgr_t *mgr)
 {
     if (mgr == nullptr) {
         return nullptr;
@@ -77,7 +77,7 @@ fds_iemgr_copy(fds_iemgr_t *mgr)
     try {
         res = mgr_copy(mgr);
     } catch (...) {
-        mgr->err_msg = "Allocation error while copying manager";
+        // Allocation error
         return nullptr;
     }
 
@@ -322,7 +322,7 @@ dirs_read(fds_iemgr_t* mgr, const char* path)
 {
     auto parser = unique_parser(parser_create(mgr), &::fds_xml_destroy);
     if (parser == nullptr) {
-        return FDS_ERR_FMT;
+        return false;
     }
 
     mgr->can_overwrite_elem = true;
@@ -352,13 +352,16 @@ mgr_check(fds_iemgr_t *mgr)
 
     const auto pen_pair_it = find_pair(mgr->pens);
     if (pen_pair_it != mgr->pens.end()) {
-        mgr->err_msg = "PEN of a scope with PEN '" +to_string(pen_pair_it.base()->second->head.pen)+ "' is defined multiple times.";
+        mgr->err_msg = "PEN of a scope with PEN '"
+            + to_string(pen_pair_it.base()->second->head.pen)
+            + "' is defined multiple times.";
         return FDS_ERR_FMT;
     }
 
     const auto pref_pair_it = find_pair(mgr->prefixes);
     if (pref_pair_it != mgr->prefixes.end()) {
-        mgr->err_msg = "Name '"+string(pref_pair_it.base()->second->head.name)+ "' of a scope is defined multiple times.";
+        mgr->err_msg = "Name '"+string(pref_pair_it.base()->second->head.name)
+            + "' of a scope is defined multiple times.";
         return FDS_ERR_FMT;
     }
 
@@ -382,7 +385,7 @@ fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path)
     }
     catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_read_dir' while allocating memory for directory reading.";
-        return FDS_ERR_FMT;
+        return FDS_ERR_NOMEM;
     }
 
     return mgr_check(mgr);
@@ -407,7 +410,7 @@ fds_iemgr_read_file(fds_iemgr_t *mgr, const char *path, bool overwrite)
         }
     } catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_read_file' while allocating memory for file reading.";
-        return FDS_ERR_FMT;
+        return FDS_ERR_NOMEM;
     }
 
     mgr_remove_temp(mgr);
@@ -415,7 +418,7 @@ fds_iemgr_read_file(fds_iemgr_t *mgr, const char *path, bool overwrite)
 }
 
 const fds_iemgr_elem *
-fds_iemgr_elem_find_id(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
+fds_iemgr_elem_find_id(const fds_iemgr_t *mgr, uint32_t pen, uint16_t id)
 {
     assert(mgr != nullptr);
 
@@ -432,23 +435,24 @@ fds_iemgr_elem_find_id(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
     return elem;
 }
 
-const fds_iemgr_elem *
-fds_iemgr_elem_find_name(fds_iemgr_t *mgr, const char *name)
+const struct fds_iemgr_elem *
+fds_iemgr_elem_find_name(const fds_iemgr_t *mgr, const char *name)
 {
     assert(mgr  != nullptr);
     assert(name != nullptr);
 
     pair<string, string> split;
     try {
-        if (!split_name(name, split)){
-            mgr->err_msg = "Element name " +string(name)+ " cannot contain second ':'";
+        if (!split_name(name, split)) {
+            // Error: the element name cannot contain the second ":"
             return nullptr;
         }
     } catch (...) {
-        mgr->err_msg = "Error in function 'fds_iemgr_elem_find_name' while allocating memory for string splitting.";
+        // Error: Probably memory allocation error
         return nullptr;
     }
 
+    // FIXME: the scope and IE can be defined as numbers
     auto scope = binary_find(mgr->prefixes, split.first);
     if (scope == nullptr) {
         return nullptr;
@@ -463,7 +467,8 @@ fds_iemgr_elem_find_name(fds_iemgr_t *mgr, const char *name)
 }
 
 int
-fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t pen, bool overwrite)
+fds_iemgr_elem_add(fds_iemgr_t *mgr, const struct fds_iemgr_elem *elem, uint32_t pen,
+    bool overwrite)
 {
     assert(mgr != nullptr);
 
@@ -489,7 +494,7 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t 
         }
     } catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_elem_add' while allocating memory for element adding.";
-        return FDS_ERR_FMT;
+        return FDS_ERR_NOMEM;
     }
 
     scope_sort(scope);
@@ -497,8 +502,8 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const fds_iemgr_elem *elem, const uint32_t 
 }
 
 int
-fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id,
-                           const uint16_t new_id, bool overwrite)
+fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, uint32_t pen, uint16_t id, uint16_t new_id,
+    bool overwrite)
 {
     assert(mgr != nullptr);
 
@@ -531,7 +536,7 @@ fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t 
         mgr->err_msg = "Error while allocating memory for creating new reverse element.";
     }
     if (rev == nullptr) {
-        return FDS_ERR_FMT;
+        return FDS_ERR_NOMEM;
     }
 
     scope_sort(scope);
@@ -539,7 +544,7 @@ fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t 
 }
 
 int
-fds_iemgr_elem_remove(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
+fds_iemgr_elem_remove(fds_iemgr_t *mgr, uint32_t pen, uint16_t id)
 {
     assert(mgr != nullptr);
 
@@ -550,14 +555,14 @@ fds_iemgr_elem_remove(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
         }
     } catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_elem_remove' while removing element.";
-        return FDS_ERR_FMT;
+        return FDS_ERR_NOMEM;
     }
 
     return FDS_OK;
 }
 
-const fds_iemgr_scope *
-fds_iemgr_scope_find_pen(fds_iemgr_t *mgr, const uint32_t pen)
+const struct fds_iemgr_scope *
+fds_iemgr_scope_find_pen(const fds_iemgr_t *mgr, uint32_t pen)
 {
     assert(mgr != nullptr);
 
@@ -569,7 +574,7 @@ fds_iemgr_scope_find_pen(fds_iemgr_t *mgr, const uint32_t pen)
 }
 
 const fds_iemgr_scope *
-fds_iemgr_scope_find_name(fds_iemgr_t *mgr, const char *name)
+fds_iemgr_scope_find_name(const fds_iemgr_t *mgr, const char *name)
 {
     assert(mgr != nullptr);
     assert(name != nullptr);

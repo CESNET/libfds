@@ -235,7 +235,7 @@ elements_remove_reverse(fds_iemgr_scope_inter* scope);
  * \param[in,out] mgr Manager
  * \param[in]     pen Scope with the element
  * \param[in]     id  ID of the element
- * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
+ * \return FDS_OK on success, otherwise FDS_ERR_NOMEM or FDS_NOT_FOUND
  */
 int
 element_destroy(fds_iemgr_t *mgr, uint32_t pen, uint16_t id);

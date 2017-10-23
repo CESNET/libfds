@@ -393,10 +393,10 @@ struct fds_iemgr_elem {
     /** Reverse element                                                      */
     bool                            is_reverse;
     /** Reverse element, when individual mode is defined in a elements scope */
-    struct fds_iemgr_elem *                reverse_elem;
+    struct fds_iemgr_elem *         reverse_elem;
 };
 
-/** Manager with elements                   */
+/** Element Manager  */
 typedef struct fds_iemgr fds_iemgr_t;
 
 /**
@@ -407,12 +407,12 @@ FDS_API fds_iemgr_t *
 fds_iemgr_create();
 
 /**
- * \brief Create and copy the manager
+ * \brief Create and copy a manager
  * \param[in] mgr Manager what will be copied
- * \return Copied manager on success, otherwise NULL;
+ * \return Copied manager on success. Otherwise NULL (i.e. memory allocation error)
  */
 FDS_API fds_iemgr_t *
-fds_iemgr_copy(fds_iemgr_t *mgr);
+fds_iemgr_copy(const fds_iemgr_t *mgr);
 
 /**
  * Remove all elements from the manager
@@ -431,24 +431,24 @@ fds_iemgr_destroy(fds_iemgr_t *mgr);
 /**
  * \brief Compare last modified time of parsed files
  * \param[in,out] mgr Manager
- * \return FDS_IEMGR_OK if nothing changed,
- * FDS_IEMGR_DIFF_MTIME if at least one file changed timestamp
- * and FDS_IEMGR_ERR when error occurred
+ * \return FDS_OK if nothing changed,
+ *         FDS_DIFF_MTIME if at least one file changed timestamp
+ *         and FDS_ERR_FMT when error occurred (an error message is set - see fds_iemgr_last_err())
  */
 FDS_API int
 fds_iemgr_compare_timestamps(fds_iemgr_t *mgr);
 
 /**
- * \brief Load XML files from dir and save elements to the manager
+ * \brief Load an XML files from dir and save elements to the manager
  * \param[in,out] mgr  Manager
  * \param[in]     path Path to the directories with saved XML files
- * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
- * and an error message is set (see fds_iemgr_last_err())
+ * \return FDS_OK on success, otherwise FDS_ERR_NOMEM or FDS_ERR_FMT and an error message is set
+ *   (see fds_iemgr_last_err())
  *
  * \note Load only files in 'system/elements' and 'user/elements'
- * \note Scope name and biflow is ignored when are defined new elements to the existing scope
- * \note Element that overwrite another element can have only ID of element and information
- * that will be rewritten
+ * \note Scope and biflow definitions are ignored if new elements are added to the existing scope.
+ * \note Element that overwrite another element should define only the ID of the Element and
+ *   information (i.e. parameters) that should be rewritten.
  * \note All files which starts with '.' in the name are ignored (hidden files)
  * \warning Each element can be rewritten only once
  * \warning All previously parsed elements will be removed
@@ -457,105 +457,109 @@ FDS_API int
 fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path);
 
 /**
- * \brief Load XML file and save elements to the manager
+ * \brief Load an XML file and save elements to the manager
  * \param[in,out] mgr       Manager with elements
  * \param[in]     file_path Path with XML file
  * \param[in]     overwrite On collision overwrite elements previously defined
- * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
- * and an error message is set (see fds_iemgr_last_err())
+ * \return FDS_OK on success, otherwise FDS_ERR_NOMEM or FDS_ERR_FMT and an error message is set
+ *   (see fds_iemgr_last_err())
  *
  * \note If \p overwrite is false, then elements can be only added, they cannot be rewritten
- * \note Element that overwrite another element can have only ID of element and information
- * that will be rewritten
+ * \note Element that overwrite another element should define only the ID of the Element and
+ *   information (i.e. parameters) that should be rewritten.
  * \note Biflow and name of a scope which overwrites another scope are ignored
  */
 FDS_API int
 fds_iemgr_read_file(fds_iemgr_t *mgr, const char *file_path, bool overwrite);
 
 /**
- * \brief Find element with ID in the manager
+ * \brief Find an element with a given ID in the manager
  * \param[in] mgr Manager
  * \param[in] pen Private Enterprise Number
  * \param[in] id  ID of element
- * \return Element if exists, otherwise NULL and an error message is set (see fds_iemgr_last_err())
+ * \return Element if exists, otherwise NULL.
  */
 FDS_API const struct fds_iemgr_elem *
-fds_iemgr_elem_find_id(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id);
+fds_iemgr_elem_find_id(const fds_iemgr_t *mgr, uint32_t pen, uint16_t id);
 
 /**
- * \brief Find element with name in the manager
- * \param[in] mgr  Manager
- * \param[in] name Prefix and Name of element separated by ':', e.g. 'prefix:name'
- * \return Element if exists, otherwise NULL and an error message is set (see fds_iemgr_last_err())
+ * \brief Find an element with a given name in the manager
  *
- * \note When name doesn't contain ':', scope with name 'iana' is used
- * \warning Name of a element and name of a scope cannot contain only numbers or ':'
+ * If the element is not part of the IANA scope, the scope must be explicitly defined. Otherwise
+ * only the IANA scope is searched for. The format of the searched element can be
+ * "element_name" (IANA only) or "scope_name:element_name" (semicolon separated names).
+ *
+ * \warning The name of the element and the name of a scope cannot contain only numbers or ':'
+ * \param[in] mgr  Manager
+ * \param[in] name Prefix and Name of element separated by ':', e.g. 'scope_name:element_name'
+ * \return Element if exists, otherwise NULL.
+
  */
 FDS_API const struct fds_iemgr_elem *
-fds_iemgr_elem_find_name(fds_iemgr_t *mgr, const char *name);
+fds_iemgr_elem_find_name(const fds_iemgr_t *mgr, const char *name);
 
 /**
- * \brief Add element to the manager
+ * \brief Add an element to the manager
  * \param[in,out] mgr        Manager
  * \param[in]     elem       Element
  * \param[in]     pen        Private enterprise number
  * \param[in]     overwrite  Overwrite previously defined element
- * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
- * and an error message is set (see fds_iemgr_last_err())
+ * \return FDS_OK on success, otherwise FDS_ERR_NOMEM or FDS_ERR_FMT and an error message is set
+ *   (see fds_iemgr_last_err())
  *
  * \note Element's \p scope is ignored.
  * \note Element's \p reverse element is ignored.
  */
 FDS_API int
-fds_iemgr_elem_add(fds_iemgr_t *mgr, const struct fds_iemgr_elem *elem, const uint32_t pen, bool
-overwrite);
+fds_iemgr_elem_add(fds_iemgr_t *mgr, const struct fds_iemgr_elem *elem, uint32_t pen,
+    bool overwrite);
 
 /**
- * \brief Add reverse element to the manager
+ * \brief Add a reverse element to the manager
  * \param[in,out] mgr       Manager
  * \param[in]     pen       Private enterprise number of the scope
  * \param[in]     id        ID of the forward element
  * \param[in]     new_id    ID of a new reverse element
  * \param[in]     overwrite Overwrite previously defined reverse element
- * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
+ * \return FDS_OK on success, otherwise FDS_ERR_NOMEM, FDS_ERR_FMT or FDS_NOT_FOUND
  * and an error message is set (see fds_iemgr_last_err())
  */
 FDS_API int
-fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id,
-                           const uint16_t new_id, bool overwrite);
+fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, uint32_t pen, uint16_t id, uint16_t new_id,
+    bool overwrite);
 
 /**
- * \brief Remove element from the manager
+ * \brief Remove an element from the manager
  * \param[in,out] mgr  Manager
  * \param[in]     pen  Private Enterprise Number
  * \param[in]     id   ID of an element
- * \return FDS_IEMGR_OK on success, otherwise FDS_IEMGR_ERR_NOMEM or FDS_IEMGR_ERR
- * and an error message is set (see fds_iemgr_last_err())
+ * \return FDS_OK on success, otherwise FDS_NOT_FOUND or FDS_ERR_NOMEM and an error message is
+ *   set (see fds_iemgr_last_err())
  */
 FDS_API int
-fds_iemgr_elem_remove(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id);
+fds_iemgr_elem_remove(fds_iemgr_t *mgr, uint32_t pen, uint16_t id);
 
 /**
  * \brief Find a scope in the manager by a PEN
  * \param[in,out] mgr Manager
  * \param[in]     pen Private Enterprise Number
- * \return Scope if exists, otherwise NULL and an error message is set (see fds_iemgr_last_err())
+ * \return Scope if exists, otherwise NULL.
  */
 FDS_API const struct fds_iemgr_scope *
-fds_iemgr_scope_find_pen(fds_iemgr_t *mgr, const uint32_t pen);
+fds_iemgr_scope_find_pen(const fds_iemgr_t *mgr, uint32_t pen);
 
 /**
  * \brief Find a scope in the manager by a name
  * \param[in,out] mgr    Manager
  * \param[in]     name   Scope name
- * \return Scope if exists, otherwise NULL and an error message is set (see fds_iemgr_last_err())
+ * \return Scope if exists, otherwise NULL.
  */
 FDS_API const struct fds_iemgr_scope *
-fds_iemgr_scope_find_name(fds_iemgr_t *mgr, const char *name);
+fds_iemgr_scope_find_name(const fds_iemgr_t *mgr, const char *name);
 
 /**
- * \brief Get last error message
- * \param[in] mgr Collection
+ * \brief Get the last error message
+ * \param[in] mgr Manager
  */
 FDS_API const char *
 fds_iemgr_last_err(const fds_iemgr_t *mgr);

@@ -70,7 +70,9 @@ bool
 parsed_id_save(fds_iemgr_t* mgr, const fds_iemgr_scope_inter* scope, const uint16_t id)
 {
     if (mgr->parsed_ids.find(id) != mgr->parsed_ids.end()) {
-        mgr->err_msg = "Element with ID '" +to_string(id)+ "' is defined multiple times in the scope with PEN '" +to_string(scope->head.pen)+ "'";
+        mgr->err_msg = "Element with ID '" + to_string(id)
+            + "' is defined multiple times in the scope with PEN '"
+            + to_string(scope->head.pen)+ "'";
         return false;
     }
 
@@ -370,7 +372,7 @@ mgr_sort(fds_iemgr_t* mgr)
 }
 
 fds_iemgr_t*
-mgr_copy(fds_iemgr_t* mgr)
+mgr_copy(const fds_iemgr_t* mgr)
 {
     auto res = unique_mgr(new fds_iemgr_t, &::fds_iemgr_destroy);
     if (!mgr->err_msg.empty()) {

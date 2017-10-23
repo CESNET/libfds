@@ -70,6 +70,7 @@ set(CMAKE_CXX_FLAGS_COVERAGE "${CMAKE_CXX_FLAGS_DEBUG} --coverage -fprofile-arcs
 add_subdirectory(include)
 add_subdirectory(src)
 add_subdirectory(docs)
+add_subdirectory(config)
 
 if (ENABLE_TESTS)
 	enable_testing()

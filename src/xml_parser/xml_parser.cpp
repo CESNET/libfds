@@ -46,7 +46,6 @@
 #include <limits>
 #include <set>
 #include <libfds/xml_parser.h>
-#include <libfds/common.h>
 #include <bits/unique_ptr.h>
 
 /** \cond DOXYGEN_SKIP_THIS */
@@ -420,7 +419,7 @@ check_text(const struct fds_xml_args opt, fds_xml_t *parser, struct attributes &
     }
 
     if (attr.text) {
-        parser->error_msg = "Element text can be defined only once, second definition is " 
+        parser->error_msg = "Element text can be defined only once, second definition is "
         + get_type(&opt);
         return FDS_ERR_FMT;
     }
@@ -521,7 +520,7 @@ check_end(const struct fds_xml_args opt, fds_xml_t *parser)
  * \return OK on success, or Err.
  */
 int
-check_raw(const struct fds_xml_args opt, fds_xml_t *parser, struct names &names, 
+check_raw(const struct fds_xml_args opt, fds_xml_t *parser, struct names &names,
         struct attributes &attr)
 {
     // same tests for all components types
@@ -1102,7 +1101,7 @@ parse_all_contents(const xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *
     int ret; // return value
 
     // when some element contain text and still is not nested
-    if (cur_node != nullptr && cur_node->next == nullptr && cur_node->children == nullptr 
+    if (cur_node != nullptr && cur_node->next == nullptr && cur_node->children == nullptr
     && cur_node->content != nullptr) {
         opt = find_text(opts); // find element with text
         if (opt == nullptr) {
@@ -1308,7 +1307,7 @@ ctx_parse(fds_xml_t *parser, unique_doc conf, bool pedantic)
     }
 
     if (xmlStrcmp(BAD_CAST parser->opts[0].name, node->name) != 0) {
-        parser->error_msg = "Name of the root element in file is '" 
+        parser->error_msg = "Name of the root element in file is '"
         +std::string((char *) node->name) + "', should be " +get_type(&parser->opts[0]);
         return nullptr;
     }

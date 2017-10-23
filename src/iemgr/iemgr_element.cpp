@@ -40,7 +40,6 @@
  */
 
 #include <libfds/iemgr.h>
-#include <libfds/common.h>
 #include "iemgr_common.h"
 #include "iemgr_scope.h"
 

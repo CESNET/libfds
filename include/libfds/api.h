@@ -52,4 +52,17 @@
  */
 #define FDS_API __attribute__((visibility("default")))
 
+/** Status code for success                                                   */
+#define FDS_OK          (0)
+/** Status code for memory allocation error                                   */
+#define FDS_ERR_NOMEM  (-1)
+/** Status code for the end of a context                                      */
+#define FDS_EOC        (-2)
+/** Invalid format description                                                */
+#define FDS_ERR_FMT    (-3)
+/** Status code for different modification time                               */
+#define FDS_DIFF_MTIME (-4)
+/** Status code when some element cannot be found                             */
+#define FDS_NOT_FOUND  (-5)
+
 #endif /* LIBFDS_API_H_ */

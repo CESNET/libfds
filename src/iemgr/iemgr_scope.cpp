@@ -39,7 +39,6 @@
  *
  */
 
-#include <libfds/common.h>
 #include "iemgr_common.h"
 #include "iemgr_element.h"
 

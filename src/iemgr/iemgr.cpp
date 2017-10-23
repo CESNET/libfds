@@ -49,7 +49,6 @@
 #include <libfds/xml_parser.h>
 #include <libfds/iemgr.h>
 #include <cassert>
-#include <libfds/common.h>
 #include "iemgr_common.h"
 #include "iemgr_scope.h"
 #include "iemgr_element.h"
@@ -89,7 +88,7 @@ fds_iemgr_copy(fds_iemgr_t *mgr)
  * \brief Remove modification time from a manager
  * \param[in,out] mgr Manager
  */
-void 
+void
 mtime_remove(fds_iemgr_t *mgr)
 {
     for (const auto& mtime: mgr->mtime) {

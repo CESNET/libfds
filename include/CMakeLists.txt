@@ -5,7 +5,6 @@ set(TOP_HEADERS
 
 set(SUB_HEADERS
 	libfds/api.h
-	libfds/file.h
 	libfds/xml_parser.h
 	libfds/iemgr.h
 	)

@@ -4,8 +4,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <libfds/iemgr.h>
-#include <libfds/common.h>
+#include <libfds.h>
 #include "iemgr_common.h"
 
 TEST_F(Fill, success)
@@ -44,19 +43,19 @@ TEST_F(Mgr, success)
 
 TEST_F(Mgr, elem_not_defined)
 {
-    EXPECT_EQ(fds_iemgr_elem_add(mgr, nullptr, 1, false), FDS_ERR_FMT);
+    EXPECT_EQ(fds_iemgr_elem_add(mgr, nullptr, 1, false), FDS_ERR_FORMAT);
     EXPECT_ERROR;
 }
 
 TEST_F(Fill, elem_not_found)
 {
-    EXPECT_EQ(fds_iemgr_elem_add_reverse(mgr, 0, 0, 1, false), FDS_NOT_FOUND);
+    EXPECT_EQ(fds_iemgr_elem_add_reverse(mgr, 0, 0, 1, false), FDS_ERR_NOTFOUND);
     EXPECT_ERROR;
 }
 
 TEST_F(Mgr, scope_not_found)
 {
-    EXPECT_EQ(fds_iemgr_elem_add_reverse(mgr, 0, 0, 1, false), FDS_NOT_FOUND);
+    EXPECT_EQ(fds_iemgr_elem_add_reverse(mgr, 0, 0, 1, false), FDS_ERR_NOTFOUND);
     EXPECT_ERROR;
 }
 
@@ -64,6 +63,6 @@ TEST_F(Mgr, add_elem_to_not_individual)
 {
     ASSERT_EQ(fds_iemgr_read_file(mgr, FILES_VALID "pen.xml", true), FDS_OK);
 
-    EXPECT_EQ(fds_iemgr_elem_add_reverse(mgr, 0, 999, 1, false), FDS_ERR_FMT);
+    EXPECT_EQ(fds_iemgr_elem_add_reverse(mgr, 0, 999, 1, false), FDS_ERR_FORMAT);
     EXPECT_ERROR;
 }

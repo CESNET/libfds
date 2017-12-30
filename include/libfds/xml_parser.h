@@ -316,7 +316,7 @@ typedef struct fds_xml_ctx fds_xml_ctx_t;
  * \brief Create an XML parser
  * \param[out] parser Pointer to the newly created parser
  * \return On success returns #FDS_OK. Otherwise #FDS_ERR_NOMEM or
- *   #FDS_ERR_FMT.
+ *   #FDS_ERR_FORMAT.
  */
 FDS_API int
 fds_xml_create(fds_xml_t **parser);

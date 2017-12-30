@@ -4,8 +4,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <libfds/iemgr.h>
-#include <libfds/common.h>
+#include <libfds.h>
 #include "iemgr_common.h"
 
 TEST(Destroy, success)
@@ -28,6 +27,6 @@ TEST_F(Mgr, elem_remove)
 
 TEST_F(Mgr, no_scope)
 {
-    EXPECT_EQ(fds_iemgr_elem_remove(mgr, 0, 0), FDS_NOT_FOUND);
+    EXPECT_EQ(fds_iemgr_elem_remove(mgr, 0, 0), FDS_ERR_NOTFOUND);
     EXPECT_NO_ERROR;
 }

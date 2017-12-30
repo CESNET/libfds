@@ -1,10 +1,6 @@
 #include <gtest/gtest.h>
 #include <libxml2/libxml/parser.h>
-#include <libfds/common.h>
-
-extern "C" {
-	#include <libfds/xml_parser.h>
-}
+#include <libfds.h>
 
 int main(int argc, char **argv)
 {

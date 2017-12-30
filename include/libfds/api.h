@@ -43,8 +43,8 @@
 #define LIBFDS_API_H_
 
 /**
- * \def API
- * \brief Make an interface public outsite
+ * \def FDS_API
+ * \brief Make an interface public outside
  *
  * If the compiler supports attribute to mark objects as hidden, mark all
  * objects as hidden and export only objects explicitly marked to be part of
@@ -53,16 +53,24 @@
 #define FDS_API __attribute__((visibility("default")))
 
 /** Status code for success                                                   */
-#define FDS_OK          (0)
-/** Status code for memory allocation error                                   */
-#define FDS_ERR_NOMEM  (-1)
+#define FDS_OK                  (0)
 /** Status code for the end of a context                                      */
-#define FDS_EOC        (-2)
-/** Invalid format description                                                */
-#define FDS_ERR_FMT    (-3)
-/** Status code for different modification time                               */
-#define FDS_DIFF_MTIME (-4)
-/** Status code when some element cannot be found                             */
-#define FDS_NOT_FOUND  (-5)
+#define FDS_EOC                 (-1)
+/** Status code for memory allocation error                                   */
+#define FDS_ERR_NOMEM           (-2)
+/** Status code for invalid format of data                                    */
+#define FDS_ERR_FORMAT          (-3)
+/** Status code for an invalid argument or a combination of arguments         */
+#define FDS_ERR_ARG             (-4)
+/** Status code for not found                                                 */
+#define FDS_ERR_NOTFOUND        (-5)
+/** Status code for a truncation of a value                                   */
+#define FDS_ERR_TRUNC           (-6)
+/** Status code for insufficient buffer size for a result                     */
+#define FDS_ERR_BUFFER          (-7)
+/** Status code for denied operation                                          */
+#define FDS_ERR_DENIED          (-8)
+/** Status code for modification error                                         */
+#define FDS_ERR_DIFF            (-9)
 
 #endif /* LIBFDS_API_H_ */

@@ -1,11 +1,12 @@
 /**
  * \file   include/libfds/iemgr.h
  * \author Michal Režňák <xrezna04@stud.fit.vutbr.cz>
+ * \author Lukas Hutak <lukas.hutak@cesnet.cz>
  * \brief  Manager of the informational elements
  * \date   10. July 2017
  */
 
-/* Copyright (C) 2016 CESNET, z.s.p.o.
+/* Copyright (C) 2017 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -433,7 +434,7 @@ fds_iemgr_destroy(fds_iemgr_t *mgr);
  * \param[in,out] mgr Manager
  * \return FDS_OK if nothing changed,
  *         FDS_DIFF_MTIME if at least one file changed timestamp
- *         and FDS_ERR_FMT when error occurred (an error message is set - see fds_iemgr_last_err())
+ *         and FDS_ERR_FORMAT when error occurred (an error message is set - see fds_iemgr_last_err())
  */
 FDS_API int
 fds_iemgr_compare_timestamps(fds_iemgr_t *mgr);
@@ -442,7 +443,7 @@ fds_iemgr_compare_timestamps(fds_iemgr_t *mgr);
  * \brief Load an XML files from dir and save elements to the manager
  * \param[in,out] mgr  Manager
  * \param[in]     path Path to the directories with saved XML files
- * \return FDS_OK on success, otherwise FDS_ERR_NOMEM or FDS_ERR_FMT and an error message is set
+ * \return FDS_OK on success, otherwise FDS_ERR_NOMEM or FDS_ERR_FORMAT and an error message is set
  *   (see fds_iemgr_last_err())
  *
  * \note Load only files in 'system/elements' and 'user/elements'
@@ -461,7 +462,7 @@ fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path);
  * \param[in,out] mgr       Manager with elements
  * \param[in]     file_path Path with XML file
  * \param[in]     overwrite On collision overwrite elements previously defined
- * \return FDS_OK on success, otherwise FDS_ERR_NOMEM or FDS_ERR_FMT and an error message is set
+ * \return FDS_OK on success, otherwise FDS_ERR_NOMEM or FDS_ERR_FORMAT and an error message is set
  *   (see fds_iemgr_last_err())
  *
  * \note If \p overwrite is false, then elements can be only added, they cannot be rewritten
@@ -504,7 +505,7 @@ fds_iemgr_elem_find_name(const fds_iemgr_t *mgr, const char *name);
  * \param[in]     elem       Element
  * \param[in]     pen        Private enterprise number
  * \param[in]     overwrite  Overwrite previously defined element
- * \return FDS_OK on success, otherwise FDS_ERR_NOMEM or FDS_ERR_FMT and an error message is set
+ * \return FDS_OK on success, otherwise FDS_ERR_NOMEM or FDS_ERR_FORMAT and an error message is set
  *   (see fds_iemgr_last_err())
  *
  * \note Element's \p scope is ignored.
@@ -521,7 +522,7 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const struct fds_iemgr_elem *elem, uint32_t
  * \param[in]     id        ID of the forward element
  * \param[in]     new_id    ID of a new reverse element
  * \param[in]     overwrite Overwrite previously defined reverse element
- * \return FDS_OK on success, otherwise FDS_ERR_NOMEM, FDS_ERR_FMT or FDS_NOT_FOUND
+ * \return FDS_OK on success, otherwise FDS_ERR_NOMEM, FDS_ERR_FORMAT or FDS_ERR_NOTFOUND
  * and an error message is set (see fds_iemgr_last_err())
  */
 FDS_API int
@@ -533,7 +534,7 @@ fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, uint32_t pen, uint16_t id, uint16_t
  * \param[in,out] mgr  Manager
  * \param[in]     pen  Private Enterprise Number
  * \param[in]     id   ID of an element
- * \return FDS_OK on success, otherwise FDS_NOT_FOUND or FDS_ERR_NOMEM and an error message is
+ * \return FDS_OK on success, otherwise FDS_ERR_NOTFOUND or FDS_ERR_NOMEM and an error message is
  *   set (see fds_iemgr_last_err())
  */
 FDS_API int

@@ -153,14 +153,14 @@ fds_iemgr_compare_timestamps(fds_iemgr *mgr)
     for (const auto& mtime: mgr->mtime) {
         if (stat(mtime.first, &sb) != 0) {
             mgr->err_msg = "Could not read information about the file '" +string(mtime.first)+ "'";
-            return FDS_ERR_FMT;
+            return FDS_ERR_FORMAT;
         }
 
         if (mtime.second.tv_sec != sb.st_mtim.tv_sec) {
-            return FDS_DIFF_MTIME;
+            return FDS_ERR_DIFF;
         }
         if (mtime.second.tv_nsec != sb.st_mtim.tv_nsec) {
-            return FDS_DIFF_MTIME;
+            return FDS_ERR_DIFF;
         }
     }
 
@@ -343,7 +343,7 @@ dirs_read(fds_iemgr_t* mgr, const char* path)
 /**
  * \brief Check all definitions of a manager and sort manager
  * \param[in,out] mgr Manager
- * \return FDS_OK on success, otherwise FDS_ERR_FMT or FDS_NOMEM
+ * \return FDS_OK on success, otherwise FDS_ERR_FORMAT or FDS_ERR_NOMEM
  */
 int
 mgr_check(fds_iemgr_t *mgr)
@@ -355,14 +355,14 @@ mgr_check(fds_iemgr_t *mgr)
         mgr->err_msg = "PEN of a scope with PEN '"
             + to_string(pen_pair_it.base()->second->head.pen)
             + "' is defined multiple times.";
-        return FDS_ERR_FMT;
+        return FDS_ERR_FORMAT;
     }
 
     const auto pref_pair_it = find_pair(mgr->prefixes);
     if (pref_pair_it != mgr->prefixes.end()) {
         mgr->err_msg = "Name '"+string(pref_pair_it.base()->second->head.name)
             + "' of a scope is defined multiple times.";
-        return FDS_ERR_FMT;
+        return FDS_ERR_FORMAT;
     }
 
     return FDS_OK;
@@ -380,7 +380,7 @@ fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path)
 
     try {
         if (!dirs_read(mgr, path)) {
-            return FDS_ERR_FMT;
+            return FDS_ERR_FORMAT;
         }
     }
     catch (...) {
@@ -402,11 +402,11 @@ fds_iemgr_read_file(fds_iemgr_t *mgr, const char *path, bool overwrite)
     try {
         auto parser = unique_parser(parser_create(mgr), &::fds_xml_destroy);
         if (parser == nullptr) {
-            return FDS_ERR_FMT;
+            return FDS_ERR_FORMAT;
         }
 
         if (!file_parse(mgr, parser.get(), path)) {
-            return FDS_ERR_FMT;
+            return FDS_ERR_FORMAT;
         }
     } catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_read_file' while allocating memory for file reading.";
@@ -474,7 +474,7 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const struct fds_iemgr_elem *elem, uint32_t
 
     if (elem == nullptr) {
         mgr->err_msg = "Element that should be added is not defined";
-        return FDS_ERR_FMT;
+        return FDS_ERR_FORMAT;
     }
 
     mgr->can_overwrite_elem = overwrite;
@@ -490,7 +490,7 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const struct fds_iemgr_elem *elem, uint32_t
 
         auto res = unique_elem(element_copy(scope, elem), &::element_remove);
         if (!element_push(mgr, scope, move(res), BIFLOW_ID_INVALID)) {
-            return FDS_ERR_FMT;
+            return FDS_ERR_FORMAT;
         }
     } catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_elem_add' while allocating memory for element adding.";
@@ -510,22 +510,22 @@ fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, uint32_t pen, uint16_t id, uint16_t
     auto scope = binary_find(mgr->pens, pen);
     if (scope == nullptr) {
         mgr->err_msg = "Scope with PEN '" +to_string(pen)+ "' cannot be found.";
-        return FDS_NOT_FOUND;
+        return FDS_ERR_NOTFOUND;
     }
     if (scope->head.biflow_mode != FDS_BF_INDIVIDUAL) {
         mgr->err_msg = "Reverse element can be defined only to the scope with INDIVIDUAL biflow mode.";
-        return FDS_ERR_FMT;
+        return FDS_ERR_FORMAT;
     }
 
     auto elem = binary_find(scope->ids, id);
     if (elem == nullptr) {
         mgr->err_msg = "Element with ID '" +to_string(id)+ "' cannot be found.";
-        return FDS_NOT_FOUND;
+        return FDS_ERR_NOTFOUND;
     }
 
     if (elem->reverse_elem != nullptr && !overwrite) {
         mgr->err_msg = "Element with ID '" +to_string(id)+ "' already has reverse element.";
-        return FDS_ERR_FMT;
+        return FDS_ERR_FORMAT;
     }
 
     fds_iemgr_elem* rev = nullptr;

@@ -4,8 +4,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <libfds/iemgr.h>
-#include <libfds/common.h>
+#include <libfds.h>
 #include "iemgr_common.h"
 
 TEST_F(Mgr, valid)

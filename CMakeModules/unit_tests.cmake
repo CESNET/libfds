@@ -3,34 +3,8 @@
 
 # GTest required threads support
 find_package(Threads REQUIRED)
-
-include(ExternalProject)
-
-# Set default ExternalProject root directory
-set_directory_properties(PROPERTIES EP_PREFIX ${CMAKE_BINARY_DIR}/third_party)
-
-# Add GTest
-ExternalProject_Add(
-	gtest
-	GIT_REPOSITORY  "https://github.com/google/googletest.git"
-	GIT_TAG         "release-1.7.0"
-	# Disable install step
-	INSTALL_COMMAND ""
-	LOG_DOWNLOAD    ON
-	LOG_CONFIGURE   ON
-	LOG_BUILD       ON
-)
-
-# Create a libtest target to be used as a dependency by test programs
-add_library(libgtest STATIC IMPORTED GLOBAL)
-add_dependencies(libgtest gtest)
-
-ExternalProject_Get_Property(gtest source_dir binary_dir)
-set_target_properties(libgtest PROPERTIES
-	IMPORTED_LOCATION "${binary_dir}/libgtest.a"
-	IMPORTED_LINK_INTERFACE_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}"
-	)
-include_directories("${source_dir}/include")
+find_package(GTest 1.7.0 REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
 
 # ------------------------------------------------------------------------------
 # Valgrind
@@ -54,7 +28,7 @@ endif()
 
 # ------------------------------------------------------------------------------
 # Register standalone unit test (no extra libraries required)
-# Note: The fuction will add linkage to "libgtest and "ipfixcol2base".
+# Note: The fuction will add linkage to "libgtest and "libfds".
 #       If extra libraries are required, create your own custom target and
 #       register it using unit_tests_register_target() function.
 # Param: _file   File with a test case
@@ -65,7 +39,7 @@ function(unit_tests_register_test _file)
 
 	# Add executable
 	add_executable(${CASE_NAME} ${_file})
-	target_link_libraries(${CASE_NAME} PUBLIC libgtest fds)
+	target_link_libraries(${CASE_NAME} PUBLIC ${GTEST_LIBRARIES} fds)
 
 	# Add the test
 	add_test(NAME ${CASE_NAME} COMMAND "$<TARGET_FILE:${CASE_NAME}>")
@@ -80,12 +54,12 @@ endfunction()
 
 # Register unit test target (when extra library is required)
 # Note: This function will add linkage to "libgtest", but linkage to
-#       "ipfixcol2base" must be done manually, if required.
+#       "libfds" must be done manually, if required.
 # Param: _target   CMake target (i.e. executable name)
 function(unit_tests_register_target _target)
 	# Get a test name
 	set(CASE_NAME "test_${_target}")
-	target_link_libraries(${_target} PUBLIC libgtest)
+	target_link_libraries(${_target} PUBLIC ${GTEST_LIBRARIES})
 
 	# Add test(s)
 	add_test(NAME ${CASE_NAME} COMMAND "$<TARGET_FILE:${_target}>")
@@ -151,7 +125,7 @@ function(coverage_add_target)
 			--quiet --output-file "${COVERAGE_FILE_CLEAN}"
 		# Generate HTML report
 		COMMAND "${PATH_GENHTML}"
-			--branch-coverage --function-coverage --quiet --title "IPFIXcol2"
+			--branch-coverage --function-coverage --quiet --title "libfds"
 			--legend --show-details --output-directory "${COVERAGE_DIR}"
 			"${COVERAGE_FILE_CLEAN}"
 		# Delete the counters

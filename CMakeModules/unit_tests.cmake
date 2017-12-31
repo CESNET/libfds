@@ -32,13 +32,14 @@ endif()
 #       If extra libraries are required, create your own custom target and
 #       register it using unit_tests_register_target() function.
 # Param: _file   File with a test case
+# Param: ...     Extra files can be added as dependences
 function(unit_tests_register_test _file)
 	# Get a test name
 	get_filename_component(CASE_NAME "${_file}" NAME_WE)
 	set(CASE_NAME "test_${CASE_NAME}")
 
 	# Add executable
-	add_executable(${CASE_NAME} ${_file})
+	add_executable(${CASE_NAME} ${ARGV})
 	target_link_libraries(${CASE_NAME} PUBLIC ${GTEST_LIBRARIES} fds)
 
 	# Add the test
@@ -48,7 +49,7 @@ function(unit_tests_register_test _file)
 		add_test(
 			NAME ${CASE_NAME}_valgrind
 			COMMAND ${PATH_VALGRIND} ${VALGRIND_FLAGS} "$<TARGET_FILE:${CASE_NAME}>"
-			)
+		)
 	endif()
 endfunction()
 

@@ -9,7 +9,7 @@ include_directories(
 # List of tests
 add_subdirectory(xml_parser)
 add_subdirectory(iemgr)
-add_subdirectory(template)
+add_subdirectory(templates)
 # >> Add your new tests or test subdirectories HERE <<
 
 # Enable code coverage target (i.e. make coverage) when appropriate build

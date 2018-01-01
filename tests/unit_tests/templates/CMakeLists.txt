@@ -1,9 +1,9 @@
 # Add header files of the Template generator
-include_directories(../TEST_TOOLS/Templates)
+include_directories(./tools/)
 
 set(AUX_TOOLS
-	"../TEST_TOOLS/Templates/TGenerator.cpp"
-	"../TEST_TOOLS/Templates/common_tests.cpp"
+	"./tools/TGenerator.cpp"
+	"./tools/common_tests.cpp"
 )
 
 # List of tests

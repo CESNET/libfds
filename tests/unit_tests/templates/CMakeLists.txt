@@ -8,3 +8,4 @@ set(AUX_TOOLS
 
 # List of tests
 unit_tests_register_test(template_parse.cpp ${AUX_TOOLS})
+unit_tests_register_test(template_copy.cpp ${AUX_TOOLS})

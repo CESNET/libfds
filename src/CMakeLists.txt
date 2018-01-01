@@ -15,23 +15,20 @@ include_directories(
     "${LIBXML2_INCLUDE_DIRS}"
 )
 
-# Core source files
-#set(CORE_SOURCE
-#	file.c
-#)
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Subdirectories with auxiliary components
 add_subdirectory(xml_parser)
 add_subdirectory(iemgr)
+add_subdirectory(template_mgr)
 
 # Create a dynamic library from all source code
 add_library(
 	fds SHARED
 	${CORE_SOURCE}
-	$<TARGET_OBJECTS:xml_parser_obj>  # xml_parser library
-	$<TARGET_OBJECTS:iemgr_obj>       # iemgr library
+	$<TARGET_OBJECTS:xml_parser_obj>   # XML parser
+	$<TARGET_OBJECTS:iemgr_obj>        # IE manager
+	$<TARGET_OBJECTS:template_mgr_obj> # Template manager
 )
 
 target_link_libraries(fds ${LIBXML2_LIBRARIES})

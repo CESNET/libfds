@@ -7,6 +7,8 @@ set(SUB_HEADERS
 	libfds/api.h
 	libfds/xml_parser.h
 	libfds/iemgr.h
+	libfds/template.h
+	libfds/template_mgr.h
 	)
 
 # Installation targets

@@ -1,4 +1,4 @@
-# Create a xml_parser "object" library
+# Create a XML parser "object" library
 set(XML_PARSER_SRC
 	xml_parser.cpp
 )

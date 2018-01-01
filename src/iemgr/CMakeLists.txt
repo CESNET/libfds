@@ -1,4 +1,4 @@
-# Create a xml_parser "object" library
+# Create a IE manager "object" library
 set(IEMGR_SRC
 	iemgr_common.cpp
 	iemgr_element.cpp

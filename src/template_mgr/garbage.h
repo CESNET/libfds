@@ -1,11 +1,12 @@
-/*
- * \file libfds.h
+/**
+ * \file   src/template_mgr/garbage.c
  * \author Lukas Hutak <lukas.hutak@cesnet.cz>
- * \brief The main devel header for libfds (Flow Data Storage library)
- *
+ * \brief  Simple garbage collector (source file)
+ * \date   November 2017
+ */
+
+/*
  * Copyright (C) 2017 CESNET, z.s.p.o.
- *
- * LICENSE TERMS
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,23 +40,59 @@
  *
  */
 
-#ifndef LIBFDS_H_
-#define LIBFDS_H_
+#ifndef IPFIXCOL_GARBAGE_H
+#define IPFIXCOL_GARBAGE_H
 
-/**
- * \mainpage Flow Data Storage Library - Developer's Documentation
- *
- * This documents provides documentation of libfds.
- */
-
-/**
- * \defgroup publicAPIs Public libfds's APIs
- * \brief APIs for manipulation with flow files.
- */
-
-#include <libfds/xml_parser.h>
-#include <libfds/iemgr.h>
-#include <libfds/template.h>
+#include <stdbool.h>
 #include <libfds/template_mgr.h>
 
-#endif /* LIBFDS_H_ */
+/**
+ * \brief Callback function that will be used to destroy a garbage record
+ */
+typedef void (*garbage_fn_t)(void *);
+
+/**
+ * \brief Create a new garbage collection
+ * \return Pointer or NULL (memory allocation error)
+ */
+fds_tgarbage_t *
+garbage_create();
+
+/**
+ * \brief Destroy a garbage collection
+ *
+ * All garbage records will be destroyed too.
+ * \param[in] gc Garbage collection
+ */
+void
+garbage_destroy(fds_tgarbage_t *gc);
+
+/**
+ * \brief Add a garbage
+ * \param[in] gc   Garbage collection
+ * \param[in] data Garbage to add
+ * \param[in] fn   Function callback that will destroy the garbage
+ * \return On success returns #FDS_OK. Otherwise #FDS_ERR_NOMEM or #FDS_ERR_ARG.
+ */
+int
+garbage_append(fds_tgarbage_t *gc, void *data, garbage_fn_t fn);
+
+/**
+ * \brief Destroy garbage
+ *
+ * For all garbage records, run their destroy callback.
+ * \param[in] gc Garbage collection
+ */
+void
+garbage_remove(fds_tgarbage_t *gc);
+
+/**
+ * \brief Is the collection empty?
+ * \param[in] gc Garbage collection
+ * \return True or false
+ */
+bool
+garbage_empty(const fds_tgarbage_t *gc);
+
+
+#endif //IPFIXCOL_GARBAGE_H

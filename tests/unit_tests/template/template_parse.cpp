@@ -2,6 +2,7 @@
 #include <libfds.h>
 #include <memory>
 #include <cstring>
+#include <arpa/inet.h>
 
 #include <TGenerator.h>
 #include <common_tests.h>
@@ -794,18 +795,167 @@ TEST(Parse, OptionsIEType)
 
 // INVALID TEMPLATES ===============================================================================
 
-// TODO
 // Invalid header ID
+TEST(Parse, InvalidHeaderID)
+{
+    for (uint16_t id = 0; id < 256; ++id) {
+        TGenerator tdata(id, 2);
+        tdata.append(1, 2);
+        tdata.append(2, 8, 2);
 
-// Too short header
+        enum fds_template_type type = (id % 2) ? FDS_TYPE_TEMPLATE : FDS_TYPE_TEMPLATE_OPTS;
+        uint16_t len = tdata.length();
+        struct fds_template *tmplt = NULL;
 
-// Too short template
+        EXPECT_EQ(fds_template_parse(type, tdata.get(), &len, &tmplt), FDS_ERR_FORMAT);
+    }
+}
 
-// Missing fields
+// Invalid Options Template header - Scope count (SC == 0 or SC > Total count)
+TEST(Parse, InvalidScopeCnt)
+{
+    TGenerator tdata(1000, 2, 1); // SC MUST be > 0, otherwise Options template is not created
+    tdata.append(1, 1);
+    tdata.append(2, 2, 171711);
 
-// Missing enterprise number
+    struct fds_template *tmplt = nullptr;
+    enum fds_template_type type = FDS_TYPE_TEMPLATE_OPTS;
+    uint16_t len = tdata.length();
 
-// Too long data section
+    // Modify the scope count of the template
+    std::unique_ptr<uint8_t []> mod_data(new uint8_t[tdata.length()]);
+    std::memcpy(mod_data.get(), tdata.get(), tdata.length());
+    uint16_t *scope_cnt = reinterpret_cast<uint16_t *>(&mod_data.get()[4]);
 
-// Too many elements
+    *scope_cnt = htons(0);
+    EXPECT_EQ(fds_template_parse(type, mod_data.get(), &len, &tmplt), FDS_ERR_FORMAT);
+    EXPECT_EQ(tmplt, nullptr);
 
+    *scope_cnt = htons(3);
+    EXPECT_EQ(fds_template_parse(type, mod_data.get(), &len, &tmplt), FDS_ERR_FORMAT);
+    EXPECT_EQ(tmplt, nullptr);
+}
+
+// Test missing fields, unexpected ends of fields and headers
+TEST(Parse, InvalidUnexpectedEnd)
+{
+    struct fds_template *tmplt;
+    enum fds_template_type type;
+
+    // Parsing standard field of normal template
+    type = FDS_TYPE_TEMPLATE;
+    TGenerator tdata_std(1000, 2);
+    tdata_std.append(10, 8);
+    tdata_std.append(20, 16);
+
+    for (uint16_t len = 0; len < tdata_std.length(); ++len) {
+        tmplt = nullptr;
+        uint16_t len_cpy = len;
+
+        EXPECT_EQ(fds_template_parse(type, tdata_std.get(), &len_cpy, &tmplt), FDS_ERR_FORMAT);
+        EXPECT_EQ(tmplt, nullptr);
+        EXPECT_EQ(len_cpy, len);
+    }
+
+    // Parsing non-standard field (Enterprise Number) of normal template
+    TGenerator tdata_en(1000, 2);
+    tdata_en.append(8, 8);
+    tdata_en.append(90, 4, 1000);
+
+    for (uint16_t len = 0; len < tdata_en.length(); ++len) {
+        tmplt = nullptr;
+        uint16_t len_cpy = len;
+
+        EXPECT_EQ(fds_template_parse(type, tdata_en.get(), &len_cpy, &tmplt), FDS_ERR_FORMAT);
+        EXPECT_EQ(tmplt, nullptr);
+        EXPECT_EQ(len_cpy, len);
+    }
+
+    // Parsing standard field of Options template
+    type = FDS_TYPE_TEMPLATE_OPTS;
+    TGenerator tdata_std_opts(260, 3, 1);
+    tdata_std_opts.append(221, 2);
+    tdata_std_opts.append(222, 4);
+    tdata_std_opts.append(8, 8);
+
+    for (uint16_t len = 0; len < tdata_std_opts.length(); ++len) {
+        tmplt = nullptr;
+        uint16_t len_cpy = len;
+
+        EXPECT_EQ(fds_template_parse(type, tdata_std_opts.get(), &len_cpy, &tmplt), FDS_ERR_FORMAT);
+        EXPECT_EQ(tmplt, nullptr);
+        EXPECT_EQ(len_cpy, len);
+    }
+
+    // Parsing non-standard field of Options template
+    TGenerator tdata_en_opts(256, 3, 1);
+    tdata_en_opts.append(221, 2, 7271);
+    tdata_en_opts.append(222, 4);
+    tdata_en_opts.append(8, 8, 2771323);
+
+    for (uint16_t len = 0; len < tdata_en_opts.length(); ++len) {
+        tmplt = nullptr;
+        uint16_t len_cpy = len;
+
+        EXPECT_EQ(fds_template_parse(type, tdata_en_opts.get(), &len_cpy, &tmplt), FDS_ERR_FORMAT);
+        EXPECT_EQ(tmplt, nullptr);
+        EXPECT_EQ(len_cpy, len);
+    }
+}
+
+// A corresponding data record cannot fit into an IPFIX packet
+TEST(Parse, InvalidTotalDataLength)
+{
+    /* Max size of IPFIX packet is 65535 bytes.
+     * IPFIX packet header is 16 bytes.
+     * IPFIX data set header is 4 bytes.
+     * => 65535 - 16 - 4 = 65515 bytes for a data record
+     */
+    const uint16_t MAX_VALID = 65515;
+    fds_template_type type = FDS_TYPE_TEMPLATE;
+    struct fds_template *tmplt;
+    uint16_t len;
+
+    // First, try maximum possible values --------------------------------------------------
+    TGenerator tdata_one_ok(280, 1);
+    tdata_one_ok.append(21, MAX_VALID);
+
+    len = tdata_one_ok.length();
+    tmplt = nullptr;
+    ASSERT_EQ(fds_template_parse(type, tdata_one_ok.get(), &len, &tmplt), FDS_OK);
+    fds_template_destroy(tmplt);
+
+    TGenerator tdata_sum_ok(256, 2);
+    tdata_sum_ok.append(21, MAX_VALID / 2);
+    tdata_sum_ok.append(22, (MAX_VALID / 2) + 1);
+
+    len = tdata_sum_ok.length();
+    tmplt = nullptr;
+    ASSERT_EQ(fds_template_parse(type, tdata_sum_ok.get(), &len, &tmplt), FDS_OK);
+    fds_template_destroy(tmplt);
+
+    // Second, try invalid lengths ---------------------------------------------------------
+    TGenerator tdata_one_err(280, 1);
+    tdata_one_err.append(21, MAX_VALID + 1);
+
+    len = tdata_one_err.length();
+    tmplt = nullptr;
+    EXPECT_EQ(fds_template_parse(type, tdata_one_err.get(), &len, &tmplt), FDS_ERR_FORMAT);
+
+    TGenerator tdata_sum_err(256, 2);
+    tdata_sum_err.append(21, (MAX_VALID / 2) + 1);
+    tdata_sum_err.append(22, (MAX_VALID / 2) + 1);
+
+    len = tdata_sum_err.length();
+    tmplt = nullptr;
+    EXPECT_EQ(fds_template_parse(type, tdata_sum_err.get(), &len, &tmplt), FDS_ERR_FORMAT);
+
+    // Finally, try length over 2^16 ------------------------------------------------------
+    TGenerator tdata_over_err(256, 2);
+    tdata_over_err.append(120, MAX_VALID);
+    tdata_over_err.append(200, MAX_VALID);
+
+    len = tdata_over_err.length();
+    tmplt = nullptr;
+    EXPECT_EQ(fds_template_parse(type, tdata_over_err.get(), &len, &tmplt), FDS_ERR_FORMAT);
+}

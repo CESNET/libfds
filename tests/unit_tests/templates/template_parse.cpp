@@ -55,7 +55,6 @@ template_tester(const exp_template_params &tmplt, const std::vector<exp_field_pa
             // At least real length must be present
             exp_data_size += 1U;
         }
-
     }
 
     uint16_t  tmplt_len = tdata.length();

@@ -14,6 +14,7 @@ ct_template_flags(const fds_template *tmplt, fds_template_flag_t exp)
         FDS_TEMPLATE_HAS_REVERSE,
         FDS_TEMPLATE_HAS_STRUCT,
         FDS_TEMPLATE_HAS_FKEY
+        // Add new flags here...
     };
 
     for (const auto &flag : flags) {
@@ -34,6 +35,7 @@ ct_tfield_flags(const fds_tfield *tfield, fds_template_flag_t exp)
         FDS_TFIELD_STRUCTURED,
         FDS_TFIELD_REVERSE,
         FDS_TFIELD_FLOW_KEY
+        // Add new flags here...
     };
 
     for (const auto &flag : flags) {

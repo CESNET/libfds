@@ -6,6 +6,14 @@ set(AUX_TOOLS
 	"./tools/common_tests.cpp"
 )
 
+# Copy auxiliary files for tests
+configure_file(
+	"${CMAKE_CURRENT_SOURCE_DIR}/data/iana.xml"
+	"${CMAKE_CURRENT_BINARY_DIR}/data/iana.xml"
+	COPYONLY
+)
+
 # List of tests
 unit_tests_register_test(template_parse.cpp ${AUX_TOOLS})
 unit_tests_register_test(template_copy.cpp ${AUX_TOOLS})
+unit_tests_register_test(template_ies_define.cpp ${AUX_TOOLS})

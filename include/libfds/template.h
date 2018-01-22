@@ -79,6 +79,14 @@ enum fds_tfield_features {
      */
     FDS_TFIELD_LAST_IE = (1 << 2),
     /**
+     * \brief Flow key Information Element
+     *
+     * \note To distinguish whether the IE is a flow key or not, an exporter must send a special
+     *   record. In other words, this information is not a part of a template definition. See
+     *   fds_template_define_flowkey() for more information.
+     */
+    FDS_TFIELD_FLOW_KEY = (1 << 3),
+    /**
      * \brief Is it a field of structured data
      *
      * In other words, if this flag is set, the field is the basicList, subTemplateList, or
@@ -88,7 +96,8 @@ enum fds_tfield_features {
      *   information is not a part of a template definition. See fds_template_define_ies() for
      *   more information.
      */
-    FDS_TFIELD_STRUCTURED = (1 << 3),
+    FDS_TFIELD_STRUCTURED = (1 << 4),
+
     /**
      * \brief Reverse Information Element
      *
@@ -99,16 +108,47 @@ enum fds_tfield_features {
      *   information is not a part of a template definition. See fds_template_define_ies() for
      *   more information.
      */
-    FDS_TFIELD_REVERSE = (1 << 4),
+    FDS_TFIELD_REVERSE = (1 << 5),
     /**
-     * \brief Flow key Information Element
+     * \brief Biflow Directional or Non-directional Key field (Common field)
      *
-     * \note To distinguish whether the IE is a flow key or not, an exporter must send a special
-     *   record. In other words, this information is not a part of a template definition. See
-     *   fds_template_define_flowkey() for more information.
+     * Represents a field common for both flow directions.
+     * The field is non-directional, if neither of biflow direction flags (i.e. #FDS_TFIELD_BKEY_SRC
+     * or #FDS_TFIELD_BKEY_DST) is set. Otherwise it is directional.
      */
-    FDS_TFIELD_FLOW_KEY = (1 << 5)
+    FDS_TFIEDL_BKEY_COM = (1 << 6),
+    /**
+     * \brief Biflow Directional Key field (Source field)
+     * A Directional Key Field is a single field in a Flow Key that is specifically associated
+     * with a single endpoint of the Flow.
+     */
+    FDS_TFIELD_BKEY_SRC = (1 << 7),
+    /**
+     * \brief Biflow Directional Key field (Destination field)
+     * A Directional Key Field is a single field in a Flow Key that is specifically associated
+     * with a single endpoint of the Flow.
+     */
+    FDS_TFIELD_BKEY_DST = (1 << 8)
 };
+
+/*
+ * Note: Biflow and template field flags
+ * How biflow fields flags are used? Flags (#FDS_TFIELD_REVERSE, #FDS_TFIEDL_BKEY_COM,
+ * #FDS_TFIELD_BKEY_SRC, #FDS_TFIELD_BKEY_DST) are set this way:
+ *   - Directional Key field: #FDS_TFIEDL_BKEY_COM and one of directional key flags
+ *   - Non-directional Key fields: #FDS_TFIEDL_BKEY_COM and no directional key flags
+ *   - Forward only fields: [no flags]
+ *   - Reverse only fields: #FDS_TFIELD_REVERSE
+ * For example:
+ *
+ * +--------+----------+- ------+----------+-------+-- ---+-------+----------+-----------+
+ * | src IP | src port | dst IP | dst port | proto | Pkts | Bytes | Pkts_Rev | Bytes_Rev |
+ * +--------+----------+--------+----------+-------+------+-------+----------+-----------+
+ *  \_______  _______ / \________  ______ / \__ __/  \_____  ____/ \_________  _________/
+ *          \/                   \/            \/          \/                \/
+ *  BKEY_COM + BKEY_SRC          |         BKEY_COM        |              REVERSE
+ *                      BKEY_COM + BKEY_DST            [no flags]
+ */
 
 /** \brief Structure of a parsed IPFIX element in an IPFIX template                              */
 struct fds_tfield {
@@ -311,7 +351,7 @@ FDS_API void
 fds_template_destroy(struct fds_template *tmplt);
 
 /**
- * \brief Find the first occurence of an Information Element in a template
+ * \brief Find the first occurrence of an Information Element in a template
  * \param[in] tmplt Template structure
  * \param[in] en    Enterprise Number
  * \param[in] id    Information Element ID
@@ -332,8 +372,9 @@ fds_template_cfind(const struct fds_template *tmplt, uint32_t en, uint16_t id);
  * The function will try to find a definition of each template field in a manager of IE definitions
  * based on Information Element ID and Private Enterprise Number of the template field.
  * Template flags (i.e. ::FDS_TEMPLATE_HAS_REVERSE and ::FDS_TEMPLATE_HAS_STRUCT) and
- * field flags (i.e. ::FDS_TFIELD_STRUCTURED and ::FDS_TFIELD_REVERSE) that can be determined
- * from the definitions will be set appropriately.
+ * field flags (i.e. ::FDS_TFIELD_STRUCTURED, ::FDS_TFIELD_REVERSE, ::FDS_TFIEDL_BKEY_COM,
+ * ::FDS_TFIELD_BKEY_SRC, ::FDS_TFIELD_BKEY_DST) that can be determined from the definitions
+ * will be set appropriately.
  *
  * \note If the manager is _not defined_ (i.e. NULL) and preserve mode is _disabled_, all the
  *   template field references to the definitions will be removed and corresponding flags will be

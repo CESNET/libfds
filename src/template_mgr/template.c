@@ -42,6 +42,7 @@
 #include <stddef.h>    // size_t
 #include <arpa/inet.h> // ntohs
 #include <string.h>    // memcpy
+#include <strings.h>   // strcasecmp
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -757,6 +758,63 @@ fds_template_find(struct fds_template *tmplt, uint32_t en, uint16_t id)
     return (struct fds_tfield *) fds_template_cfind(tmplt, en, id);
 }
 
+/**
+ * \brief Recalculate biflow specific flags
+ *
+ * Determined whether each field is a key or non-key field. A Biflow contains two non-key
+ * fields for each value it represents associated with a single direction or endpoint: one for the
+ * forward direction and one for the reverse direction. Key values are shared by both directions.
+ * For more information, see RFC 5103.
+ *
+ * Flags that will be set: #FDS_TFIEDL_BKEY_COM, #FDS_TFIELD_BKEY_SRC, #FDS_TFIELD_BKEY_DST.
+ * \warning Function expects that fields already have references to IE definitions.
+ * \warning This function can be used only if at least one template field is reverse. Otherwise
+ *   flags doesn't make sense.
+ * \param[in] tmplt Template
+ */
+static void
+template_ies_biflow(struct fds_template *tmplt)
+{
+    // Only flags
+    assert(tmplt->flags & FDS_TEMPLATE_HAS_REVERSE);
+    const fds_template_flag_t biflags =
+        FDS_TFIELD_BKEY_SRC | FDS_TFIELD_BKEY_DST | FDS_TFIEDL_BKEY_COM;
+
+    for (uint16_t i = 0; i < tmplt->fields_cnt_total; ++i) {
+        struct fds_tfield *tfield = &tmplt->fields[i];
+        assert((tfield->flags & biflags) == 0); // Flags should be cleared
+
+        const struct fds_iemgr_elem *def = tfield->def;
+        if (def != NULL) {
+            if (def->is_reverse) {
+                assert(tfield->flags & FDS_TFIELD_REVERSE);
+                // Not common biflow field
+                continue;
+            }
+
+            const struct fds_iemgr_elem *def_rev = def->reverse_elem;
+            if (def_rev && fds_template_cfind(tmplt, def_rev->scope->pen, def_rev->id) != NULL) {
+                // Reverse elements is present -> not common biflow field
+                continue;
+            }
+        }
+
+        assert((tfield->flags & FDS_TFIELD_REVERSE) == 0);
+        // Failed to find reverse element -> this should be common for both direction
+        tfield->flags |= FDS_TFIEDL_BKEY_COM;
+        if (!def || !def->name) {
+            // Only known fields can continue
+            continue;
+        }
+
+        if (strncasecmp(def->name, "source", 6U) == 0) {
+            tfield->flags |= FDS_TFIELD_BKEY_SRC;
+        } else if (strncasecmp(def->name, "destination", 11U) == 0) {
+            tfield->flags |= FDS_TFIELD_BKEY_DST;
+        }
+    }
+}
+
 void
 fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bool preserve)
 {
@@ -773,6 +831,10 @@ fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bo
 
     for (uint16_t i = 0; i < fields_cnt; ++i) {
         struct fds_tfield *tfield_ptr = &tmplt->fields[i];
+        // Always clear all biflow specific flags
+        tfield_ptr->flags &= ~(fds_template_flag_t)
+            (FDS_TFIELD_BKEY_SRC | FDS_TFIELD_BKEY_DST | FDS_TFIEDL_BKEY_COM);
+
         if (preserve && tfield_ptr->def != NULL) {
             // Preserve this definition. Just analyse features...
             has_reverse = (tfield_ptr->flags & FDS_TFIELD_REVERSE) ? true : has_reverse;
@@ -816,6 +878,11 @@ fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bo
         clear_mask |= (!has_reverse) ? FDS_TEMPLATE_HAS_REVERSE : 0;
         clear_mask |= (!has_struct) ? FDS_TEMPLATE_HAS_STRUCT : 0;
         tmplt->flags &= ~clear_mask;
+    }
+
+    if (has_reverse) {
+        // Recalculate biflow flags
+        template_ies_biflow(tmplt);
     }
 }
 

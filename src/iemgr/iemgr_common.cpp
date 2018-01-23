@@ -338,7 +338,7 @@ mgr_save_reverse(fds_iemgr_t* mgr)
     for (const auto& scope: vec) {
         if (scope.second->head.biflow_mode == FDS_BF_PEN) {
             tmp = scope_create_reverse(scope.second);
-
+            scope_sort(tmp);
             mgr->pens.emplace_back(tmp->head.pen, tmp);
             mgr->prefixes.emplace_back(tmp->head.name, tmp);
         }
@@ -346,6 +346,7 @@ mgr_save_reverse(fds_iemgr_t* mgr)
             if (!scope_save_reverse_elem(scope.second)) {
                 return false;
             }
+            scope_sort(scope.second);
         }
     }
 
@@ -403,5 +404,7 @@ mgr_copy(const fds_iemgr_t* mgr)
         return nullptr;
     }
 
+    // New reverse scopes may have been added
+    mgr_sort(res.get());
     return res.release();
 }

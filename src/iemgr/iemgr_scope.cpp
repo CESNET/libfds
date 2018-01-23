@@ -71,7 +71,7 @@ scope_copy(const fds_iemgr_scope_inter* scope)
         }
 
         elem = element_copy(res.get(), tmp.second);
-        if (elem->reverse_elem != nullptr) {
+        if (elem->reverse_elem != nullptr && scope->head.biflow_mode != FDS_BF_PEN) {
             elem->reverse_elem = element_copy(res.get(), tmp.second->reverse_elem);
         }
 

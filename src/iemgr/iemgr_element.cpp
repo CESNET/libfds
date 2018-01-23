@@ -455,6 +455,7 @@ element_destroy(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
     scope->names.erase(elem_name_it);
 
     if (elem->is_reverse) {
+        elem->reverse_elem->reverse_elem = nullptr;
         element_remove(elem);
         return FDS_OK;
     }

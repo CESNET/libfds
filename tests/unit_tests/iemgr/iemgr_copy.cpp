@@ -48,3 +48,44 @@ TEST(Test, same_address)
 
     fds_iemgr_destroy(res);
 }
+
+TEST(Test, pen_copy)
+{
+    const struct fds_iemgr_elem *elem = nullptr;
+    fds_iemgr_t *mgr_orig = fds_iemgr_create();
+    ASSERT_NE(mgr_orig, nullptr);
+    ASSERT_EQ(fds_iemgr_read_file(mgr_orig, FILES_VALID "pen.xml", true), FDS_OK);
+
+    // Try to read something first
+    elem = fds_iemgr_elem_find_id(mgr_orig, 1, 1);
+    ASSERT_NE(elem, nullptr);
+    EXPECT_EQ(elem->id, 1);
+    EXPECT_EQ(elem->scope->pen, 1);
+    EXPECT_TRUE(elem->is_reverse);
+
+    // Copy the scope
+    fds_iemgr_t *mgr_copy = fds_iemgr_copy(mgr_orig);
+    ASSERT_NE(mgr_copy, nullptr);
+
+    // Remove something from the original manager
+    EXPECT_EQ(fds_iemgr_elem_remove(mgr_orig, 1, 5), FDS_OK);
+    elem = fds_iemgr_elem_find_id(mgr_orig, 1, 5);
+    EXPECT_EQ(elem, nullptr);
+
+    // It should be still available in the copy
+    elem = fds_iemgr_elem_find_id(mgr_copy, 1, 5);
+    ASSERT_NE(elem, nullptr);
+    EXPECT_EQ(elem->id, 5);
+
+    // Remove the original scope
+    fds_iemgr_destroy(mgr_orig);
+
+    // The copy should be still available
+    elem = fds_iemgr_elem_find_id(mgr_copy, 0, 5);
+    ASSERT_NE(elem, nullptr);
+    EXPECT_EQ(elem->id, 5);
+    EXPECT_EQ(elem->scope->pen, 0);
+
+    fds_iemgr_destroy(mgr_copy);
+}
+

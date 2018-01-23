@@ -415,8 +415,8 @@ TEST_F(IEs, addReverse)
         {12, 0, 4, flg_comm | FDS_TFIELD_SCOPE, FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
         { 2, 0, 4, flg_comm, FDS_ET_UNSIGNED_64},  // packetDeltaCount
         { 1, 0, 4, flg_comm, FDS_ET_UNSIGNED_64},  // octetDeltaCount
-        { 2, 29305, 4, flg_comm, FDS_ET_UNASSIGNED }, // packetDeltaCount <-- unknown here
-        { 1, 29305, 4, flg_comm, FDS_ET_UNASSIGNED }  // octetDeltaCount  <-- unknown here
+        { 2, 29305, 4, flg_comm, FDS_ET_UNASSIGNED}, // packetDeltaCount <-- unknown here
+        { 1, 29305, 4, flg_comm, FDS_ET_UNASSIGNED}  // octetDeltaCount  <-- unknown here
     };
 
     // Create a template and run tests
@@ -428,7 +428,6 @@ TEST_F(IEs, addReverse)
         template_tester(tmplt, fields, aux_template);
     }
 
-
     // Prepare new definitions of elements with known reverse elements
     constexpr fds_template_flag_t flg_bkey_src = flg_comm | FDS_TFIELD_BKEY_SRC | FDS_TFIEDL_BKEY_COM;
     constexpr fds_template_flag_t flg_bkey_dst = flg_comm | FDS_TFIELD_BKEY_DST | FDS_TFIEDL_BKEY_COM;
@@ -439,15 +438,15 @@ TEST_F(IEs, addReverse)
         {12, 0, 4, flg_bkey_dst | FDS_TFIELD_SCOPE, FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
         { 2, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64},  // packetDeltaCount
         { 1, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64},  // octetDeltaCount
-        { 2, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64 }, // packetDeltaCount <-- unknown here
-        { 1, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64 }  // octetDeltaCount  <-- unknown here
+        { 2, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64}, // packetDeltaCount (reverse)
+        { 1, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64}  // octetDeltaCount (reverse)
     };
     tmplt.flags |= FDS_TEMPLATE_HAS_REVERSE;
 
     // Add new definitions with reverse elements (use original IE manager)
-    fds_template_ies_define(aux_template.get(), ie_mgr, true);
+    fds_template_ies_define(aux_template.get(), ie_mgr, false);
     {
-        SCOPED_TRACE("Phase II. Added reverse definition of reverse elements");
+        SCOPED_TRACE("Phase II. Added definitions of reverse elements");
         template_tester(tmplt, fields_new, aux_template);
     }
 
@@ -455,16 +454,9 @@ TEST_F(IEs, addReverse)
     fds_template_ies_define(aux_template.get(), ie_copy, false);
     tmplt.flags &= ~(fds_template_flag_t) FDS_TEMPLATE_HAS_REVERSE;
     {
-        SCOPED_TRACE("Phase III. Remove definition of reverse elements");
+        SCOPED_TRACE("Phase III. Remove definitions of reverse elements");
         template_tester(tmplt, fields, aux_template);
     }
 
     fds_iemgr_destroy(ie_copy);
 }
-
-
-
-/*
- * TEST CASES:
- * - biflow - reverse fields without forward fields
- */

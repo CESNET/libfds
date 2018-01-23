@@ -969,6 +969,6 @@ fds_template_cmp(const struct fds_template *t1, const struct fds_template *t2)
         return (t1->raw.length > t2->raw.length) ? 1 : (-1);
     }
 
-    return memcmp(t1, t2, t1->raw.length);
+    return memcmp(t1->raw.data, t2->raw.data, t1->raw.length);
 }
 

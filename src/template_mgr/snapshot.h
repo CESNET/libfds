@@ -268,7 +268,8 @@ typedef bool (*snapshot_rec_cb)(struct snapshot_rec *rec, void *data);
  * \brief Call a function on each snapshot record in a snapshot
  *
  * It is guaranteed that records will be processed in the order given by their Template ID
- * in ascending order. It is also safe to snapshot_rec_remove() from the callback on this record.
+ * in ascending order. It is also safe to call snapshot_rec_remove() from the callback on
+ * this record.
  * \param[in] snap Snapshot
  * \param[in] cb   Callback function
  * \param[in] data User defined data that will be passed to the callback

@@ -138,11 +138,12 @@ fds_tmgr_clear(fds_tmgr_t *tmgr);
  * \brief Collect internal garbage
  *
  * All unreachable (or old) templates and snapshots will be moved an internal garbage structure
- * that will be returned.
+ * that will be returned. If no garbage is available, the pointer will be set to NULL.
  * \param[in]  tmgr Template manager
  * \param[out] gc   Garbage structure
- * \return On success returns #FDS_OK and the garbage pointer is set. Otherwise returns
- *   #FDS_ERR_NOMEM and the pointer is undefined.
+ * \return On success returns #FDS_OK and the garbage pointer is set. The pointer will be set to
+ *   NULL, if no garbage is available. Otherwise returns #FDS_ERR_NOMEM and the pointer is
+ *   undefined.
  */
 FDS_API int
 fds_tmgr_garbage_get(fds_tmgr_t *tmgr, fds_tgarbage_t **gc);
@@ -232,8 +233,9 @@ fds_tmgr_set_iemgr(fds_tmgr_t *tmgr, const fds_iemgr_t *iemgr);
  *
  * \param[in] tmgr     Template manager
  * \param[in] exp_time Export time
- * \return On success returns #FDS_OK. In case of invalid behaviour (TCP only), the function will
- *   return #FDS_ERR_ARG. TODO: what next?
+ * \return On success returns #FDS_OK.
+ *   In case of TCP session and setting time in history, the function will return #FDS_ERR_DENIED.
+ *   On memory allocation error returns #FDS_ERR_NOMEM.
  */
 FDS_API int
 fds_tmgr_set_time(fds_tmgr_t *tmgr, uint32_t exp_time);
@@ -268,8 +270,7 @@ fds_tmgr_template_get(fds_tmgr_t *tmgr, uint16_t id, const struct fds_template *
  * \param[in] tmplt  Pointer to the new template
  * \return On success returns #FDS_OK and the manager will take responsibility for the template.
  *   In case of any following error, the template will not be part of the manager and it must
- *   be freed by the user. On
- *   memory allocation error returns #FDS_ERR_NOMEM.
+ *   be freed by the user. On memory allocation error returns #FDS_ERR_NOMEM.
  *   If the operation is not allowed for this template and session combination
  *     returns #FDS_ERR_DENIED.
  *   If the template is template withdrawal or the time context is not defined

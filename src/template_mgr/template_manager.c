@@ -1737,7 +1737,9 @@ fds_tmgr_snapshot_get(const fds_tmgr_t *tmgr, const fds_tsnapshot_t **snap)
 const struct fds_template *
 fds_tsnapshot_template_get(const fds_tsnapshot_t *snap, uint16_t id)
 {
-    return snapshot_rec_cfind(snap, id)->ptr;
+    const struct snapshot_rec *rec = snapshot_rec_cfind(snap, id);
+    assert(rec == NULL || rec->ptr->id == id);
+    return (rec != NULL) ? rec->ptr : NULL;
 }
 
 int

@@ -12,7 +12,7 @@ TMock::create(type pattern, uint16_t id)
     int ret_code = FDS_ERR_FORMAT;
 
     switch (pattern) {
-    case type::NORM_BASIC_FLOW: {
+    case type::DATA_BASIC_FLOW: {
         TGenerator data(id, 10);
         data.append(  8, 4); // sourceIPv4Address
         data.append( 12, 4); // destinationIPv4Address
@@ -30,7 +30,7 @@ TMock::create(type pattern, uint16_t id)
         }
         break;
 
-    case type::NORM_BASIC_BIFLOW: {
+    case type::DATA_BASIC_BIFLOW: {
         TGenerator data(id, 15);
         data.append(  8, 4, 0);     // sourceIPv4Address
         data.append( 12, 4, 0);     // destinationIPv4Address
@@ -53,7 +53,7 @@ TMock::create(type pattern, uint16_t id)
         }
         break;
 
-    case type::NORM_WITHDRAWAL: {
+    case type::DATA_WITHDRAWAL: {
         TGenerator data(id, 0);
 
         len = data.length();

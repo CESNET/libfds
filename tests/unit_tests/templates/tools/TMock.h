@@ -18,9 +18,9 @@ private:
 public:
     /** Available template patterns  */
     enum class type {
-        NORM_BASIC_FLOW,
-        NORM_BASIC_BIFLOW,
-        NORM_WITHDRAWAL,
+        DATA_BASIC_FLOW,
+        DATA_BASIC_BIFLOW,
+        DATA_WITHDRAWAL,
         OPTS_MPROC_STAT,
         OPTS_MPROC_RSTAT,
         OPTS_ERPOC_RSTAT,

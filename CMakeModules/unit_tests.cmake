@@ -117,6 +117,7 @@ function(coverage_add_target)
 		COMMAND "${PATH_LCOV}"
 			--directory .
 			--rc lcov_branch_coverage=1
+			--rc 'lcov_excl_line=assert'
 			--capture --quiet
 			--output-file "${COVERAGE_FILE_RAW}"
 		# Remove coverage of Google Test files, system headers, etc.

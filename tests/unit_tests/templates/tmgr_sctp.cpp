@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 }
 
 // Create main class for parameterized test
-class tcpSctp : public ::testing::TestWithParam<enum fds_session_type> {
+class sctp : public ::testing::TestWithParam<enum fds_session_type> {
 protected:
     fds_tmgr_t *tmgr = nullptr;
     /** \brief Prepare a template manager*/
@@ -35,12 +35,14 @@ protected:
 };
 
 // Define parameters of parametrized test
-INSTANTIATE_TEST_CASE_P(TemplateManager, tcpSctp,
-    ::testing::Values(FDS_SESSION_TYPE_TCP, FDS_SESSION_TYPE_SCTP));
+INSTANTIATE_TEST_CASE_P(TemplateManager, sctp,
+    ::testing::Values(FDS_SESSION_TYPE_SCTP));
 
-TEST_P(tcpSctp, basic)
+TEST_P(sctp, basic)
 {
     // Do nothing
 }
 
-// TODO: try to replace template ID without withdrawal (not allowed)
+// TODO: try to get set export time in history
+// TODO: try to withdraw a template in history ... not permitted
+// TODO: try to add a template in history ... not permitted

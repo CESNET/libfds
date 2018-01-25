@@ -58,9 +58,7 @@ enum withdraw_mod_e {
     /** Template withdrawal is optional, but not required */
     WITHDRAW_OPTIONAL,
     /** Template withdrawal is required before changing definition of a template */
-    WITHDRAW_REQUIRED,
-    /** Template withdrawal is ignored */
-    WITHDRAW_IGNORED
+    WITHDRAW_REQUIRED
 };
 
 // TODO: warning that after NOMEM error consistency cannot be guaranteed and the connection MUST be closed!!!
@@ -923,10 +921,7 @@ static int
 mgr_snap_template_withdraw(struct fds_tsnapshot *snap, uint16_t id, enum fds_template_type type)
 {
     struct fds_tmgr *mgr = snap->link.mgr;
-    if (mgr->cfg.withdraw_mod == WITHDRAW_PROHIBITED) {
-        // Template cannot be removed
-        return FDS_ERR_DENIED;
-    }
+    assert(mgr->cfg.withdraw_mod != WITHDRAW_PROHIBITED);
 
     if (snap->link.newer != NULL && mgr->cfg.en_history_mod == false) {
         // We try to modify a historical snapshot, but this operation is disabled for this session
@@ -1375,7 +1370,7 @@ fds_tmgr_create(enum fds_session_type type)
         mgr->cfg.en_history_access = true;
         mgr->cfg.en_history_mod = true;
         mgr->cfg.en_lifetime = false; // By default disabled, user must manually specify timeouts
-        mgr->cfg.withdraw_mod = WITHDRAW_IGNORED;
+        mgr->cfg.withdraw_mod = WITHDRAW_PROHIBITED;
         break;
     case FDS_SESSION_TYPE_SCTP:
         mgr->cfg.en_history_access = true; // Data records can be send unreliably
@@ -1586,6 +1581,10 @@ fds_tmgr_template_withdraw(fds_tmgr_t *tmgr, uint16_t id, enum fds_template_type
         return FDS_ERR_ARG;
     }
 
+    if (tmgr->cfg.withdraw_mod == WITHDRAW_PROHIBITED) {
+        return FDS_ERR_DENIED;
+    }
+
     int ret_code;
     if ((ret_code = mgr_modify_prepare(tmgr)) != FDS_OK) {
         return ret_code;
@@ -1639,6 +1638,10 @@ fds_tmgr_template_withdraw_all(fds_tmgr_t *tmgr, enum fds_template_type type)
     if (!tmgr->list.current) {
         // Undefined snapshot
         return FDS_ERR_ARG;
+    }
+
+    if (tmgr->cfg.withdraw_mod == WITHDRAW_PROHIBITED) {
+        return FDS_ERR_DENIED;
     }
 
     int ret_code;

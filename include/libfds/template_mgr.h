@@ -292,12 +292,12 @@ fds_tmgr_template_add(fds_tmgr_t *tmgr, struct fds_template *tmplt);
  * \param[in] type Expected type of the template
  * \return On success returns #FDS_OK.
  *   If a memory allocation error has occurred returns #FDS_ERR_NOMEM.
+ *   If the time context is not defined returns #FDS_ERR_ARG.
  *   If the operation is not allowed for this template and session combination (for example,
  *     prohibited history modification or disabled withdrawal messages) returns #FDS_ERR_DENIED.
  *   If the template is not defined returns #FDS_ERR_NOTFOUND.
  *   If the template exists in the manager, but the \p type of template doesn't match,
  *     returns #FDS_ERR_ARG and the template stays in the manager.
- *   If the time context is not defined returns #FDS_ERR_ARG.
  */
 FDS_API int
 fds_tmgr_template_withdraw(fds_tmgr_t *tmgr, uint16_t id, enum fds_template_type type);
@@ -314,8 +314,8 @@ fds_tmgr_template_withdraw(fds_tmgr_t *tmgr, uint16_t id, enum fds_template_type
  * \param[in] type Type of the templates to withdraw
  * \return On success returns #FDS_OK.
  *   If a memory allocation error has occurred returns #FDS_ERR_NOMEM.
- *   If the operation is not for this session returns #FDS_ERR_DENIED.
  *   If the time context is not defined returns #FDS_ERR_ARG.
+ *   If the operation is not for this session returns #FDS_ERR_DENIED.
  */
 FDS_API int
 fds_tmgr_template_withdraw_all(fds_tmgr_t *tmgr, enum fds_template_type type);

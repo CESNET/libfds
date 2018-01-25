@@ -164,6 +164,14 @@ snapshot_copy(const struct fds_tsnapshot *snap)
     snapshot_bitset_t *bitset = &new_snap->l1_table.bitset;
     while (snapshot_bit_next(bitset, copy_idx, &copy_idx) == FDS_OK) {
         const struct snapshot_l2_table *old_l2 = snap->l1_table.tables[copy_idx];
+        if (old_l2->rec_cnt == 0) {
+            // Do not copy empty tables
+            new_snap->l1_table.tables[copy_idx] = NULL;
+            snapshot_bit_clear(bitset, copy_idx);
+            copy_idx++;
+            continue;
+        }
+
         struct snapshot_l2_table *new_l2 = malloc(sizeof(*new_l2));
         if (!new_l2) {
             failed = true;
@@ -248,13 +256,11 @@ snapshot_rec_remove(struct fds_tsnapshot *snap, uint16_t id)
     l2_table->rec_cnt--;
     snap->rec_cnt--;
 
-    if (l2_table->rec_cnt == 0) {
-        // Remove L2 table
-        free(l2_table);
-        snap->l1_table.tables[l1_idx] = NULL;
-        snapshot_bit_clear(&snap->l1_table.bitset, l1_idx);
-    }
-
+    /* We don't want to free empty L2 table here.
+     * Someone can iterate over the table (i.e. snapshot_rec_for()) and by removing the last
+     * record of the table (snapshot_rec_remove()) and therefore L2 table itself, we would remove
+     * the L2 table while the iterator is still using it.
+     */
     return FDS_OK;
 }
 

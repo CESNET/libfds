@@ -1,3 +1,7 @@
+/**
+ * \brief Test cases for all types of sessions
+ */
+
 #include <gtest/gtest.h>
 #include <libfds.h>
 #include <TGenerator.h>
@@ -112,14 +116,15 @@ TEST_P(Common, addAndFind)
     EXPECT_EQ(result->id, 256);
 }
 
-// Add maximum number of templates and try to access everyone
+// Add templates in whole range
 TEST_P(Common, maxTemplates)
 {
     // Set time context and add templates
     ASSERT_EQ(fds_tmgr_set_time(tmgr, 0), FDS_OK);
+    const int step = 17;
 
     struct fds_template *aux_tmplt = nullptr;
-    for (unsigned int i = 256; i <= UINT16_MAX; ++i) {
+    for (unsigned int i = 256; i <= UINT16_MAX; i += step) {
         TMock::type type = (i % 2)
             ? TMock::type::DATA_BASIC_FLOW
             : TMock::type::DATA_BASIC_BIFLOW;
@@ -129,7 +134,7 @@ TEST_P(Common, maxTemplates)
     }
 
     const struct fds_template *const_ref = nullptr;
-    for (unsigned int i = 256; i <= UINT16_MAX; ++i) {
+    for (unsigned int i = 256; i <= UINT16_MAX; i += step) {
         ASSERT_EQ(fds_tmgr_template_get(tmgr, i, &const_ref), FDS_OK);
         ASSERT_NE(const_ref, nullptr);
         EXPECT_EQ(const_ref->id, i);
@@ -243,7 +248,7 @@ TEST_P(Common, templateInGarbage)
 }
 
 
-
+// TODO: template remove (snapshot should be untouched...)
 // TODO: Time wraparound...
 // TODO: add already added template without creating snapshot
 

@@ -5,6 +5,7 @@
 #include <TGenerator.h>
 #include <common_tests.h>
 #include <cstring>
+#include <TMock.h>
 
 int main(int argc, char **argv)
 {
@@ -261,4 +262,36 @@ TEST(define, redefine)
     EXPECT_EQ(fds_template_flowkey_cmp(aux_template.get(), key_new), 0);
 
     template_tester(tmplt, fields, aux_template);
+}
+
+TEST(applicable, valid)
+{
+    const uint64_t fkey = 31U;
+    struct fds_template *t1 = TMock::create(TMock::type::DATA_BASIC_FLOW, 256);
+    EXPECT_EQ(fds_template_flowkey_applicable(t1, fkey), FDS_OK);
+
+    // The template should be untouched
+    EXPECT_TRUE((t1->flags & FDS_TEMPLATE_HAS_FKEY) == 0);
+    for (uint16_t i = 0; i < t1->fields_cnt_total; ++i) {
+        EXPECT_TRUE((t1->fields[i].flags & FDS_TFIELD_FLOW_KEY) == 0);
+    }
+
+    fds_template_destroy(t1);
+}
+
+TEST(applicable, invalid)
+{
+    /*
+    // Try to use it on Options Template
+    struct fds_template *t_otps = TMock::create(TMock::type::OPTS_MPROC_RSTAT, 256);
+    EXPECT_EQ(fds_template_flowkey_applicable(t_otps, 3), FDS_ERR_ARG);
+    EXPECT_TRUE((t_otps->flags & FDS_TEMPLATE_HAS_FKEY) != 0);
+    fds_template_destroy(t_otps);
+    */
+
+    // Try too long flow key (definition of non-existing fields)
+    struct fds_template *t_short = TMock::create(TMock::type::DATA_BASIC_FLOW, 257);
+    EXPECT_EQ(fds_template_flowkey_applicable(t_short, 2047), FDS_ERR_FORMAT);
+    EXPECT_TRUE((t_short->flags & FDS_TEMPLATE_HAS_FKEY) == 0);
+    fds_template_destroy(t_short);
 }

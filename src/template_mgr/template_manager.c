@@ -1006,9 +1006,6 @@ mgr_snap_freeze_cb(struct snapshot_rec *rec, void *data)
 {
     struct mgr_snap_freeze *info = data;
     struct fds_tmgr *mgr = info->snap->link.mgr;
-
-    // We are trying to modify history
-    assert(mgr->cfg.en_history_mod);
     assert(snapshot_rec_find(info->snap, rec->id) == rec);
 
     /* We are only interested into records that has been added into this snapshot (i.e. with
@@ -1023,6 +1020,8 @@ mgr_snap_freeze_cb(struct snapshot_rec *rec, void *data)
      * be referenced by any other snapshot, therefore, there MUST be also present "Delete" flag.
      */
     assert((rec->flags & SNAPSHOT_TF_DESTROY) != 0);
+    // We are trying to modify history, make sure that we have rights...
+    assert(mgr->cfg.en_history_mod);
 
     // Is the lifetime enabled for this type of templates?
     bool lifetime_en = false;
@@ -1105,7 +1104,7 @@ mgr_snap_freeze_cb(struct snapshot_rec *rec, void *data)
 /**
  * \brief Freeze a snapshot (disable modifications)
  *
- * If the snapshot is historical (there is at lest one newer snapshot) and it includes newly added
+ * If the snapshot is historical (there is at last one newer snapshot) and it includes newly added
  * templates, the templates will be propagated to future snapshots.
  *
  * \param[in] snap Snapshot
@@ -1670,8 +1669,7 @@ fds_tmgr_template_remove(fds_tmgr_t *tmgr, uint16_t id, enum fds_template_type t
      */
     for (struct fds_tsnapshot *ptr = tmgr->list.oldest; ptr != NULL; ptr = ptr->link.newer) {
         // Check history consistency
-        assert(TIME_GE(tmgr->time_now, ptr->start_time));
-        assert(!ptr->link.newer || TIME_LE(tmgr->time_now, ptr->link.newer->start_time));
+        assert(!ptr->link.newer || TIME_LE(ptr->start_time, ptr->link.newer->start_time));
 
         struct snapshot_rec *rec = snapshot_rec_find(ptr, id);
         if (!rec) {
@@ -1700,6 +1698,17 @@ fds_tmgr_template_remove(fds_tmgr_t *tmgr, uint16_t id, enum fds_template_type t
 
         if ((ret_code = mgr_snap_template_remove(ptr, id)) != FDS_OK) {
             return ret_code;
+        }
+
+        /* If the history is not modifiable (TCP, SCTP), immediately freeze manually all new
+         * snapshots except the newest one, otherwise the manager can have problems with asserts.
+         * (If modification of history is disabled, only the newest snapshot can be editable)
+         */
+        if (tmgr->cfg.en_history_mod == false && ptr->link.newer != NULL) {
+            /* History modification is not enabled, so we don't have anything to propagate.
+             * In other words, there is no record with "Create" flag in the new clone.
+             */
+            ptr->editable = false;
         }
     }
 
@@ -1972,13 +1981,17 @@ fds_tmgr_template_set_fkey(fds_tmgr_t *tmgr, uint16_t id, uint64_t key)
 {
     // Check the record
     struct fds_tsnapshot *snap = tmgr->list.current;
+    if (!snap) {
+        return FDS_ERR_ARG;
+    }
+
     struct snapshot_rec *snap_rec = snapshot_rec_find(snap, id);
     if (!snap_rec) {
         return FDS_ERR_NOTFOUND;
     }
 
-    if (snap_rec->ptr->type != FDS_TYPE_TEMPLATE) {
-        // Flow key can be assigned only to Template Records
+    if (fds_template_flowkey_applicable(snap_rec->ptr, key) != FDS_OK) {
+        // Flow key can be assigned only to Template Records and flow key cannot be too long
         return FDS_ERR_ARG;
     }
 
@@ -1995,6 +2008,10 @@ fds_tmgr_template_set_fkey(fds_tmgr_t *tmgr, uint16_t id, uint64_t key)
 
     snap = tmgr->list.current; // The prepare operation can change the current pointer
     assert(snap->editable);
+
+    // Check consistency
+    assert(TIME_EQ(tmgr->time_now, snap->start_time));
+    assert(!snap->link.newer || TIME_LT(tmgr->time_now, snap->link.newer->start_time));
 
     // Replace the template in this snapshot and in its descendants
     const uint32_t first_seen = snap_rec->ptr->time.first_seen;

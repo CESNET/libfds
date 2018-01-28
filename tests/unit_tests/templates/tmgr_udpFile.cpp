@@ -45,3 +45,6 @@ TEST_P(udpFile, basic)
 
 // TODO: redefine template (with the same ID) without withdrawal
 // TODO: add definition in a history .. try to propagate
+// TODO: propage flowkey from history ... make sure that other snapshot are not affected
+//       Make sure that there is unacessible snapshot (the same time)
+// TODO: time wrapparound -> seek history (add, remove, redefine, flowkey)

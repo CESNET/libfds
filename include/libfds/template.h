@@ -351,6 +351,20 @@ FDS_API void
 fds_template_destroy(struct fds_template *tmplt);
 
 /**
+ * \brief Compare templates (only based on template fields)
+ *
+ * Only raw templates are compared i.e. everything is ignored except Template ID
+ * and template fields (Information Element ID, Private Enterprise Number and length)
+ * \param t1 First template
+ * \param t2 Second template
+ * \return The function returns an integer less than, equal to, or greater than zero if the first
+ *   template is found, respectively, to be less than, to match, or be greater than the second
+ *   template.
+ */
+FDS_API int
+fds_template_cmp(const struct fds_template *t1, const struct fds_template *t2);
+
+/**
  * \brief Find the first occurrence of an Information Element in a template
  * \param[in] tmplt Template structure
  * \param[in] en    Enterprise Number
@@ -396,6 +410,18 @@ FDS_API void
 fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bool preserve);
 
 /**
+ * \brief Check if a flow key is applicable
+ *
+ * \param[in] tmplt   Template structure
+ * \param[in] flowkey Flow key
+ * \return On success returns #FDS_OK.
+ *   If the \p flowkey tries to set non-existing template fields as flow key, the function will
+ *   return #FDS_ERR_FORMAT and no modifications will be performed.
+ */
+FDS_API int
+fds_template_flowkey_applicable(const struct fds_template *tmplt, uint64_t flowkey);
+
+/**
  * \brief Add a flow key
  *
  * Flow key is a set of bit fields that is used for marking the Information Elements of a Data
@@ -412,9 +438,9 @@ fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bo
  *
  * \param[in] tmplt   Template structure
  * \param[in] flowkey Flow key
- * \return On success, the function will return #FDS_OK. Otherwise, if the \p flowkey tries to
- *   set non-existent template fields as flow keys, the function will return #FDS_ERR_FORMAT and
- *   no modification will be performed.
+ * \return On success, the function will return #FDS_OK.
+ *   If the \p flowkey tries to set non-existing template fields as flow keys, the function will
+ *   return #FDS_ERR_FORMAT and no modification will be performed.
  */
 FDS_API int
 fds_template_flowkey_define(struct fds_template *tmplt, uint64_t flowkey);
@@ -430,20 +456,6 @@ fds_template_flowkey_define(struct fds_template *tmplt, uint64_t flowkey);
  */
 FDS_API int
 fds_template_flowkey_cmp(const struct fds_template *tmplt, uint64_t flowkey);
-
-/**
- * \brief Compare templates (only based on template fields)
- *
- * Only raw templates are compared i.e. everything is ignored except Template ID
- * and template fields (Information Element ID, Private Enterprise Number and length)
- * \param t1 First template
- * \param t2 Second template
- * \return The function returns an integer less than, equal to, or greater than zero if the first
- *   template is found, respectively, to be less than, to match, or be greater than the second
- *   template.
- */
-FDS_API int
-fds_template_cmp(const struct fds_template *t1, const struct fds_template *t2);
 
 #ifdef __cplusplus
 }

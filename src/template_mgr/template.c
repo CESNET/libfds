@@ -887,7 +887,7 @@ fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bo
 }
 
 int
-fds_template_flowkey_define(struct fds_template *tmplt, uint64_t flowkey)
+fds_template_flowkey_applicable(const struct fds_template *tmplt, uint64_t flowkey)
 {
     // Get the highest bit and check the correctness
     unsigned int bit_highest = 0;
@@ -902,6 +902,17 @@ fds_template_flowkey_define(struct fds_template *tmplt, uint64_t flowkey)
         return FDS_ERR_FORMAT;
     }
 
+    return FDS_OK;
+}
+
+int
+fds_template_flowkey_define(struct fds_template *tmplt, uint64_t flowkey)
+{
+    int ret_code;
+    if ((ret_code = fds_template_flowkey_applicable(tmplt, flowkey)) != FDS_OK) {
+        return ret_code;
+    }
+
     if (flowkey != 0) {
         // Set the global flow key flag
         tmplt->flags |= FDS_TEMPLATE_HAS_FKEY;
@@ -911,6 +922,7 @@ fds_template_flowkey_define(struct fds_template *tmplt, uint64_t flowkey)
     }
 
     // Set flow key flags
+    const uint16_t fields_cnt = tmplt->fields_cnt_total;
     for (uint16_t i = 0; i < fields_cnt; ++i, flowkey >>= 1) {
         // Add flow key flags
         if (flowkey & 0x1) {
@@ -947,7 +959,7 @@ fds_template_flowkey_cmp(const struct fds_template *tmplt, uint64_t flowkey)
 
     const uint16_t fields_cnt = tmplt->fields_cnt_total;
     if (bit_highest > fields_cnt) {
-        return FDS_ERR_FORMAT;
+        return 1;
     }
 
     // Check flags

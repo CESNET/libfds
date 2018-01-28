@@ -332,6 +332,8 @@ fds_tmgr_template_withdraw_all(fds_tmgr_t *tmgr, enum fds_template_type type);
  * If \p type is ::FDS_TYPE_TEMPLATE_UNDEF, type check is skipped.
 
  * \note The function ignores default history modification rules.
+ * \warning Keep in mind that removing a template from history is VERY expensive operation. If it
+ *   is not necessary, try to avoid calling this function.
  * \param[in] tmgr Template manager
  * \param[in] id   Template ID to remove
  * \param[in] type Expected type of the template
@@ -354,7 +356,8 @@ fds_tmgr_template_remove(fds_tmgr_t *tmgr, uint16_t id, enum fds_template_type t
  * \return On success returns #FDS_OK.
  *   If the template is not present in the manager returns #FDS_ERR_NOTFOUND.
  *   If the template is present in the manager but it's type is not Template Record
- *     (::FDS_TYPE_TEMPLATE) returns #FDS_ERR_ARG and the flow key is not applied.
+ *     (::FDS_TYPE_TEMPLATE) or the flow key is too long, returns #FDS_ERR_ARG and the flow key
+ *     is not applied.
  *   If a memory allocation error has occurred returns #FDS_ERR_NOMEM.
  *   If the time context is not defined returns #FDS_ERR_ARG.
  */

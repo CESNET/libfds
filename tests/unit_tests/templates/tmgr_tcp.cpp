@@ -1,5 +1,5 @@
 /**
- * \brief Test cases only for SCTP sessions
+ * \brief Test cases only for TCP sessions
  */
 #include <gtest/gtest.h>
 #include <libfds.h>
@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 }
 
 // Create main class for parameterized test
-class sctp : public ::testing::TestWithParam<enum fds_session_type> {
+class tcp : public ::testing::TestWithParam<enum fds_session_type> {
 protected:
     fds_tmgr_t *tmgr = nullptr;
     /** \brief Prepare a template manager*/
@@ -34,14 +34,15 @@ protected:
 };
 
 // Define parameters of parametrized test
-INSTANTIATE_TEST_CASE_P(TemplateManager, sctp,
-    ::testing::Values(FDS_SESSION_TYPE_SCTP));
+INSTANTIATE_TEST_CASE_P(TemplateManager, tcp,
+    ::testing::Values(FDS_SESSION_TYPE_TCP));
 
-TEST_P(sctp, basic)
+
+// TODO: try to access history...
+// TODO: try to configure history timeout and access it (should fail)
+
+TEST_P(tcp, goEmptyHistory)
 {
-    // Do nothing
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 10), FDS_OK);
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 0), FDS_ERR_DENIED);
 }
-
-// TODO: try to get set export time in history
-// TODO: try to withdraw a template in history ... not permitted
-// TODO: try to add a template in history ... not permitted

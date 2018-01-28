@@ -21,6 +21,7 @@ unit_tests_register_test(template_ies_define.cpp ${AUX_TOOLS})
 unit_tests_register_test(template_flowkey.cpp ${AUX_TOOLS})
 
 unit_tests_register_test(tmgr_common.cpp ${AUX_TOOLS})
+unit_tests_register_test(tmgr_tcp.cpp ${AUX_TOOLS})
 unit_tests_register_test(tmgr_tcpSctp.cpp ${AUX_TOOLS})
 unit_tests_register_test(tmgr_tcpSctpFile.cpp ${AUX_TOOLS})
 unit_tests_register_test(tmgr_udp.cpp ${AUX_TOOLS})

@@ -105,4 +105,39 @@ TEST_P(udp, invalidWithdrawAll)
     EXPECT_EQ(tmplt->id, tid2);
 }
 
-// TODO: template timeout
+// Test template timeout
+/*
+TEST_P(udp, templateTimeout)
+{
+    // Enable template timeout
+    fds_tmgr_set_udp_timeouts(tmgr, 10, 10);
+    fds_tmgr_set_snapshot_timeout(tmgr, 60);
+
+    // Set export time and add a template
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 0), FDS_OK);
+    const uint16_t tid1 = 256;
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_FLOW, tid1)), FDS_OK);
+
+    // Set new export time and add a new template
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 5), FDS_OK);
+    const uint16_t tid2 = 257;
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid2)), FDS_OK);
+
+    // Set new export time and check availability of template (both templates should be available)
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 9), FDS_OK);
+    const struct fds_template *tmplt2check;
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->time.first_seen, 0);
+    EXPECT_EQ(tmplt2check->time.last_seen, 0);
+    EXPECT_EQ(tmplt2check->time.end_of_life, 10); // Timeout is 10 seconds
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid2, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->time.first_seen, 5);
+    EXPECT_EQ(tmplt2check->time.last_seen, 5);
+    EXPECT_EQ(tmplt2check->time.end_of_life, 15); // Timeout is 10 seconds
+
+    // Change the export time so the template T1 should be expired
+    //EXPECT_EQ(fds_tmgr_template_get())
+
+}
+*/
+// TODO: enable template timeout later... older should remain until they are refreshed/redefined

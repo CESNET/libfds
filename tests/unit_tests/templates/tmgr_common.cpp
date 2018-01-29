@@ -6,6 +6,7 @@
 #include <libfds.h>
 #include <TGenerator.h>
 #include <TMock.h>
+#include <cstdint>
 
 int main(int argc, char **argv)
 {
@@ -548,5 +549,214 @@ TEST_P(Common, addAlreadyAddedTemplate)
     }
 }
 
-// TODO: ie manager ... set/remove
+// Define IE manager before first usage...
+TEST_P(Common, ieManagerSimple)
+{
+    // Create a manager and load definitions
+    fds_iemgr_t *iemgr = fds_iemgr_create();
+    ASSERT_NE(iemgr, nullptr);
+    ASSERT_EQ(fds_iemgr_read_file(iemgr, "./data/iana.xml", false), FDS_OK);
 
+    // Assign the IE manager to the template manager
+    fds_tmgr_set_iemgr(tmgr, iemgr);
+
+    // Try to add few templates
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 0), FDS_OK);
+    const uint16_t tid1 = 300;
+    const uint16_t tid2 = 400;
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid1)), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::OPTS_FKEY, tid2)), FDS_OK);
+
+    // Biflow can be detected only based on knowledge of IE definitions
+    const struct fds_template *tmplt2check;
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
+    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0);
+    for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
+        const struct fds_tfield *field = &tmplt2check->fields[i];
+        EXPECT_NE(field->def, nullptr);
+    }
+
+    // The file with definitions doesn't include fields specific to Flow Key
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid2, &tmplt2check), FDS_OK);
+    for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
+        const struct fds_tfield *field = &tmplt2check->fields[i];
+        EXPECT_EQ(field->def, nullptr); // Should be undefined
+    }
+
+    // Change export time
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 10), FDS_OK);
+
+    // Try template refresh and make sure that definitions remains
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid1)), FDS_OK);
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->time.first_seen, 0);
+    EXPECT_EQ(tmplt2check->time.last_seen, 10);
+    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0);
+    for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
+        const struct fds_tfield *field = &tmplt2check->fields[i];
+        EXPECT_NE(field->def, nullptr);
+    }
+
+    // Try template redefinition and make sure that definitions will be set
+    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+        EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid2, FDS_TYPE_TEMPLATE_UNDEF), FDS_OK);
+    }
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_FLOW, tid2)), FDS_OK);
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid2, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->time.first_seen, 10);
+    EXPECT_EQ(tmplt2check->time.last_seen, 10);
+    EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0);
+    for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
+        const struct fds_tfield *field = &tmplt2check->fields[i];
+        EXPECT_NE(field->def, nullptr);
+    }
+
+    // Try to define a new template
+    const uint16_t tid3 = 500;
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid3)), FDS_OK);
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid3, &tmplt2check), FDS_OK);
+    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0);
+    for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
+        const struct fds_tfield *field = &tmplt2check->fields[i];
+        EXPECT_NE(field->def, nullptr);
+    }
+
+    // It should be safe to delete the IE manager here
+    fds_iemgr_destroy(iemgr);
+}
+
+// Try to redefine IE manager
+TEST_P(Common, ieManagerRedefine)
+{
+    const struct fds_template *tmplt2check = nullptr;
+
+    // Create an simple manager and add manually few definitions
+    fds_iemgr_t *iemgr_simple = fds_iemgr_create();
+    ASSERT_NE(iemgr_simple, nullptr);
+
+    struct fds_iemgr_elem elem_bytes;
+    memset(&elem_bytes, 0, sizeof(elem_bytes));
+    elem_bytes.id = 1;
+    elem_bytes.name = const_cast<char *>("bytes");
+    elem_bytes.data_type = FDS_ET_UNSIGNED_64;
+    elem_bytes.data_unit = FDS_EU_OCTETS;
+    ASSERT_EQ(fds_iemgr_elem_add(iemgr_simple, &elem_bytes, 0, false), FDS_OK);
+
+    struct fds_iemgr_elem elem_fkeyind;
+    memset(&elem_fkeyind, 0, sizeof(elem_fkeyind));
+    elem_fkeyind.id = 173;
+    elem_fkeyind.name = const_cast<char *>("fKeyID");
+    elem_fkeyind.data_type = FDS_ET_UNSIGNED_64;
+    ASSERT_EQ(fds_iemgr_elem_add(iemgr_simple, &elem_fkeyind, 0, false), FDS_OK);
+
+    // Set export time and define few templates
+    ASSERT_EQ(fds_tmgr_set_iemgr(tmgr, iemgr_simple), FDS_OK);
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 100), FDS_OK);
+
+    const uint16_t tid1 = 256;
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_FLOW, tid1)), FDS_OK);
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
+    for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
+        // Everything except PEN:0, ID:1 (a.k.a. "bytes") should be undefined
+        const struct fds_tfield *field = &tmplt2check->fields[i];
+        if (field->id == 1 && field->en == 0) {
+            ASSERT_NE(field->def, nullptr);
+            EXPECT_STREQ(field->def->name, elem_bytes.name);
+            continue;
+        }
+
+        EXPECT_EQ(field->def, nullptr);
+    }
+
+    const uint16_t tid2 = 257;
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::OPTS_FKEY, tid2)), FDS_OK);
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid2, &tmplt2check), FDS_OK);
+    const struct fds_tfield *field = fds_template_cfind(tmplt2check, 0, elem_fkeyind.id);
+    ASSERT_NE(field, nullptr);
+    ASSERT_NE(field->def, nullptr);
+    EXPECT_STREQ(field->def->name, elem_fkeyind.name);
+
+    // Set different export time and define another template
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 110), FDS_OK);
+    const uint16_t tid3 = 258;
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid3)), FDS_OK);
+    // Withdraw the T1 template (expect UDP)
+    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+        EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid1, FDS_TYPE_TEMPLATE_UNDEF), FDS_OK);
+    }
+
+    // Create a new IE manager, load definitions and apply changes
+    fds_iemgr_t *iemgr_file = fds_iemgr_create();
+    ASSERT_NE(iemgr_file, nullptr);
+    ASSERT_EQ(fds_iemgr_read_file(iemgr_file, "./data/iana.xml", false), FDS_OK);
+    ASSERT_EQ(fds_tmgr_set_iemgr(tmgr, iemgr_file), FDS_OK);
+    // We don't need the old manager anymore...
+    fds_iemgr_destroy(iemgr_simple);
+
+    // Time context has been lost -> define it again
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 110), FDS_OK);
+    // Check templates (T1 is available only for UDP)
+    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+        EXPECT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_ERR_NOTFOUND);
+    } else {
+        // UDP only
+        ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
+        for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
+            const struct fds_tfield *field = &tmplt2check->fields[i];
+            EXPECT_NE(field->def, nullptr);
+            EXPECT_EQ(field->def->id, field->id);
+        }
+    }
+
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid2, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->type, FDS_TYPE_TEMPLATE_OPTS);
+    field = fds_template_cfind(tmplt2check, 0, elem_fkeyind.id);
+    ASSERT_NE(field, nullptr);
+    ASSERT_EQ(field->def, nullptr); // The Information Element is not defined in the file
+
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid3, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->type, FDS_TYPE_TEMPLATE);
+    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0);
+    field = fds_template_cfind(tmplt2check, 0, elem_bytes.id);
+    ASSERT_NE(field, nullptr);
+    ASSERT_NE(field->def, nullptr);
+    EXPECT_STRNE(field->def->name, elem_bytes.name);
+
+    // Check history (except TCP)
+    if (GetParam() != FDS_SESSION_TYPE_TCP) {
+        EXPECT_EQ(fds_tmgr_set_time(tmgr, 105), FDS_OK);
+        // Template T1 should be available and all fields should have a reference to an IE def.
+        ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
+        for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
+            const struct fds_tfield *field = &tmplt2check->fields[i];
+            EXPECT_NE(field->def, nullptr);
+            EXPECT_EQ(field->def->id, field->id);
+        }
+    }
+
+    // Try to create a new template
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 110), FDS_OK);
+    const uint16_t tid4 = 259;
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_FLOW, tid4)), FDS_OK);
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid4, &tmplt2check), FDS_OK);
+    // Check that all fields have known definitions
+    for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
+        const struct fds_tfield *field = &tmplt2check->fields[i];
+        EXPECT_NE(field->def, nullptr);
+        EXPECT_EQ(field->def->id, field->id);
+    }
+
+    // Remove all definitions
+    ASSERT_EQ(fds_tmgr_set_iemgr(tmgr, nullptr), FDS_OK);
+    fds_iemgr_destroy(iemgr_file);
+
+    // Check that all definitions are not available and derived features have been removed
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 115), FDS_OK);
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid3, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->type, FDS_TYPE_TEMPLATE);
+    EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0); // Biflow flag should be lost...
+    for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
+        const struct fds_tfield *field = &tmplt2check->fields[i];
+        EXPECT_EQ(field->def, nullptr);
+    }
+}

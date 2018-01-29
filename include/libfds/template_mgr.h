@@ -205,10 +205,11 @@ fds_tmgr_set_snapshot_timeout(fds_tmgr_t *tmgr, uint16_t timeout);
  *   overwritten with new ones. If a definition of an IE was previously available in the older
  *   manager and the new manager doesn't include the definition, the definition will be removed
  *   and corresponding fields will not be interpretable.
+ * \warning If the manager \p iemgr is undefined (i.e. NULL), all references will be removed.
  * \warning Keep in mind this operation is VERY expensive if the manager already includes templates
  *   and snapshots!
  * \param[in] tmgr  Template manager
- * \param[in] iemgr Manager of Information Elements (IEs)
+ * \param[in] iemgr Manager of Information Elements (IEs) (can be NULL)
  * \return On success returns #FDS_OK. Otherwise returns #FDS_ERR_NOMEM and references are still
  *   the same.
  */

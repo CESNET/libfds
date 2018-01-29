@@ -78,7 +78,14 @@ enum snapshot_rec_flags {
      *   If this is the last snapshot with the reference to the template, the flag MUST remain
      *   and the template will be deleted together with the snapshot.
      */
-    SNAPSHOT_TF_DESTROY = (1 << 1)
+    SNAPSHOT_TF_DESTROY = (1 << 1),
+    /**
+     * \brief Timeout enabled
+     *
+     * If this flag is set, a referenced template has limited lifetime that is described by
+     * variable snapshot_rec#lifetime.
+     */
+    SNAPSHOT_TF_TIMEOUT = (1 << 2)
 };
 
 /** Snapshot record (a.k.a. reference to a template)                                             */
@@ -95,8 +102,8 @@ struct snapshot_rec {
     /**
      * \brief Template lifetime
      *
-     * Time after which this template is not valid anymore, exclusive. This value is defined only
-     * if the lifetime mode is enabled. TODO: add reference
+     * Time after which this template is not valid anymore, exclusive. This values is valid only
+     * if the lifetime flag (::SNAPSHOT_TF_TIMEOUT) is set.
      */
     uint32_t lifetime;
     /** Reference to a corresponding template  */
@@ -139,18 +146,19 @@ struct fds_tsnapshot {
         struct fds_tmgr *mgr;
     } link; /**< Valid only when the snapshot is inside the template manager!   */
 
-    /**
-     * \brief Minimal value of template lifetime
-     *
-     * If the lifetime mode is enabled, this value represents an Export Time when at least one
-     * template will not be valid anymore i.e. this snapshot cannot be used after this time,
-     * inclusive.
-     * \warning Always check if the snapshot has at least 1 template (rec_cnt > 0).
-     *   Otherwise this value doesn't make any sense.
-     * \note This value make sense only if there is at least one template and the lifetime mode
-     *   is enabled! TODO: add reference
-     */
-    uint32_t min_lifetime;
+    struct {
+        /**
+         * \brief Minimal value of template lifetime
+         *
+         * If the lifetime is enabled, this value represents an Export Time when at least
+         * one template will not be valid anymore i.e. this snapshot cannot be used after this
+         * time, inclusive.
+         * // TODO: zkopirovat jeste neco ze spodniho komentare
+         */
+        uint32_t min_value;
+        /** Snapshot lifetime is enabled when at least one template has enabled lifetime */
+        bool enabled;
+    } lifetime; /**< Snapshot lifetime */
 
     /**
      * \brief Editability of the snapshot

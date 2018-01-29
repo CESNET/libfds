@@ -61,6 +61,9 @@ enum withdraw_mod_e {
     WITHDRAW_REQUIRED
 };
 
+// TODO: vyresit situaci, kdyz se nekdo bude chtit vratit hodne v case (napr. pri posilani ve
+// smycce) ... asi zablokovat pristup pri seeku... pokud je okno vetsi nez...
+
 // TODO: warning that after NOMEM error consistency cannot be guaranteed and the connection MUST be closed!!!
 
 // TODO: možna upravit definicie min_life... trochu to sjednotit
@@ -128,15 +131,12 @@ struct fds_tmgr {
     } list; /**< Link to snapshots in a linked-list */
 
     struct {
+        /** Type of session */
+        enum fds_session_type session_type;
         /** Make historical snapshots available (only for unreliable communication) */
         bool en_history_access;
         /** Allow modification of historical snapshots and propagation of these changes */
         bool en_history_mod;
-        /**
-         * Enable template lifetime.
-         * Templates are considered as invalid if they are not periodically refreshed.
-         */
-        bool en_lifetime;
         /** Selected Template Withdrawal mode */
         enum withdraw_mod_e withdraw_mod;
     } cfg; /**< Behaviour configuration */
@@ -537,8 +537,10 @@ struct mgr_snap_clone_remove_exp {
     /** New snapshot (clone) */
     struct fds_tsnapshot *new;
 
-    /** New minimal lifetime value (calculated) */
-    uint32_t new_min_lifetime;
+    /** New minimal lifetime value (calculated)              */
+    uint32_t lifetime_min;
+    /** True, if at least one template has enabled timeout   */
+    bool lifetime_enabled;
 };
 
 /**
@@ -554,27 +556,25 @@ static bool
 mgr_snap_clone_remove_exp_cb(struct snapshot_rec *rec, void *data)
 {
     struct mgr_snap_clone_remove_exp *info = data;
-    const struct fds_tmgr *mgr = info->new->link.mgr;
 
-    // Lifetime is enabled and the record is from the new snapshot
-    assert(mgr->cfg.en_lifetime);
-    assert(snapshot_rec_find(info->new, rec->id) == rec);
-
-    // TODO: if (last_time == end_time) ... timeout was disable for this template
-
-    enum fds_template_type type = rec->ptr->type;
-    if ((type == FDS_TYPE_TEMPLATE && mgr->limits.lifetime_normal == 0)
-        || (type == FDS_TYPE_TEMPLATE_OPTS && mgr->limits.lifetime_opts == 0)) {
-        // Timeout for this type of templates is disabled
+    if ((rec->flags & SNAPSHOT_TF_TIMEOUT) == 0) {
+        // Template doesn't have timeout
+        assert(TIME_EQ(rec->ptr->time.last_seen, rec->ptr->time.end_of_life)); // Must be the same
         return true;
     }
 
+    // The record is from the new snapshot
+    assert(snapshot_rec_find(info->new, rec->id) == rec);
+    // Check that lifetime is really enabled
+    assert(TIME_NE(rec->ptr->time.last_seen, rec->ptr->time.end_of_life)); // Must be different
+
     if (TIME_GE(rec->lifetime, info->new->start_time)) {
         // Template is still valid, calculate new minimal lifetime
-        if (TIME_LT(rec->lifetime, info->new_min_lifetime)) { // TODO: zkontrolova >, >= ???
-            info->new_min_lifetime = rec->lifetime;
+        if (TIME_LT(rec->lifetime, info->lifetime_min)) { // TODO: zkontrolova >, >= ???
+            info->lifetime_min = rec->lifetime;
         }
 
+        info->lifetime_enabled = true;
         return true;
     }
 
@@ -616,7 +616,7 @@ mgr_snap_clone(struct fds_tsnapshot *src, struct fds_tsnapshot **dst, uint32_t s
     assert(src->editable == false);
     // We cannot add copy of this snapshots into the history
     assert(TIME_LE(src->start_time, start));
-    // We cannot overwrite future snapshots (they have own modifications)
+    // Check history consistency
     assert(!src->link.newer || TIME_GT(src->link.newer->start_time, start));
 
     // Make a copy of the snapshot
@@ -640,19 +640,19 @@ mgr_snap_clone(struct fds_tsnapshot *src, struct fds_tsnapshot **dst, uint32_t s
     snapshot_rec_for(src, &mgr_snap_clone_dflag_cb, NULL);
     snapshot_rec_for(new_snap,  &mgr_snap_clone_cflag_cb, NULL);
 
-    // Check if new time is different and template lifetime is enabled
+    // Check if there is a template that has expired...
     fds_tmgr_t *mgr = src->link.mgr;
-
-    // Note: min_lifetime makes sense only if there is at least one snapshot record
-    if (TIME_NE(src->start_time, start) && mgr->cfg.en_lifetime && new_snap->rec_cnt > 0
-        && TIME_LE(src->min_lifetime, src->start_time)) {
-        // We have to check if there are any expired templates and remove them
+    if (TIME_NE(src->start_time, start) && src->lifetime.enabled
+            && TIME_LE(src->lifetime.min_value, start)) {
+        // Remove expired templates and calculate new lifetime
         const uint32_t max_timeout = MAX(mgr->limits.lifetime_normal, mgr->limits.lifetime_opts);
-        const uint32_t max_lifetime = new_snap->start_time + max_timeout;
+        const uint32_t max_lifetime = new_snap->start_time + max_timeout; // TODO: +1 ?
 
-        struct mgr_snap_clone_remove_exp data = {src, new_snap, max_lifetime};
+        struct mgr_snap_clone_remove_exp data = {src, new_snap, max_lifetime, false};
         snapshot_rec_for(new_snap, mgr_snap_clone_remove_exp_cb, &data);
-        new_snap->min_lifetime = data.new_min_lifetime; // TODO: Ziskana hodnota a limit se lisi v 1ce!!!
+
+        new_snap->lifetime.enabled = data.lifetime_enabled;
+        new_snap->lifetime.min_value = data.lifetime_min + 1; // TODO: +1 ?
     }
 
     /* TODO: optimization enable/disable???
@@ -715,6 +715,8 @@ mgr_snap_edit(struct fds_tsnapshot *src, struct fds_tsnapshot **dst)
  * This will create a new snapshot record with the reference to the template and user defined flags.
  * \note Expiration of the snapshot (minimal lifetime) will be recalculated based on a validity
  *   of the template, if necessary.
+ * \note Flag ::SNAPSHOT_TF_TIMEOUT will be set automatically if the fds_template#time#last_seen
+ *   and fds_template#time#end_of_life are different.
  * \warning All fds_template#time variables must be already set!
  * \param[in] snap  Snapshot
  * \param[in] tmplt Template
@@ -727,15 +729,25 @@ mgr_snap_template_add_ref(struct fds_tsnapshot *snap, struct fds_template *tmplt
     // Do NOT overwrite template references
     assert(snapshot_rec_find(snap, tmplt->id) == NULL);
 
-    struct fds_tmgr *mgr = snap->link.mgr;
-    if (mgr->cfg.en_lifetime) {
-        // Set the time after which the snapshot is not valid anymore
-        uint32_t invalid_time = tmplt->time.end_of_life + 1;
-        if (TIME_LT(invalid_time, snap->min_lifetime)) {
-            snap->min_lifetime = invalid_time;
+    // This flag should be set only by this function
+    assert((flags & SNAPSHOT_TF_TIMEOUT) == 0);
+
+    if (TIME_NE(tmplt->time.last_seen, tmplt->time.end_of_life)) {
+        // Timeout of this template is enabled
+        assert(TIME_LT(tmplt->time.last_seen, tmplt->time.end_of_life));
+        flags |= SNAPSHOT_TF_TIMEOUT;
+        const uint32_t invalid_time = tmplt->time.end_of_life + 1;
+
+        if (!snap->lifetime.enabled) {
+            snap->lifetime.enabled = true;
+            snap->lifetime.min_value = invalid_time;
+        } else {
+            if (TIME_LT(invalid_time, snap->lifetime.min_value)) {
+                snap->lifetime.min_value = invalid_time;
+            }
         }
 
-        assert(TIME_GT(snap->min_lifetime, snap->start_time));
+        assert(TIME_GT(snap->lifetime.min_value, snap->start_time));
     }
 
     // Add the template to the snapshot
@@ -852,7 +864,7 @@ mgr_snap_template_add(struct fds_tsnapshot *snap, struct fds_template *tmplt)
  * \brief Remove a template from a snapshot
  *
  * First, try to move ownership of the template (i.e. "Delete" flag) to the newest predecessor
- * that has a reference to the same template.Finally, remove the template from the snapshot.
+ * that has a reference to the same template. Finally, remove the template from the snapshot.
  * \warning The snapshot MUST be editable.
  * \param[in] snap Snapshot
  * \param[in] id   Template ID to remove
@@ -869,6 +881,11 @@ mgr_snap_template_remove(struct fds_tsnapshot *snap, uint16_t id)
 
     // Make sure that the snapshot is editable
     assert(snap->editable);
+
+    if (snap->lifetime.enabled && snap->rec_cnt == 1) {
+        // The last record in the snapshot -> disable lifetime
+        snap->lifetime.enabled = false;
+    }
 
     if ((snap_rec->flags & SNAPSHOT_TF_DESTROY) == 0) {
         // The snapshot is not responsible for destruction of the template -> remove the record
@@ -1025,21 +1042,12 @@ mgr_snap_freeze_cb(struct snapshot_rec *rec, void *data)
     // We are trying to modify history, make sure that we have rights...
     assert(mgr->cfg.en_history_mod);
 
-    // Is the lifetime enabled for this type of templates?
-    bool lifetime_en = false;
-    if (mgr->cfg.en_lifetime) {
-        if ((rec->ptr->type == FDS_TYPE_TEMPLATE && mgr->limits.lifetime_normal != 0)
-            || (rec->ptr->type == FDS_TYPE_TEMPLATE_OPTS && mgr->limits.lifetime_opts != 0)) {
-            lifetime_en = true;
-        }
-    }
-
     // Remember the last successful insertion
     struct fds_tsnapshot *last_insert = NULL;
     // We would like to propagate this template to all descendants
     for (struct fds_tsnapshot *dsc = info->snap->link.newer; dsc != NULL; dsc = dsc->link.newer) {
         // Is the template still valid in this snapshot (and descendants)?
-        if (lifetime_en && TIME_LT(rec->lifetime, dsc->start_time)) {         // TODO: lifetime can be disabled for template
+        if ((rec->flags & SNAPSHOT_TF_TIMEOUT) != 0 && TIME_LT(rec->lifetime, dsc->start_time)) {
             // Stop propagation
             break;
         }
@@ -1094,7 +1102,7 @@ mgr_snap_freeze_cb(struct snapshot_rec *rec, void *data)
          */
         struct snapshot_rec *last_rec = snapshot_rec_find(last_insert, rec->id);
         assert(last_rec->ptr == rec->ptr);
-        assert(last_rec->flags == 0);
+        assert((last_rec->flags & (SNAPSHOT_TF_CREATE | SNAPSHOT_TF_DESTROY)) == 0);
 
         last_rec->flags |= SNAPSHOT_TF_DESTROY;
         rec->flags &= ~SNAPSHOT_TF_DESTROY;
@@ -1269,7 +1277,7 @@ mgr_seek_forwards(fds_tmgr_t *tmgr, uint32_t time)
         return ret_code;
     }
 
-    if (tmgr->cfg.en_lifetime && snap->rec_cnt > 0 && TIME_LE(snap->min_lifetime, time)) {
+    if (snap->lifetime.enabled && TIME_LE(snap->lifetime.min_value, time)) {
         // At least one template will expire -> create a new snapshot without these templates
         if ((ret_code = mgr_snap_clone(snap, &snap, time)) != FDS_OK) {
             tmgr->list.current = NULL;
@@ -1328,7 +1336,7 @@ mgr_seek_backwards(struct fds_tmgr *tmgr, uint32_t time)
     }
 
     // Snapshot found...
-    if (tmgr->cfg.en_lifetime && snap->rec_cnt > 0 && TIME_LE(snap->min_lifetime, time)) {
+    if (snap->lifetime.enabled && TIME_LE(snap->lifetime.min_value, time)) {
         // At least one template will expire -> create a new snapshot without these templates
         assert(TIME_LT(snap->start_time, time));
 
@@ -1359,18 +1367,20 @@ fds_tmgr_create(enum fds_session_type type)
 
     // Prepare configuration based on the type of a session
     mgr->limits.lifetime_snapshot = SNAPSHOT_DEF_LIFETIME;
+    mgr->cfg.session_type = type;
 
     switch (type) {
     case FDS_SESSION_TYPE_TCP:
         mgr->cfg.en_history_access = false; // All records MUST be send reliably
         mgr->cfg.en_history_mod = false;    // Everything is reliable -> no history required
-        mgr->cfg.en_lifetime = false;
         mgr->cfg.withdraw_mod = WITHDRAW_REQUIRED;
         break;
     case FDS_SESSION_TYPE_UDP:
+        /* By default, template timeouts are disabled (values are 0), user must manually specify
+         * timeouts using fds_tmgr_set_udp_timeouts().
+         */
         mgr->cfg.en_history_access = true;
         mgr->cfg.en_history_mod = true;
-        mgr->cfg.en_lifetime = false; // By default disabled, user must manually specify timeouts
         mgr->cfg.withdraw_mod = WITHDRAW_PROHIBITED;
         break;
     case FDS_SESSION_TYPE_SCTP:
@@ -1380,13 +1390,11 @@ fds_tmgr_create(enum fds_session_type type)
          * modification must be enabled.
          */
         mgr->cfg.en_history_mod = true;
-        mgr->cfg.en_lifetime = false;
         mgr->cfg.withdraw_mod = WITHDRAW_REQUIRED;
         break;
     case FDS_SESSION_TYPE_IPFIX_FILE:
         mgr->cfg.en_history_access = true;
         mgr->cfg.en_history_mod = true;
-        mgr->cfg.en_lifetime = false;
         mgr->cfg.withdraw_mod = WITHDRAW_OPTIONAL;
         break;
     }
@@ -1475,6 +1483,7 @@ fds_tmgr_set_time(fds_tmgr_t *tmgr, uint32_t exp_time)
     }
 
     tmgr->time_now = exp_time;
+    // TODO: do not allow going back more than snapshot lifetime
 
     if (!tmgr->list.current) {
         //  The current snapshot is unknown
@@ -1738,7 +1747,7 @@ fds_tmgr_snapshot_get(const fds_tmgr_t *tmgr, const fds_tsnapshot_t **snap)
     assert(!current->link.newer || TIME_GT(current->link.newer->start_time, tmgr->time_now));
 
     // Check if all templates in the snapshot are still valid
-    assert(tmgr->cfg.en_lifetime == false || TIME_GT(current->min_lifetime, tmgr->time_now));
+    assert(!current->lifetime.enabled || TIME_GT(current->lifetime.min_value, tmgr->time_now));
 
     if (current->editable) {
         // The snapshot is still editable...
@@ -1783,14 +1792,12 @@ fds_tmgr_template_get(fds_tmgr_t *tmgr, uint16_t id, const struct fds_template *
 int
 fds_tmgr_set_udp_timeouts(fds_tmgr_t *tmgr, uint16_t tl_norm, uint16_t tl_opts)
 {
-    if (tmgr->cfg.en_history_mod == false) {
-        // Session types with disable history modification also doesn't support timeouts
+    if (tmgr->cfg.session_type != FDS_SESSION_TYPE_UDP) {
         return FDS_ERR_ARG;
     }
 
     tmgr->limits.lifetime_normal = tl_norm;
     tmgr->limits.lifetime_opts = tl_opts;
-    tmgr->cfg.en_lifetime = (tl_norm == 0 && tl_opts == 0) ? false : true;
     return FDS_OK;
 }
 

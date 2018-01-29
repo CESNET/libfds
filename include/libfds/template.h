@@ -278,7 +278,9 @@ struct fds_template {
         uint32_t first_seen;
         /** The last reception (a.k.a. refresh time)                                             */
         uint32_t last_seen;
-        /** End of life (the time after which the template is not valid anymore) (UDP only)      */
+        /** End of life (the time after which the template is not valid anymore) (UDP only).
+         * If the value is different than last_seen, the template has defined timeout.
+         */
         uint32_t end_of_life;
     } time; /**< Instance of the structure                                                       */
 

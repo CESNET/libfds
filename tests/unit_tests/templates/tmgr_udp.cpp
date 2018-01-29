@@ -134,7 +134,7 @@ TEST_P(udp, templateTimeout)
     EXPECT_EQ(tmplt2check->time.last_seen, 5);
     EXPECT_EQ(tmplt2check->time.end_of_life, 15); // Timeout is 10 seconds
 
-    // Change the export time so the template T1 should be expired
+    // TODO: Change the export time so the template T1 should be expired
     //EXPECT_EQ(fds_tmgr_template_get())
 }
 

@@ -560,6 +560,8 @@ mgr_snap_clone_remove_exp_cb(struct snapshot_rec *rec, void *data)
     assert(mgr->cfg.en_lifetime);
     assert(snapshot_rec_find(info->new, rec->id) == rec);
 
+    // TODO: if (last_time == end_time) ... timeout was disable for this template
+
     enum fds_template_type type = rec->ptr->type;
     if ((type == FDS_TYPE_TEMPLATE && mgr->limits.lifetime_normal == 0)
         || (type == FDS_TYPE_TEMPLATE_OPTS && mgr->limits.lifetime_opts == 0)) {
@@ -1037,7 +1039,7 @@ mgr_snap_freeze_cb(struct snapshot_rec *rec, void *data)
     // We would like to propagate this template to all descendants
     for (struct fds_tsnapshot *dsc = info->snap->link.newer; dsc != NULL; dsc = dsc->link.newer) {
         // Is the template still valid in this snapshot (and descendants)?
-        if (lifetime_en && TIME_LT(rec->lifetime, dsc->start_time)) {
+        if (lifetime_en && TIME_LT(rec->lifetime, dsc->start_time)) {         // TODO: lifetime can be disabled for template
             // Stop propagation
             break;
         }
@@ -1373,7 +1375,11 @@ fds_tmgr_create(enum fds_session_type type)
         break;
     case FDS_SESSION_TYPE_SCTP:
         mgr->cfg.en_history_access = true; // Data records can be send unreliably
-        mgr->cfg.en_history_mod = false;   // Templates MUST be send reliably (ordered delivery)
+        /* Templates MUST be send reliably (ordered delivery), but they can be send on any SCTP
+         * stream. Different streams can have different export times, therefore, history
+         * modification must be enabled.
+         */
+        mgr->cfg.en_history_mod = true;
         mgr->cfg.en_lifetime = false;
         mgr->cfg.withdraw_mod = WITHDRAW_REQUIRED;
         break;

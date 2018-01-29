@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 }
 
 // Create main class for parameterized test
-class udpFile : public ::testing::TestWithParam<enum fds_session_type> {
+class udpSctpFile : public ::testing::TestWithParam<enum fds_session_type> {
 protected:
     fds_tmgr_t *tmgr = nullptr;
     /** \brief Prepare a template manager*/
@@ -35,11 +35,11 @@ protected:
 };
 
 // Define parameters of parametrized test
-INSTANTIATE_TEST_CASE_P(TemplateManager, udpFile,
+INSTANTIATE_TEST_CASE_P(TemplateManager, udpSctpFile,
     ::testing::Values(FDS_SESSION_TYPE_UDP, FDS_SESSION_TYPE_IPFIX_FILE));
 
 // Try to access templates defined in history
-TEST_P(udpFile, historyAccess)
+TEST_P(udpSctpFile, historyAccess)
 {
     fds_tmgr_set_snapshot_timeout(tmgr, 30);
 
@@ -93,7 +93,7 @@ TEST_P(udpFile, historyAccess)
 }
 
 // Add a template in history and make sure that it will be propagated
-TEST_P(udpFile, historyAdd)
+TEST_P(udpSctpFile, historyAdd)
 {
     fds_tmgr_set_snapshot_timeout(tmgr, 30);
 
@@ -136,7 +136,7 @@ TEST_P(udpFile, historyAdd)
 }
 
 // Redefine a template in history and make sure that modification will be propagated
-TEST_P(udpFile, historyRedefinition)
+TEST_P(udpSctpFile, historyRedefinition)
 {
     fds_tmgr_set_snapshot_timeout(tmgr, 30);
 
@@ -199,7 +199,7 @@ TEST_P(udpFile, historyRedefinition)
 }
 
 // Refresh template in history + flow key propagation
-TEST_P(udpFile, refreshPropagation)
+TEST_P(udpSctpFile, refreshPropagation)
 {
     fds_tmgr_set_snapshot_timeout(tmgr, 20);
 
@@ -241,7 +241,7 @@ TEST_P(udpFile, refreshPropagation)
 }
 
 // Try to get into history
-TEST_P(udpFile, goEmptyHistory)
+TEST_P(udpSctpFile, goEmptyHistory)
 {
     fds_tmgr_set_snapshot_timeout(tmgr, 20);
     EXPECT_EQ(fds_tmgr_set_time(tmgr, 100), FDS_OK);
@@ -252,18 +252,18 @@ TEST_P(udpFile, goEmptyHistory)
 
 /*
 // Try to deeply into history (behind current limit)
-TEST_P(udpFile, historyBehindLimit)
+TEST_P(udpSctpFile, historyBehindLimit)
 {
 
 }
 
-TEST_P(udpFile, historyLimitAutoRemove)
+TEST_P(udpSctpFile, historyLimitAutoRemove)
 {
 
 }
 
 // Try to refresh a template in history
-TEST_P(udpFile, refreshExpiredInHistory)
+TEST_P(udpSctpFile, refreshExpiredInHistory)
 {
 
     // TODO: check template timeout

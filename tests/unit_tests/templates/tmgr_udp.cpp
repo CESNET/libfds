@@ -106,7 +106,6 @@ TEST_P(udp, invalidWithdrawAll)
 }
 
 // Test template timeout
-/*
 TEST_P(udp, templateTimeout)
 {
     // Enable template timeout
@@ -137,7 +136,8 @@ TEST_P(udp, templateTimeout)
 
     // Change the export time so the template T1 should be expired
     //EXPECT_EQ(fds_tmgr_template_get())
-
 }
-*/
+
 // TODO: enable template timeout later... older should remain until they are refreshed/redefined
+// TODO: disable template timeout later...
+// TODO: create a snapshot on demand (due to template expiration)...

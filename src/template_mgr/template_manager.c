@@ -94,8 +94,10 @@ enum withdraw_mod_e {
  * Template manager
  */
 struct fds_tmgr {
-    /** Export Time of selected context */
+    /** Export Time of selected context             */
     uint32_t time_now;
+    /** The newest time (the manager has even seen) */
+    uint32_t time_newest;
 
     struct {
         /**
@@ -570,7 +572,7 @@ mgr_snap_clone_remove_exp_cb(struct snapshot_rec *rec, void *data)
 
     if (TIME_GE(rec->lifetime, info->new->start_time)) {
         // Template is still valid, calculate new minimal lifetime
-        if (TIME_LT(rec->lifetime, info->lifetime_min)) { // TODO: zkontrolova >, >= ???
+        if (TIME_LT(rec->lifetime, info->lifetime_min)) {
             info->lifetime_min = rec->lifetime;
         }
 
@@ -646,13 +648,13 @@ mgr_snap_clone(struct fds_tsnapshot *src, struct fds_tsnapshot **dst, uint32_t s
             && TIME_LE(src->lifetime.min_value, start)) {
         // Remove expired templates and calculate new lifetime
         const uint32_t max_timeout = MAX(mgr->limits.lifetime_normal, mgr->limits.lifetime_opts);
-        const uint32_t max_lifetime = new_snap->start_time + max_timeout; // TODO: +1 ?
+        const uint32_t max_lifetime = new_snap->start_time + max_timeout;
 
         struct mgr_snap_clone_remove_exp data = {src, new_snap, max_lifetime, false};
         snapshot_rec_for(new_snap, mgr_snap_clone_remove_exp_cb, &data);
 
         new_snap->lifetime.enabled = data.lifetime_enabled;
-        new_snap->lifetime.min_value = data.lifetime_min + 1; // TODO: +1 ?
+        new_snap->lifetime.min_value = data.lifetime_min + 1;
     }
 
     /* TODO: optimization enable/disable???
@@ -1436,6 +1438,7 @@ fds_tmgr_clear(fds_tmgr_t *tmgr)
 
     // Modify global pointers
     tmgr->list.oldest = tmgr->list.newest = tmgr->list.current = NULL;
+    tmgr->time_newest = tmgr->time_now = 0;
 }
 
 int
@@ -1474,16 +1477,28 @@ fds_tmgr_garbage_destroy(fds_tgarbage_t *gc)
 int
 fds_tmgr_set_time(fds_tmgr_t *tmgr, uint32_t exp_time)
 {
+    // Let's go to the past, but...
     if (TIME_LT(exp_time, tmgr->time_now)) {
-        // Let's to the past, but...
-        if (tmgr->cfg.en_history_access == false && tmgr->list.newest != NULL) {
-            // The manager is not empty and history is disabled
-            return FDS_ERR_DENIED;
+        if (tmgr->list.newest != NULL) {
+            if (tmgr->cfg.en_history_access == false) {
+                // The manager is not empty and history is disabled
+                return FDS_ERR_DENIED;
+            }
+
+            if (TIME_LT(exp_time + tmgr->limits.lifetime_snapshot, tmgr->time_newest)) {
+                // Do not allow going back more that snapshot lifetime
+                return FDS_ERR_NOTFOUND;
+            }
+        } else {
+            // The manager is empty (no snapshots)
+            tmgr->time_newest = exp_time;
         }
     }
 
     tmgr->time_now = exp_time;
-    // TODO: do not allow going back more than snapshot lifetime
+    if (TIME_GT(exp_time, tmgr->time_newest)) {
+        tmgr->time_newest = exp_time;
+    }
 
     if (!tmgr->list.current) {
         //  The current snapshot is unknown
@@ -1790,13 +1805,13 @@ fds_tmgr_template_get(fds_tmgr_t *tmgr, uint16_t id, const struct fds_template *
 }
 
 int
-fds_tmgr_set_udp_timeouts(fds_tmgr_t *tmgr, uint16_t tl_norm, uint16_t tl_opts)
+fds_tmgr_set_udp_timeouts(fds_tmgr_t *tmgr, uint16_t tl_data, uint16_t tl_opts)
 {
     if (tmgr->cfg.session_type != FDS_SESSION_TYPE_UDP) {
         return FDS_ERR_ARG;
     }
 
-    tmgr->limits.lifetime_normal = tl_norm;
+    tmgr->limits.lifetime_normal = tl_data;
     tmgr->limits.lifetime_opts = tl_opts;
     return FDS_OK;
 }

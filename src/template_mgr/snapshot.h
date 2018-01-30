@@ -153,7 +153,6 @@ struct fds_tsnapshot {
          * If the lifetime is enabled, this value represents an Export Time when at least
          * one template will not be valid anymore i.e. this snapshot cannot be used after this
          * time, inclusive.
-         * // TODO: zkopirovat jeste neco ze spodniho komentare
          */
         uint32_t min_value;
         /** Snapshot lifetime is enabled when at least one template has enabled lifetime */

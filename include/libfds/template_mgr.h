@@ -165,18 +165,18 @@ fds_tmgr_garbage_destroy(fds_tgarbage_t *gc);
  * discarded (moved to garbage) by the manager. All timeout are related to Export Time
  * (see fds_tmgr_set_time()).
  *
- * \warning Only newly added/refreshed templates will have new timeout. Already present templates
- *   will be unaffected.
+ * \warning Only newly added/refreshed/redefined templates will have new timeout. Already present
+ * templates will be unaffected.
  * \note To disable timeout, use value 0. In this case, templates exists throughout the whole
  *   existence of the manager or until they are redefined/updated by another template with the
  *   same ID.
  * \param[in] tmgr    Template manager
- * \param[in] tl_norm Timeout of "normal" Templates (in seconds)
+ * \param[in] tl_data Timeout of Data Templates (in seconds)
  * \param[in] tl_opts Timeout of Optional Templates (in seconds)
  * \return On success returns #FDS_OK. Otherwise (invalid session type) returns #FDS_ERR_ARG.
  */
 FDS_API int
-fds_tmgr_set_udp_timeouts(fds_tmgr_t *tmgr, uint16_t tl_norm, uint16_t tl_opts);
+fds_tmgr_set_udp_timeouts(fds_tmgr_t *tmgr, uint16_t tl_data, uint16_t tl_opts);
 
 /**
  * \brief Set timeout of template snapshots
@@ -184,7 +184,8 @@ fds_tmgr_set_udp_timeouts(fds_tmgr_t *tmgr, uint16_t tl_norm, uint16_t tl_opts);
  * This parameter defines how many seconds of template history will be available.
  * \note To disable timeout, use value 0. In this case, no historical snapshots are accessible
  *   (SCTP, UDP and FILE). In case of TCP session, this configuration doesn't have any impact
- *   because the history is always disabled.
+ *   because the history is always disabled. In other words, if the timeout is disabled, export
+ *   time for fds_tmgr_set_time() function can be only increasing.
  * \warning High values have a significant impact on performance and memory consumption.
  *   The recommended range of the timeout value is 0 - 30.
  * \param[in] tmgr    Template manager
@@ -236,6 +237,9 @@ fds_tmgr_set_iemgr(fds_tmgr_t *tmgr, const fds_iemgr_t *iemgr);
  * \param[in] exp_time Export time
  * \return On success returns #FDS_OK.
  *   In case of TCP session and setting time in history, the function will return #FDS_ERR_DENIED.
+ *   If the \p exp_time is in history and the difference between the newest time and the export
+ *   time (\p exp_time) is greater that the snapshot timeout, the function will not change context
+ *   and return #FDS_ERR_NOTFOUND (In other words, such old data is no longer available).
  *   On memory allocation error returns #FDS_ERR_NOMEM.
  */
 FDS_API int

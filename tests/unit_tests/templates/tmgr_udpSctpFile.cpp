@@ -240,38 +240,136 @@ TEST_P(udpSctpFile, refreshPropagation)
     EXPECT_EQ(tmplt2check->time.last_seen, time210);
 }
 
-// Try to get into history
+// Try to go to deeply into history (behind snapshot limit)
 TEST_P(udpSctpFile, goEmptyHistory)
 {
     fds_tmgr_set_snapshot_timeout(tmgr, 20);
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 100), FDS_OK); // First usage of the manager
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 80),  FDS_OK);
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 50),  FDS_ERR_NOTFOUND); // Too far in history
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 0),   FDS_ERR_NOTFOUND);
     EXPECT_EQ(fds_tmgr_set_time(tmgr, 100), FDS_OK);
-    EXPECT_EQ(fds_tmgr_set_time(tmgr, 50), FDS_OK);
-    EXPECT_EQ(fds_tmgr_set_time(tmgr, 0), FDS_OK);
-    EXPECT_EQ(fds_tmgr_set_time(tmgr, 100), FDS_OK);
+
+    // Clear the manager
+    fds_tmgr_clear(tmgr);
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 50),  FDS_OK);
 }
 
-/*
-// Try to deeply into history (behind current limit)
-TEST_P(udpSctpFile, historyBehindLimit)
-{
-
-}
-
+// Check if templates in history (behind snapshot limit) are no longer available, but a snapshot
+// still can be used.
 TEST_P(udpSctpFile, historyLimitAutoRemove)
 {
+    fds_tmgr_set_snapshot_timeout(tmgr, 20);
+    // Note: UDP template timeouts are disabled by default...
 
+    // Set export time and add few templates
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 500), FDS_OK);
+    const uint16_t tid1 = 1024;
+    const uint16_t tid2 = 1025;
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid1)), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::OPTS_FKEY, tid2)), FDS_OK);
+
+    // Create a snapshot
+    const fds_tsnapshot_t *snap;
+    ASSERT_EQ(fds_tmgr_snapshot_get(tmgr, &snap), FDS_OK);
+
+    // Change export time and Remove/redefine templates
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 600), FDS_OK);
+    if (GetParam() == FDS_SESSION_TYPE_SCTP) {
+        // Remove template T1
+        EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid1, FDS_TYPE_TEMPLATE), FDS_OK);
+    } else {
+        // Redefine template T2
+        EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::OPTS_FKEY, tid1)), FDS_OK);
+    }
+
+    // Go to the future, cleanup manager and check availability of templates
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 700), FDS_OK);
+    fds_tgarbage_t *garbage;
+    EXPECT_EQ(fds_tmgr_garbage_get(tmgr, &garbage), FDS_OK);
+
+    const struct fds_template *tmplt2check;
+    if (GetParam() == FDS_SESSION_TYPE_SCTP) {
+        EXPECT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_ERR_NOTFOUND);
+    } else {
+        ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
+        EXPECT_EQ(tmplt2check->type, FDS_TYPE_TEMPLATE_OPTS);
+    }
+
+    // Access to history should not be possible
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 500), FDS_ERR_NOTFOUND);
+    // ...but the snapshot should be still usable
+    ASSERT_NE(tmplt2check = fds_tsnapshot_template_get(snap, tid1), nullptr);
+    EXPECT_EQ(tmplt2check->id, tid1);
+    EXPECT_EQ(tmplt2check->type, FDS_TYPE_TEMPLATE);
+
+    fds_tmgr_garbage_destroy(garbage);
 }
 
-// Try to refresh a template in history
-TEST_P(udpSctpFile, refreshExpiredInHistory)
+// Try to refresh template in history, but new there is already newer definition (stop propagation)
+TEST_P(udpSctpFile, stopPropagation)
 {
+    fds_tmgr_set_snapshot_timeout(tmgr, 30);
+    // Note: UDP template timeouts are disabled by default...
 
-    // TODO: check template timeout
+    // Set export time and add few templates
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 0), FDS_OK);
+    const uint16_t tid1 = 256;
+    const uint16_t tid2 = 257;
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_FLOW, tid1)), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::OPTS_MPROC_STAT, tid2)), FDS_OK);
+
+    // Set export time and refresh the template T1
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 20), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_FLOW, tid1)), FDS_OK);
+    const struct fds_template *tmplt2check;
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->time.first_seen, 0);
+    EXPECT_EQ(tmplt2check->time.last_seen, 20);
+
+    // Go back in time and refresh both templates
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 10), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_FLOW, tid1)), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::OPTS_MPROC_STAT, tid2)), FDS_OK);
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->time.first_seen, 0);
+    EXPECT_EQ(tmplt2check->time.last_seen, 10);
+
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid2, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->time.first_seen, 0);
+    EXPECT_EQ(tmplt2check->time.last_seen, 10);
+
+    // Return export time
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 20), FDS_OK);
+    // Template T1 should not be changed
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->time.first_seen, 0);
+    EXPECT_EQ(tmplt2check->time.last_seen, 20); // <- 20
+    // Template T2 should be refreshed
+    ASSERT_EQ(fds_tmgr_template_get(tmgr, tid2, &tmplt2check), FDS_OK);
+    EXPECT_EQ(tmplt2check->time.first_seen, 0);
+    EXPECT_EQ(tmplt2check->time.last_seen, 10); // <- 10
 }
-*/
+
+// Try to withdraw a template in history but the template doesn't exist anymore
+TEST_P(udpSctpFile, withdrawInHistory)
+{
+    // No available for UDP
+    if (GetParam() == FDS_SESSION_TYPE_UDP) {
+        return;
+    }
 
 
+    // TODO
+}
+
+
+// TODO: try to redefine something in history but there is already new definition in future...
+// TODO: (SCTP, FILE) : withdraw something in history, but there is already new definition in future...???
+
+// TODO: cleanup historical snapshot (after snap. lifetime ... try to access it...)
 // TODO: clear a garbage in history
 // TODO: propage flowkey from history ... make sure that other snapshot are not affected
 //       Make sure that there is unacessible snapshot (the same time)
 // TODO: time wrapparound -> seek history (add, remove, redefine, flowkey)
+// TODO: set flowkey in history (snapshot should be unaffected)

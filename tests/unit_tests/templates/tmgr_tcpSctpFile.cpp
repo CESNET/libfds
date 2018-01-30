@@ -242,4 +242,7 @@ TEST_P(tcpSctpFile, withdrawAllEmpty)
     EXPECT_EQ(fds_tmgr_template_withdraw_all(tmgr, FDS_TYPE_TEMPLATE_UNDEF), FDS_OK);
 }
 
-
+// TODO: Set UDP timeout should fail
+// TODO: T10: add t1, T20: withdraw t1, define new t1, T15: withdraw t1... hmm... T16 template should not be available...
+//        and T22: template should be available
+// TODO: Distribution of withdrawal in history + stop propagation

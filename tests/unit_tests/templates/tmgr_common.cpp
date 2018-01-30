@@ -760,3 +760,5 @@ TEST_P(Common, ieManagerRedefine)
         EXPECT_EQ(field->def, nullptr);
     }
 }
+
+// TODO: Test snapshot lifetime (TO ALL except TCP)

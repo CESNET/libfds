@@ -761,4 +761,8 @@ TEST_P(Common, ieManagerRedefine)
     }
 }
 
+
+
+// TODO: Multiple updates of the same template at the same time + cleanup
+
 // TODO: Test snapshot lifetime (TO ALL except TCP)

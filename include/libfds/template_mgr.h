@@ -360,9 +360,8 @@ fds_tmgr_template_remove(fds_tmgr_t *tmgr, uint16_t id, enum fds_template_type t
  * \param[in] key  Flow key
  * \return On success returns #FDS_OK.
  *   If the template is not present in the manager returns #FDS_ERR_NOTFOUND.
- *   If the template is present in the manager but it's type is not Template Record
- *     (::FDS_TYPE_TEMPLATE) or the flow key is too long, returns #FDS_ERR_ARG and the flow key
- *     is not applied.
+ *   If the template is present in the manager but the flow key is too long, returns #FDS_ERR_ARG
+ *     and the flow key is not applied.
  *   If a memory allocation error has occurred returns #FDS_ERR_NOMEM.
  *   If the time context is not defined returns #FDS_ERR_ARG.
  */

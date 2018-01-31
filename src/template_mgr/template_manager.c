@@ -901,7 +901,6 @@ mgr_snap_template_remove(struct fds_tsnapshot *snap, uint16_t id)
          * In other words, this snapshot hasn't been frozen yet, thus, no one can have a reference
          * to the template (we can directly free the template).
          */
-        // TODO: fence??
         fds_template_destroy(snap_rec->ptr);
         return snapshot_rec_remove(snap, id);
     }
@@ -916,7 +915,6 @@ mgr_snap_template_remove(struct fds_tsnapshot *snap, uint16_t id)
         garbage_append(gc, snap_rec->ptr, delete_fn);
     }
 
-    // TODO: aktualizovat globalni promennou min_casu timeoutut sablony? Nebo ne?
     return snapshot_rec_remove(snap, id);
 }
 
@@ -2106,7 +2104,14 @@ fds_tmgr_template_set_fkey(fds_tmgr_t *tmgr, uint16_t id, uint64_t key)
                 return ret_code;
             }
 
-            const uint16_t flags = SNAPSHOT_TF_CREATE | SNAPSHOT_TF_DESTROY; // First owner
+            /* First owner of the template should have "Create" and "Delete" flag, but "Create"
+             * flag would cause (in case of history modification) later propagation of the template.
+             * Unfortunately we do propagation right here, because we have to propagate the flow
+             * key even if the template was later refreshed (this cannot be done by normal
+             * propagation mechanism). The solution is not to use "Create" flag at all. Missing
+             * "Create" flag can only cause longer seeking in history in case of some operations.
+             */
+            const uint16_t flags = SNAPSHOT_TF_DESTROY; // First owner
             if ((ret_code = mgr_snap_template_add_ref(it, tmplt_new, flags)) != FDS_OK) {
                 return ret_code;
             }

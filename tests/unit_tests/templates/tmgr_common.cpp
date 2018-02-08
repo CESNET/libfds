@@ -368,13 +368,13 @@ TEST_P(Common, setFlowKey)
     EXPECT_EQ(fds_tmgr_template_set_fkey(tmgr, tid1, fkey), FDS_OK);
     // Make sure that the template has the key
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
-    EXPECT_TRUE((tmplt2check->flags & FDS_TEMPLATE_HAS_FKEY) != 0);
+    EXPECT_TRUE((tmplt2check->flags & FDS_TEMPLATE_FKEY) != 0);
     EXPECT_EQ(fds_template_flowkey_cmp(tmplt2check, fkey), 0);
 
     // Options templates can have flow key (really? not sure...)
     EXPECT_EQ(fds_tmgr_template_set_fkey(tmgr, tid2, fkey), FDS_OK);
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid2, &tmplt2check), FDS_OK);
-    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_HAS_FKEY, 0);
+    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_FKEY, 0);
 
     // Set new export time and create another snapshot
     EXPECT_EQ(fds_tmgr_set_time(tmgr, 10), FDS_OK);
@@ -386,7 +386,7 @@ TEST_P(Common, setFlowKey)
     EXPECT_EQ(fds_tmgr_template_add(tmgr, t1_refresh), FDS_OK);
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
     EXPECT_EQ(tmplt2check->id, tid1);
-    EXPECT_TRUE((tmplt2check->flags & FDS_TEMPLATE_HAS_FKEY) != 0);
+    EXPECT_TRUE((tmplt2check->flags & FDS_TEMPLATE_FKEY) != 0);
     EXPECT_EQ(fds_template_flowkey_cmp(tmplt2check, fkey), 0);
     EXPECT_EQ(tmplt2check->time.first_seen, 0);
     EXPECT_EQ(tmplt2check->time.last_seen, 10);
@@ -394,7 +394,7 @@ TEST_P(Common, setFlowKey)
     // Remove the flow key
     EXPECT_EQ(fds_tmgr_template_set_fkey(tmgr, tid1, 0), FDS_OK);
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
-    EXPECT_TRUE((tmplt2check->flags & FDS_TEMPLATE_HAS_FKEY) == 0);
+    EXPECT_TRUE((tmplt2check->flags & FDS_TEMPLATE_FKEY) == 0);
 
     // Try to define flow key of non-existing template
     const uint16_t tid3 = 55555;
@@ -402,10 +402,10 @@ TEST_P(Common, setFlowKey)
 
     // Snapshot should be untouched
     ASSERT_NE(tmplt2check = fds_tsnapshot_template_get(snap_with, tid1), nullptr);
-    EXPECT_TRUE((tmplt2check->flags & FDS_TEMPLATE_HAS_FKEY) != 0);
+    EXPECT_TRUE((tmplt2check->flags & FDS_TEMPLATE_FKEY) != 0);
 
     ASSERT_NE(tmplt2check = fds_tsnapshot_template_get(snap_without, tid1), nullptr);
-    EXPECT_TRUE((tmplt2check->flags & FDS_TEMPLATE_HAS_FKEY) == 0);
+    EXPECT_TRUE((tmplt2check->flags & FDS_TEMPLATE_FKEY) == 0);
 }
 
 // Try to define invalid flow key
@@ -425,7 +425,7 @@ TEST_P(Common, invalidFlowKey)
     const struct fds_template *tmplt;
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt), FDS_OK);
     EXPECT_EQ(tmplt->id, tid1);
-    EXPECT_EQ(tmplt->flags & FDS_TEMPLATE_HAS_FKEY, 0);
+    EXPECT_EQ(tmplt->flags & FDS_TEMPLATE_FKEY, 0);
 }
 
 // Make sure that a flow key is not inherited if a template is redefined
@@ -452,7 +452,7 @@ TEST_P(Common, doNotInheritFlowKey)
     const fds_template *tmplt2check;
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
     EXPECT_EQ(tmplt2check->id, tid1);
-    EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_HAS_FKEY, 0);
+    EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_FKEY, 0);
     EXPECT_EQ(fds_template_flowkey_cmp(tmplt2check, 0), 0);
 }
 
@@ -570,7 +570,7 @@ TEST_P(Common, ieManagerSimple)
     // Biflow can be detected only based on knowledge of IE definitions
     const struct fds_template *tmplt2check;
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
-    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0);
+    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_BIFLOW, 0);
     for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
         const struct fds_tfield *field = &tmplt2check->fields[i];
         EXPECT_NE(field->def, nullptr);
@@ -591,7 +591,7 @@ TEST_P(Common, ieManagerSimple)
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
     EXPECT_EQ(tmplt2check->time.first_seen, 0);
     EXPECT_EQ(tmplt2check->time.last_seen, 10);
-    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0);
+    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_BIFLOW, 0);
     for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
         const struct fds_tfield *field = &tmplt2check->fields[i];
         EXPECT_NE(field->def, nullptr);
@@ -605,7 +605,7 @@ TEST_P(Common, ieManagerSimple)
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid2, &tmplt2check), FDS_OK);
     EXPECT_EQ(tmplt2check->time.first_seen, 10);
     EXPECT_EQ(tmplt2check->time.last_seen, 10);
-    EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0);
+    EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_BIFLOW, 0);
     for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
         const struct fds_tfield *field = &tmplt2check->fields[i];
         EXPECT_NE(field->def, nullptr);
@@ -615,7 +615,7 @@ TEST_P(Common, ieManagerSimple)
     const uint16_t tid3 = 500;
     EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid3)), FDS_OK);
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid3, &tmplt2check), FDS_OK);
-    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0);
+    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_BIFLOW, 0);
     for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
         const struct fds_tfield *field = &tmplt2check->fields[i];
         EXPECT_NE(field->def, nullptr);
@@ -716,7 +716,7 @@ TEST_P(Common, ieManagerRedefine)
 
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid3, &tmplt2check), FDS_OK);
     EXPECT_EQ(tmplt2check->type, FDS_TYPE_TEMPLATE);
-    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0);
+    EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_BIFLOW, 0);
     field = fds_template_cfind(tmplt2check, 0, elem_bytes.id);
     ASSERT_NE(field, nullptr);
     ASSERT_NE(field->def, nullptr);
@@ -754,7 +754,7 @@ TEST_P(Common, ieManagerRedefine)
     EXPECT_EQ(fds_tmgr_set_time(tmgr, 115), FDS_OK);
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid3, &tmplt2check), FDS_OK);
     EXPECT_EQ(tmplt2check->type, FDS_TYPE_TEMPLATE);
-    EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_HAS_REVERSE, 0); // Biflow flag should be lost...
+    EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_BIFLOW, 0); // Biflow flag should be lost...
     for (uint16_t i = 0; i < tmplt2check->fields_cnt_total; ++i) {
         const struct fds_tfield *field = &tmplt2check->fields[i];
         EXPECT_EQ(field->def, nullptr);

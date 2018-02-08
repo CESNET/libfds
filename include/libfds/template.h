@@ -85,7 +85,7 @@ enum fds_tfield_features {
      *   record. In other words, this information is not a part of a template definition. See
      *   fds_template_define_flowkey() for more information.
      */
-    FDS_TFIELD_FLOW_KEY = (1 << 3),
+    FDS_TFIELD_FKEY = (1 << 3),
     /**
      * \brief Is it a field of structured data
      *
@@ -96,8 +96,7 @@ enum fds_tfield_features {
      *   information is not a part of a template definition. See fds_template_define_ies() for
      *   more information.
      */
-    FDS_TFIELD_STRUCTURED = (1 << 4),
-
+    FDS_TFIELD_STRUCT = (1 << 4),
     /**
      * \brief Reverse Information Element
      *
@@ -113,41 +112,24 @@ enum fds_tfield_features {
      * \brief Biflow Directional or Non-directional Key field (Common field)
      *
      * Represents a field common for both flow directions.
-     * The field is non-directional, if neither of biflow direction flags (i.e. #FDS_TFIELD_BKEY_SRC
-     * or #FDS_TFIELD_BKEY_DST) is set. Otherwise it is directional.
      */
-    FDS_TFIEDL_BKEY_COM = (1 << 6),
-    /**
-     * \brief Biflow Directional Key field (Source field)
-     * A Directional Key Field is a single field in a Flow Key that is specifically associated
-     * with a single endpoint of the Flow.
-     */
-    FDS_TFIELD_BKEY_SRC = (1 << 7),
-    /**
-     * \brief Biflow Directional Key field (Destination field)
-     * A Directional Key Field is a single field in a Flow Key that is specifically associated
-     * with a single endpoint of the Flow.
-     */
-    FDS_TFIELD_BKEY_DST = (1 << 8)
+    FDS_TFIELD_BKEY = (1 << 6)
 };
 
 /*
  * Note: Biflow and template field flags
- * How biflow fields flags are used? Flags (#FDS_TFIELD_REVERSE, #FDS_TFIEDL_BKEY_COM,
- * #FDS_TFIELD_BKEY_SRC, #FDS_TFIELD_BKEY_DST) are set this way:
- *   - Directional Key field: #FDS_TFIEDL_BKEY_COM and one of directional key flags
- *   - Non-directional Key fields: #FDS_TFIEDL_BKEY_COM and no directional key flags
- *   - Forward only fields: [no flags]
+ * How field flags are used? Flags (#FDS_TFIELD_REVERSE, #FDS_TFIELD_BKEY) are set this way:
+ *   - Directional and Non-directional Key fields: #FDS_TFIELD_BKEY
+ *   - Forward only fields: [none of them]
  *   - Reverse only fields: #FDS_TFIELD_REVERSE
  * For example:
  *
  * +--------+----------+- ------+----------+-------+-- ---+-------+----------+-----------+
  * | src IP | src port | dst IP | dst port | proto | Pkts | Bytes | Pkts_Rev | Bytes_Rev |
  * +--------+----------+--------+----------+-------+------+-------+----------+-----------+
- *  \_______  _______ / \________  ______ / \__ __/  \_____  ____/ \_________  _________/
- *          \/                   \/            \/          \/                \/
- *  BKEY_COM + BKEY_SRC          |         BKEY_COM        |              REVERSE
- *                      BKEY_COM + BKEY_DST            [no flags]
+ *  \______________________  ___________________ _/ \______  ____/ \_________  _________/
+ *                         \/                              \/                \/
+ *                   FDS_TFIELD_BKEY                   [no flags]    FDS_TFIELD_REVERSE
  */
 
 /** \brief Structure of a parsed IPFIX element in an IPFIX template                              */
@@ -156,27 +138,30 @@ struct fds_tfield {
     uint32_t en;
     /** Information Element ID */
     uint16_t id;
-
     /**
-     * The real length of the Information Element.
+     * \brief The real length of the Information Element.
+     *
      * The value #IPFIX_VAR_IE_LENGTH (i.e. 65535) is reserved for variable-length information
      *   elements.
      */
     uint16_t length;
     /**
-     * The offset from the start of a data record in octets.
+     * \brief The offset from the start of a data record in octets.
+     *
      * The value #IPFIX_VAR_IE_LENGTH (i.e. 65535) is reserved for unknown offset if there is
      * at least one variable-length element among preceding elements in the same template.
      */
     uint16_t offset;
     /**
-     * Features specific for this field.
+     * \brief Features specific for this field.
+     *
      * The flags argument contains a bitwise OR of zero or more of the flags defined in
      * #fds_tfield_features enumeration.
      */
     fds_template_flag_t flags;
     /**
-     * Detailed definition of the element (data/semantic/unit type).
+     * \brief Detailed definition of the element (data/semantic/unit type).
+     *
      * If the definition is missing in the configuration, the values is NULL.
      */
     const struct fds_iemgr_elem *def;
@@ -213,15 +198,15 @@ enum fds_template_opts_type {
 /** \brief Template features                                                                     */
 enum fds_template_features {
     /** Template has multiple occurrences of the same Information Element (IE) in the template.  */
-    FDS_TEMPLATE_HAS_MULTI_IE = (1 << 0),
+    FDS_TEMPLATE_MULTI_IE = (1 << 0),
     /** Template has at least one Information Element of variable length                         */
-    FDS_TEMPLATE_HAS_DYNAMIC = (1 << 1),
-    /** Is it a Biflow template (has at least one Reverse Information Element)                   */
-    FDS_TEMPLATE_HAS_REVERSE = (1 << 2),
+    FDS_TEMPLATE_DYNAMIC = (1 << 1),
+    /** Template described a Biflow record (it has at least one Reverse Information Element)     */
+    FDS_TEMPLATE_BIFLOW = (1 << 2),
     /** Template has at least one structured data type (basicList, subTemplateList, etc.)        */
-    FDS_TEMPLATE_HAS_STRUCT = (1 << 3),
+    FDS_TEMPLATE_STRUCT = (1 << 3),
     /** Template has a known flow key (at least one field is marked as a Flow Key)               */
-    FDS_TEMPLATE_HAS_FKEY = (1 << 4),
+    FDS_TEMPLATE_FKEY = (1 << 4),
     // Add new ones here...
 };
 
@@ -254,7 +239,7 @@ struct fds_template {
     /**
      * \brief Length of a data record using this template.
      * \warning If the template has at least one Information Element of variable-length encoding,
-     *   i.e. #flags \& ::FDS_TEMPLATE_HAS_DYNAMIC is true, this value represents
+     *   i.e. #flags \& ::FDS_TEMPLATE_DYNAMIC is true, this value represents
      *   the smallest possible length of corresponding data record. Otherwise represents real
      *   length of the data record.
      */
@@ -262,10 +247,10 @@ struct fds_template {
 
     /** Raw binary copy of the template (starts with a header)                                   */
     struct raw_s {
-        /** Pointer to the copy of template record (starts with a header)                        */
-        uint8_t *data;
         /** Length of the record (in bytes)                                                      */
         uint16_t length;
+        /** Pointer to the copy of template record (starts with a header)                        */
+        uint8_t *data;
     } raw; /**< Raw template record                                                              */
 
     /**
@@ -293,6 +278,37 @@ struct fds_template {
     uint16_t fields_cnt_scope;
 
     /**
+     * \brief Array of parse fields (reverse view)
+     *
+     * The array is defined only if the template describes a Biflow record. In other words, at
+     * least one template field is defined as reverse. Information whether a field is reverse or
+     * not is not part of IPFIX template definition and must be determined based on external
+     * knowledge. This array can be generated by fds_template_ies_define() function.
+     *
+     * Directional Key fields are converted to opposite direction fields (for example, source IPv4
+     * to destination IPv4 and vice versa). Non-directional Key fields are untouched (for example,
+     * protocol). Forward only fields are converted to reverse only fields and vice versa.
+     * (for example, bytes to bytesReverse). See the example below:
+     * \verbatim
+     *  Forward template fields (fds_template#fields)
+     *  +--------+----------+- ------+----------+-------+---------+----------+---------+----------+
+     *  | src IP | src port | dst IP | dst port | proto |   Pkts  |   Bytes  | PktsRev | BytesRev |
+     *  +--------+----------+--------+----------+-------+---------+----------+---------+----------+
+     *      |          |         |         |        |        |          |         |         |
+     *      V          V         V         V        V        V          V         V         V
+     *  +--------+----------+- ------+----------+-------+---------+----------+---------+----------+
+     *  | dst IP | dst port | src IP | src port | proto | PktsRev | BytesRev |   Pkts  |   Bytes  |
+     *  +--------+----------+--------+----------+-------+---------+----------+---------+----------+
+     *  Reverse template fields (fds_template#fields_rev)
+     * \endverbatim
+     * Compared to forward template array, this template fields of this reverse array can have
+     * different PEN, ID, flags and reference to a definition of an IE.
+     *
+     * \warning Biflow templates only!
+     */
+    struct fds_tfield *fields_rev;
+
+    /**
      * Array of parsed fields.
      * This element MUST be the last element in this structure.
      */
@@ -309,15 +325,14 @@ struct fds_template {
  * the beginning of the next template definition.
  *
  * Some information of the template structure after parsing the template are still unknown.
- * These fields are set to default values:
  *   - All timestamps (fds_template#time). Default values are zeros.
- *   - References to IE definition (fds_tfield#def). Default values are NULL.
- *   - Some template field flags (i.e. fds_tfield#flags): (Default state is not set)
- *     ::FDS_TFIELD_STRUCTURED, ::FDS_TFIELD_REVERSE and ::FDS_TFIELD_FLOW_KEY
- *   - Some global template flags (i.e. fds_template#flags): (Default state is not set)
- *     ::FDS_TEMPLATE_HAS_REVERSE, ::FDS_TEMPLATE_HAS_STRUCT and ::FDS_TEMPLATE_HAS_FKEY
+ *   - Only following template field flags (i.e. fds_tfield#flags) could be set: ::FDS_TFIELD_SCOPE,
+ *     ::FDS_TFIELD_MULTI_IE and ::FDS_TFIELD_LAST_IE. Others are cleared, by default.
+ *   - Only following global template flags (i.e. fds_template#flags) could be set:
+ *     ::FDS_TEMPLATE_MULTI_IE and ::FDS_TEMPLATE_DYNAMIC. Others are cleared, by default.
+ *   - Reverse template fields are not defined.
  *
- * These structure's members are usually filled and managed by a template manager (::fds_tmgr_t)
+ * Other structure's members are usually filled and managed by a template manager (::fds_tmgr_t)
  * to which the template is inserted.
  *
  * \param[in]     type  Type of template (::FDS_TYPE_TEMPLATE or ::FDS_TYPE_TEMPLATE_OPTS)
@@ -387,10 +402,12 @@ fds_template_cfind(const struct fds_template *tmplt, uint32_t en, uint16_t id);
  *
  * The function will try to find a definition of each template field in a manager of IE definitions
  * based on Information Element ID and Private Enterprise Number of the template field.
- * Template flags (i.e. ::FDS_TEMPLATE_HAS_REVERSE and ::FDS_TEMPLATE_HAS_STRUCT) and
- * field flags (i.e. ::FDS_TFIELD_STRUCTURED, ::FDS_TFIELD_REVERSE, ::FDS_TFIEDL_BKEY_COM,
- * ::FDS_TFIELD_BKEY_SRC, ::FDS_TFIELD_BKEY_DST) that can be determined from the definitions
- * will be set appropriately.
+ * Template flags (i.e. ::FDS_TEMPLATE_BIFLOW and ::FDS_TEMPLATE_STRUCT) and
+ * field flags (i.e. ::FDS_TFIELD_STRUCT, ::FDS_TFIELD_REVERSE, ::FDS_TFIELD_BKEY) that can be
+ * determined from the definitions will be set appropriately.
+ *
+ * If the template corresponds to a Biflow record, this function will also define reverse template
+ * fields (fds_template#fields_rev) and perform necessary modifications.
  *
  * \note If the manager is _not defined_ (i.e. NULL) and preserve mode is _disabled_, all the
  *   template field references to the definitions will be removed and corresponding flags will be
@@ -400,15 +417,20 @@ fds_template_cfind(const struct fds_template *tmplt, uint32_t en, uint16_t id);
  *   definition in the user defined manager, the old reference will be removed.
  * \note If the manager is _defined_ and preserve mode is _enabled_, the function will update only
  *   template fields without the known references. This allows you to use multiple definition
- *   managers (for example, primary and secondary) at the same time.
+ *   managers (for example, primary and secondary) at the same time. If the template wasn't
+ *   earlier defined as a Biflow template (flag ::FDS_TEMPLATE_BIFLOW is not set), all reverse
+ *   fields will be ignored.
  * \note If the manager is _not_defined_ and preserve mode is _enabled_, the function does nothing.
  *
  * \param[in] tmplt    Template structure
  * \param[in] iemgr    Manager of Information Elements definitions (can be NULL)
  * \param[in] preserve If any field already has a reference to a definition, do not replace it with
  *   a new definition. In other words, add definitions only to undefined fields.
+ * \return #FDS_OK on success.
+ * \return #FDS_ERR_NOMEM on memory allocation error. The template is not consistent and should be
+ *   freed or the function should be called again without enabled preserve mode.
  */
-FDS_API void
+FDS_API int
 fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bool preserve);
 
 /**
@@ -433,8 +455,8 @@ fds_template_flowkey_applicable(const struct fds_template *tmplt, uint64_t flowk
  * Flow. A bit set to value 0 indicates that this is not the case. For more information, see
  * RFC 7011, Section 4.4
  *
- * The function will set flow key flag (i.e.::FDS_TFIELD_FLOW_KEY) to corresponding template
- * fields and the global template flag ::FDS_TEMPLATE_HAS_FKEY.
+ * The function will set flow key flag (i.e.::FDS_TFIELD_FKEY) to corresponding template
+ * fields and the global template flag ::FDS_TEMPLATE_FKEY.
  * \note If the \p flowkey parameter is zero, the flags will be clear from the template and the
  *   fields.
  *

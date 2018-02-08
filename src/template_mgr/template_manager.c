@@ -828,7 +828,7 @@ mgr_snap_template_add(struct fds_tsnapshot *snap, struct fds_template *tmplt)
         tmplt2add->time.first_seen = mgr->time_now;
 
         // Update IE definitions
-        fds_template_ies_define(tmplt2add, mgr->ies_db, false);
+        fds_template_ies_define(tmplt2add, mgr->ies_db, false); // TODO: check returnn code ...............
     }
 
     if (snap_rec != NULL) {
@@ -1874,7 +1874,7 @@ fds_tmgr_set_iemgr_cb(struct snapshot_rec *rec, void *data)
 
     // Add new definitions
     rec->ptr = ptr_new;
-    fds_template_ies_define(ptr_new, info->ie_defs, false);
+    fds_template_ies_define(ptr_new, info->ie_defs, false); // TODO: check return code................
 
     // Now propagate the pointer to predecessors
     struct fds_tsnapshot *snap_ptr = info->snap->link.older;

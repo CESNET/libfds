@@ -148,7 +148,7 @@ TEST_F(IEs, StandardFlow)
         { 12, 0, 4, flg_comm, FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
         {  7, 0, 2, flg_comm, FDS_ET_UNSIGNED_16}, // sourceTransportPort
         { 11, 0, 2, flg_comm, FDS_ET_UNSIGNED_16}, // destinationTransportPort
-        {  4, 0, 1, flg_comm, FDS_ET_UNSIGNED_8}, // protocolIdentifier
+        {  4, 0, 1, flg_comm, FDS_ET_UNSIGNED_8},  // protocolIdentifier
         {  6, 0, 1, flg_comm, FDS_ET_UNSIGNED_16}, // tcpControlBits
         {152, 0, 8, flg_comm, FDS_ET_DATE_TIME_MILLISECONDS}, // flowStartMilliseconds
         {153, 0, 8, flg_comm, FDS_ET_DATE_TIME_MILLISECONDS}, // flowEndMilliseconds
@@ -169,22 +169,20 @@ TEST_F(IEs, Biflow)
     struct ie_template_params tmplt;
     tmplt.id = 256;
     tmplt.type = FDS_TYPE_TEMPLATE;
-    tmplt.flags = FDS_TEMPLATE_HAS_REVERSE;
+    tmplt.flags = FDS_TEMPLATE_BIFLOW;
     tmplt.scope_fields = 0;
 
     constexpr fds_template_flag_t flg_comm = FDS_TFIELD_LAST_IE;
     constexpr fds_template_flag_t flg_rev = flg_comm | FDS_TFIELD_REVERSE;
-    constexpr fds_template_flag_t flg_key_com = flg_comm | FDS_TFIEDL_BKEY_COM;
-    constexpr fds_template_flag_t flg_key_src = flg_key_com | FDS_TFIELD_BKEY_SRC;
-    constexpr fds_template_flag_t flg_key_dst = flg_key_com | FDS_TFIELD_BKEY_DST;
+    constexpr fds_template_flag_t flg_key = flg_comm | FDS_TFIELD_BKEY;
 
     const std::vector<struct ie_field_params> fields = {
         // id - en - len - type - flags
-        {  8, 0, 4, flg_key_src, FDS_ET_IPV4_ADDRESS}, // sourceIPv4Address
-        { 12, 0, 4, flg_key_dst, FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
-        {  7, 0, 2, flg_key_src, FDS_ET_UNSIGNED_16},  // sourceTransportPort
-        { 11, 0, 2, flg_key_dst, FDS_ET_UNSIGNED_16},  // destinationTransportPort
-        {  4, 0, 1, flg_key_com, FDS_ET_UNSIGNED_8},   // protocolIdentifier
+        {  8, 0, 4, flg_key,     FDS_ET_IPV4_ADDRESS}, // sourceIPv4Address
+        { 12, 0, 4, flg_key,     FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
+        {  7, 0, 2, flg_key,     FDS_ET_UNSIGNED_16},  // sourceTransportPort
+        { 11, 0, 2, flg_key,     FDS_ET_UNSIGNED_16},  // destinationTransportPort
+        {  4, 0, 1, flg_key,     FDS_ET_UNSIGNED_8},   // protocolIdentifier
         {  6, 0, 1, flg_comm,    FDS_ET_UNSIGNED_16},  // tcpControlBits
         {152, 0, 8, flg_comm,    FDS_ET_DATE_TIME_MILLISECONDS}, // flowStartMilliseconds
         {153, 0, 8, flg_comm,    FDS_ET_DATE_TIME_MILLISECONDS}, // flowEndMilliseconds
@@ -210,22 +208,20 @@ TEST_F(IEs, preserveAndRemove)
     struct ie_template_params tmplt;
     tmplt.id = 1000;
     tmplt.type = FDS_TYPE_TEMPLATE;
-    tmplt.flags = FDS_TEMPLATE_HAS_REVERSE;
+    tmplt.flags = FDS_TEMPLATE_BIFLOW;
     tmplt.scope_fields = 0;
 
     constexpr fds_template_flag_t flg_comm = FDS_TFIELD_LAST_IE;
     constexpr fds_template_flag_t flg_rev = flg_comm | FDS_TFIELD_REVERSE;
-    constexpr fds_template_flag_t flg_key_com = flg_comm | FDS_TFIEDL_BKEY_COM;
-    constexpr fds_template_flag_t flg_key_src = flg_key_com | FDS_TFIELD_BKEY_SRC;
-    constexpr fds_template_flag_t flg_key_dst = flg_key_com | FDS_TFIELD_BKEY_DST;
+    constexpr fds_template_flag_t flg_key = flg_comm | FDS_TFIELD_BKEY;
 
     const std::vector<struct ie_field_params> fields = {
         // id - en - len - type - flags
-        {8,  0, 4, flg_key_src, FDS_ET_IPV4_ADDRESS}, // sourceIPv4Address
-        {12, 0, 4, flg_key_dst, FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
-        {7,  0, 2, flg_key_src, FDS_ET_UNSIGNED_16},  // sourceTransportPort
-        {11, 0, 2, flg_key_dst, FDS_ET_UNSIGNED_16},  // destinationTransportPort
-        {4,  0, 1, flg_key_com, FDS_ET_UNSIGNED_8},   // protocolIdentifier
+        {8,  0, 4, flg_key, FDS_ET_IPV4_ADDRESS}, // sourceIPv4Address
+        {12, 0, 4, flg_key, FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
+        {7,  0, 2, flg_key, FDS_ET_UNSIGNED_16},  // sourceTransportPort
+        {11, 0, 2, flg_key, FDS_ET_UNSIGNED_16},  // destinationTransportPort
+        {4,  0, 1, flg_key, FDS_ET_UNSIGNED_8},   // protocolIdentifier
         {2,  0, 4, flg_comm,    FDS_ET_UNSIGNED_64},  // packetDeltaCount
         {2, 29305, 4, flg_rev,  FDS_ET_UNSIGNED_64}   // packetDeltaCount (reverse)
     };
@@ -377,11 +373,11 @@ TEST_F(IEs, replace)
         {   2,    0, 4, flg_comm, FDS_ET_UNASSIGNED}, // unknown
         {   1,    0, 4, flg_comm, FDS_ET_UNASSIGNED}, // unknown
         {1001, 1000, 4, flg_comm, FDS_ET_FLOAT_32},  // myFirstElement <--- unknown here
-        {   8,    0, 4, flg_comm | FDS_TFIELD_STRUCTURED, FDS_ET_BASIC_LIST} // sourceIPv4Address
+        {   8,    0, 4, flg_comm | FDS_TFIELD_STRUCT, FDS_ET_BASIC_LIST} // sourceIPv4Address
     };
 
     // Now test it
-    tmplt.flags = FDS_TEMPLATE_HAS_STRUCT;
+    tmplt.flags = FDS_TEMPLATE_STRUCT;
     template_tester(tmplt, fields_new, aux_template);
     // First 4 elements should have unknown definitions
     for (uint16_t i = 0; i < 4; ++i) {
@@ -429,19 +425,18 @@ TEST_F(IEs, addReverse)
     }
 
     // Prepare new definitions of elements with known reverse elements
-    constexpr fds_template_flag_t flg_bkey_src = flg_comm | FDS_TFIELD_BKEY_SRC | FDS_TFIEDL_BKEY_COM;
-    constexpr fds_template_flag_t flg_bkey_dst = flg_comm | FDS_TFIELD_BKEY_DST | FDS_TFIEDL_BKEY_COM;
+    constexpr fds_template_flag_t flg_bkey = flg_comm | FDS_TFIELD_BKEY;
     constexpr fds_template_flag_t flg_rev = flg_comm | FDS_TFIELD_REVERSE;
     const std::vector<struct ie_field_params> fields_new = {
         // id - en - len - type - flags
-        { 8, 0, 4, flg_bkey_src | FDS_TFIELD_SCOPE, FDS_ET_IPV4_ADDRESS}, // sourceIPv4Address
-        {12, 0, 4, flg_bkey_dst | FDS_TFIELD_SCOPE, FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
+        { 8, 0, 4, flg_bkey | FDS_TFIELD_SCOPE, FDS_ET_IPV4_ADDRESS}, // sourceIPv4Address
+        {12, 0, 4, flg_bkey | FDS_TFIELD_SCOPE, FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
         { 2, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64},  // packetDeltaCount
         { 1, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64},  // octetDeltaCount
         { 2, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64}, // packetDeltaCount (reverse)
         { 1, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64}  // octetDeltaCount (reverse)
     };
-    tmplt.flags |= FDS_TEMPLATE_HAS_REVERSE;
+    tmplt.flags |= FDS_TEMPLATE_BIFLOW;
 
     // Add new definitions with reverse elements (use original IE manager)
     fds_template_ies_define(aux_template.get(), ie_mgr, false);
@@ -452,7 +447,7 @@ TEST_F(IEs, addReverse)
 
     // Now try to remove definition reverse Information Elements -> flags should be cleared
     fds_template_ies_define(aux_template.get(), ie_copy, false);
-    tmplt.flags &= ~(fds_template_flag_t) FDS_TEMPLATE_HAS_REVERSE;
+    tmplt.flags &= ~(fds_template_flag_t) FDS_TEMPLATE_BIFLOW;
     {
         SCOPED_TRACE("Phase III. Remove definitions of reverse elements");
         template_tester(tmplt, fields, aux_template);
@@ -460,3 +455,7 @@ TEST_F(IEs, addReverse)
 
     fds_iemgr_destroy(ie_copy);
 }
+
+// TODO: biflow fields should be DEFINED as expected
+//       - reverse direction fields_rev[...]
+//       - do not create biflow if preserve is disabled and ...

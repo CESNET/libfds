@@ -76,6 +76,7 @@ template_tester(const exp_template_params &tmplt, const std::vector<exp_field_pa
     ASSERT_EQ(tmplt_rec->fields_cnt_total, tmplt.fields_cnt_total);
     EXPECT_EQ(tmplt_rec->fields_cnt_scope, tmplt.fields_cnt_scope);
     EXPECT_EQ(tmplt_rec->opts_types, tmplt.opts_types);
+    EXPECT_EQ(tmplt_rec->fields_rev, nullptr);
     // Flags
     ct_template_flags(tmplt_rec, tmplt.flags);
 
@@ -160,7 +161,7 @@ TEST(Parse, SimpleDynamic)
     tmplt.opts_types = 0;
     tmplt.fields_cnt_total = fields.size();
     tmplt.fields_cnt_scope = 0;
-    tmplt.flags = FDS_TEMPLATE_HAS_DYNAMIC;
+    tmplt.flags = FDS_TEMPLATE_DYNAMIC;
 
     template_tester(tmplt, fields);
 }
@@ -186,7 +187,7 @@ TEST(Parse, EnpterpriseSimple)
     tmplt.opts_types = 0;
     tmplt.fields_cnt_total = fields.size();
     tmplt.fields_cnt_scope = 0;
-    tmplt.flags = FDS_TEMPLATE_HAS_DYNAMIC;
+    tmplt.flags = FDS_TEMPLATE_DYNAMIC;
 
     template_tester(tmplt, fields);
 }
@@ -218,7 +219,7 @@ TEST(Parse, MultiIE)
     tmplt.opts_types = 0;
     tmplt.fields_cnt_total = fields.size();
     tmplt.fields_cnt_scope = 0;
-    tmplt.flags = FDS_TEMPLATE_HAS_DYNAMIC | FDS_TEMPLATE_HAS_MULTI_IE;
+    tmplt.flags = FDS_TEMPLATE_DYNAMIC | FDS_TEMPLATE_MULTI_IE;
 
     template_tester(tmplt, fields);
 }
@@ -401,7 +402,7 @@ TEST(Parse, OptionsMeteringProcessReliabilityStat)
     tmplt_basic.opts_types = FDS_OPTS_MPROC_RELIABILITY_STAT;
     tmplt_basic.fields_cnt_total = fields_basic.size();
     tmplt_basic.fields_cnt_scope = 1;
-    tmplt_basic.flags = FDS_TEMPLATE_HAS_MULTI_IE;
+    tmplt_basic.flags = FDS_TEMPLATE_MULTI_IE;
     {
         SCOPED_TRACE("Basic version (ODID non-zero)");
         template_tester(tmplt_basic, fields_basic);
@@ -424,7 +425,7 @@ TEST(Parse, OptionsMeteringProcessReliabilityStat)
     tmplt_basic2.opts_types = FDS_OPTS_MPROC_RELIABILITY_STAT;
     tmplt_basic2.fields_cnt_total = fields_basic2.size();
     tmplt_basic2.fields_cnt_scope = 1;
-    tmplt_basic2.flags = FDS_TEMPLATE_HAS_MULTI_IE;
+    tmplt_basic2.flags = FDS_TEMPLATE_MULTI_IE;
     {
         SCOPED_TRACE("Basic version (ODID zero)");
         template_tester(tmplt_basic2, fields_basic2);
@@ -470,7 +471,7 @@ TEST(Parse, OptionsMeteringProcessReliabilityStat)
     tmplt_err_scope1.opts_types = 0;
     tmplt_err_scope1.fields_cnt_total = fields_err_scope1.size();
     tmplt_err_scope1.fields_cnt_scope = 1;
-    tmplt_err_scope1.flags = FDS_TEMPLATE_HAS_MULTI_IE;
+    tmplt_err_scope1.flags = FDS_TEMPLATE_MULTI_IE;
     {
         SCOPED_TRACE("Invalid scope field");
         template_tester(tmplt_err_scope1, fields_err_scope1);
@@ -493,7 +494,7 @@ TEST(Parse, OptionsMeteringProcessReliabilityStat)
     tmplt_err_scope2.opts_types = 0;
     tmplt_err_scope2.fields_cnt_total = fields_err_scope2.size();
     tmplt_err_scope2.fields_cnt_scope = 1;
-    tmplt_err_scope2.flags = FDS_TEMPLATE_HAS_MULTI_IE;
+    tmplt_err_scope2.flags = FDS_TEMPLATE_MULTI_IE;
     {
         SCOPED_TRACE("Missing scope field");
         template_tester(tmplt_err_scope2, fields_err_scope2);
@@ -527,7 +528,7 @@ TEST(Parse, OptionsMeteringStatCombination)
     tmplt_basic.opts_types = FDS_OPTS_MPROC_RELIABILITY_STAT | FDS_OPTS_MPROC_STAT;
     tmplt_basic.fields_cnt_total = fields_basic.size();
     tmplt_basic.fields_cnt_scope = 1;
-    tmplt_basic.flags = FDS_TEMPLATE_HAS_MULTI_IE;
+    tmplt_basic.flags = FDS_TEMPLATE_MULTI_IE;
     {
         SCOPED_TRACE("Basic version (ODID non-zero)");
         template_tester(tmplt_basic, fields_basic);
@@ -554,7 +555,7 @@ TEST(Parse, OptionsMeteringStatCombination)
     tmplt_long.opts_types = FDS_OPTS_MPROC_RELIABILITY_STAT | FDS_OPTS_MPROC_STAT;
     tmplt_long.fields_cnt_total = fields_long.size();
     tmplt_long.fields_cnt_scope = 2;
-    tmplt_long.flags = FDS_TEMPLATE_HAS_MULTI_IE;
+    tmplt_long.flags = FDS_TEMPLATE_MULTI_IE;
     {
         SCOPED_TRACE("Extended version");
         template_tester(tmplt_long, fields_long);
@@ -585,7 +586,7 @@ TEST(Parse, OptionsExportingProcessReliabilityStat)
     tmplt_ipv4.opts_types = FDS_OPTS_EPROC_RELIABILITY_STAT;
     tmplt_ipv4.fields_cnt_total = fields_ipv4.size();
     tmplt_ipv4.fields_cnt_scope = 1;
-    tmplt_ipv4.flags = FDS_TEMPLATE_HAS_MULTI_IE;
+    tmplt_ipv4.flags = FDS_TEMPLATE_MULTI_IE;
     {
         SCOPED_TRACE("IPv4 version");
         template_tester(tmplt_ipv4, fields_ipv4);
@@ -608,7 +609,7 @@ TEST(Parse, OptionsExportingProcessReliabilityStat)
     tmplt_ipv6.opts_types = FDS_OPTS_EPROC_RELIABILITY_STAT;
     tmplt_ipv6.fields_cnt_total = fields_ipv6.size();
     tmplt_ipv6.fields_cnt_scope = 1;
-    tmplt_ipv6.flags = FDS_TEMPLATE_HAS_MULTI_IE;
+    tmplt_ipv6.flags = FDS_TEMPLATE_MULTI_IE;
     {
         SCOPED_TRACE("IPv6 version");
         template_tester(tmplt_ipv6, fields_ipv6);
@@ -721,7 +722,7 @@ TEST(Parse, OptionsIEType)
     tmplt_full.opts_types = FDS_OPTS_IE_TYPE;
     tmplt_full.fields_cnt_total = fields_full.size();
     tmplt_full.fields_cnt_scope = 2;
-    tmplt_full.flags = FDS_TEMPLATE_HAS_DYNAMIC;
+    tmplt_full.flags = FDS_TEMPLATE_DYNAMIC;
     {
         SCOPED_TRACE("Full template");
         template_tester(tmplt_full, fields_full);
@@ -743,7 +744,7 @@ TEST(Parse, OptionsIEType)
     tmplt_min.opts_types = FDS_OPTS_IE_TYPE;
     tmplt_min.fields_cnt_total = fields_min.size();
     tmplt_min.fields_cnt_scope = 2;
-    tmplt_min.flags = FDS_TEMPLATE_HAS_DYNAMIC;
+    tmplt_min.flags = FDS_TEMPLATE_DYNAMIC;
     {
         SCOPED_TRACE("Minimal template");
         template_tester(tmplt_min, fields_min);
@@ -764,7 +765,7 @@ TEST(Parse, OptionsIEType)
     tmplt_ok.opts_types = 0;
     tmplt_ok.fields_cnt_total = fields_err_ie.size();
     tmplt_ok.fields_cnt_scope = 1;
-    tmplt_ok.flags = FDS_TEMPLATE_HAS_DYNAMIC;
+    tmplt_ok.flags = FDS_TEMPLATE_DYNAMIC;
     {
         SCOPED_TRACE("Missing IE ID");
         template_tester(tmplt_ok, fields_err_ie);
@@ -785,7 +786,7 @@ TEST(Parse, OptionsIEType)
     tmplt_err.opts_types = 0;
     tmplt_err.fields_cnt_total = fields_err.size();
     tmplt_err.fields_cnt_scope = 1;
-    tmplt_err.flags = FDS_TEMPLATE_HAS_DYNAMIC;
+    tmplt_err.flags = FDS_TEMPLATE_DYNAMIC;
     {
         SCOPED_TRACE("Missing Private Enterprise Number");
         template_tester(tmplt_err, fields_err);

@@ -507,11 +507,11 @@ TEST_P(udpSctpFile, flowKeyPropagation)
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid2, &tmplt2check), FDS_OK);
     if (GetParam() != FDS_SESSION_TYPE_UDP) {
         EXPECT_EQ(fds_template_flowkey_cmp(tmplt2check, 0), 0);
-        EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_HAS_FKEY, 0);
+        EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_FKEY, 0);
     } else {
         // In case of UDP, the flow key should be propagated because the T2 hasn't been withdrawn.
         EXPECT_EQ(fds_template_flowkey_cmp(tmplt2check, tid2_key), 0);
-        EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_HAS_FKEY, 0);
+        EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_FKEY, 0);
     }
     // Template T3 should not be available (expect UDP)
     if (GetParam() != FDS_SESSION_TYPE_UDP) {
@@ -522,7 +522,7 @@ TEST_P(udpSctpFile, flowKeyPropagation)
     }
     // Template T4 should not have the flow key
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid4, &tmplt2check), FDS_OK);
-    EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_HAS_FKEY, 0);
+    EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_FKEY, 0);
 
     // Check the snapshot
     // T1

@@ -104,11 +104,11 @@ TEST(define, simple)
     struct fk_template_params tmplt;
     tmplt.id = 12345;
     tmplt.type = FDS_TYPE_TEMPLATE;
-    tmplt.flags = FDS_TEMPLATE_HAS_FKEY;
+    tmplt.flags = FDS_TEMPLATE_FKEY;
     tmplt.scope_fields = 0;
 
     constexpr fds_template_flag_t flg_comm = FDS_TFIELD_LAST_IE;
-    constexpr fds_template_flag_t flg_key = flg_comm | FDS_TFIELD_FLOW_KEY;
+    constexpr fds_template_flag_t flg_key = flg_comm | FDS_TFIELD_FKEY;
     const std::vector<struct fk_field_params> fields = {
         // id - en - len - type - flags
         {  8, 0, 4, flg_key},  // sourceIPv4Address
@@ -182,7 +182,7 @@ TEST(define, remove)
     struct fk_template_params tmplt;
     tmplt.id = 256;
     tmplt.type = FDS_TYPE_TEMPLATE;
-    tmplt.flags = FDS_TEMPLATE_HAS_MULTI_IE;
+    tmplt.flags = FDS_TEMPLATE_MULTI_IE;
     tmplt.scope_fields = 0;
 
     constexpr fds_template_flag_t flg_comm = FDS_TFIELD_LAST_IE;
@@ -212,7 +212,7 @@ TEST(define, remove)
     template_create(tmplt, fields, aux_template);
     // Add flow key
     EXPECT_EQ(fds_template_flowkey_define(aux_template.get(), 21845), FDS_OK);
-    EXPECT_TRUE((aux_template.get()->flags & FDS_TEMPLATE_HAS_FKEY) != 0);
+    EXPECT_TRUE((aux_template.get()->flags & FDS_TEMPLATE_FKEY) != 0);
     // Remove flow key
     EXPECT_EQ(fds_template_flowkey_define(aux_template.get(), 0), FDS_OK);
     template_tester(tmplt, fields, aux_template);
@@ -224,11 +224,11 @@ TEST(define, redefine)
     struct fk_template_params tmplt;
     tmplt.id = 8879;
     tmplt.type = FDS_TYPE_TEMPLATE_OPTS;
-    tmplt.flags = FDS_TEMPLATE_HAS_FKEY;
+    tmplt.flags = FDS_TEMPLATE_FKEY;
     tmplt.scope_fields = 2;
 
     constexpr fds_template_flag_t flg_comm = FDS_TFIELD_LAST_IE;
-    constexpr fds_template_flag_t flg_comm_fk = flg_comm | FDS_TFIELD_FLOW_KEY;
+    constexpr fds_template_flag_t flg_comm_fk = flg_comm | FDS_TFIELD_FKEY;
     constexpr fds_template_flag_t flg_scope = flg_comm | FDS_TFIELD_SCOPE;
 
     const std::vector<struct fk_field_params> fields = {
@@ -271,9 +271,9 @@ TEST(applicable, valid)
     EXPECT_EQ(fds_template_flowkey_applicable(t1, fkey), FDS_OK);
 
     // The template should be untouched
-    EXPECT_TRUE((t1->flags & FDS_TEMPLATE_HAS_FKEY) == 0);
+    EXPECT_TRUE((t1->flags & FDS_TEMPLATE_FKEY) == 0);
     for (uint16_t i = 0; i < t1->fields_cnt_total; ++i) {
-        EXPECT_TRUE((t1->fields[i].flags & FDS_TFIELD_FLOW_KEY) == 0);
+        EXPECT_TRUE((t1->fields[i].flags & FDS_TFIELD_FKEY) == 0);
     }
 
     fds_template_destroy(t1);
@@ -292,6 +292,6 @@ TEST(applicable, invalid)
     // Try too long flow key (definition of non-existing fields)
     struct fds_template *t_short = TMock::create(TMock::type::DATA_BASIC_FLOW, 257);
     EXPECT_EQ(fds_template_flowkey_applicable(t_short, 2047), FDS_ERR_FORMAT);
-    EXPECT_TRUE((t_short->flags & FDS_TEMPLATE_HAS_FKEY) == 0);
+    EXPECT_TRUE((t_short->flags & FDS_TEMPLATE_FKEY) == 0);
     fds_template_destroy(t_short);
 }

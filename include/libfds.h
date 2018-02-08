@@ -57,5 +57,6 @@
 #include <libfds/iemgr.h>
 #include <libfds/template.h>
 #include <libfds/template_mgr.h>
+#include <libfds/drec.h>
 
 #endif /* LIBFDS_H_ */

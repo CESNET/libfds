@@ -9,6 +9,7 @@ set(SUB_HEADERS
 	libfds/iemgr.h
 	libfds/template.h
 	libfds/template_mgr.h
+	libfds/drec.h
 	)
 
 # Installation targets

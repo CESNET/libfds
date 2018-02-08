@@ -21,6 +21,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_subdirectory(xml_parser)
 add_subdirectory(iemgr)
 add_subdirectory(template_mgr)
+add_subdirectory(drec)
 
 # Create a dynamic library from all source code
 add_library(
@@ -29,6 +30,10 @@ add_library(
 	$<TARGET_OBJECTS:xml_parser_obj>   # XML parser
 	$<TARGET_OBJECTS:iemgr_obj>        # IE manager
 	$<TARGET_OBJECTS:template_mgr_obj> # Template manager
+	$<TARGET_OBJECTS:drec_obj>         # Data record
+
+
+	"${PROJECT_SOURCE_DIR}/include/ipfixcol2/"
 )
 
 target_link_libraries(fds ${LIBXML2_LIBRARIES})

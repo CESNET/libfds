@@ -57,15 +57,51 @@
 int
 fds_drec_find(struct fds_drec *rec, uint32_t pen, uint16_t id, struct fds_drec_field *field)
 {
-    (void) rec;
-    (void) pen;
-    (void) id;
-    (void) field;
+    const uint16_t fields_cnt = rec->tmplt->fields_cnt_total;
+    uint8_t *rec_start = rec->data;
 
-    // TODO: implementovat
-    return FDS_ERR_NOTFOUND;
+    uint16_t offset = 0;
+    uint16_t field_size;
+    const struct fds_tfield *field_def;
+
+    uint16_t idx;
+    for (idx = 0; idx < fields_cnt; ++idx) {
+        // Determine the start of the field and its real length
+        field_def = &rec->tmplt->fields[idx];
+        field_size = field_def->length;
+
+        if (field_size == VAR_IE_LENGTH) {
+            // This is field with variable length encoding -> read size from data
+            field_size = rec_start[offset];
+            offset++;
+
+            if (field_size == 255U) {
+                // Real size is on next 2 bytes
+                field_size = ntohs(*(uint16_t *) &rec_start[offset]);
+                offset += 2U;
+            }
+        }
+
+        if (field_def->id == id && field_def->en == pen) {
+            // Field found
+            break;
+        }
+
+        offset += field_size;
+    }
+
+    if (idx >= fields_cnt) {
+        // No more fields
+        static_assert(FDS_ERR_NOTFOUND < 0, "Error codes must be always negative!");
+        return FDS_ERR_NOTFOUND;
+    }
+
+    // We found required field
+    field->data = &rec_start[offset];
+    field->size = field_size;
+    field->info = field_def;
+    return idx;
 }
-
 
 void
 fds_drec_iter_init(struct fds_drec_iter *iter, struct fds_drec *record, uint16_t flags)
@@ -170,13 +206,13 @@ fds_drec_iter_next(struct fds_drec_iter *iter)
 
     if (idx >= fields_cnt) {
         // No more fields
-        assert(FDS_ERR_NOTFOUND < 0);
+        static_assert(FDS_ERR_NOTFOUND < 0, "Error codes must be always negative!");
         iter->internal.next_idx = idx;
         return FDS_ERR_NOTFOUND;
     }
 
     // We found required field
-    iter->internal.next_idx = idx + 1;
+    iter->internal.next_idx = idx + 1U;
     iter->field.data = &rec_start[offset];
     iter->field.size = field_size;
     iter->field.info = field_def;
@@ -217,19 +253,17 @@ fds_drec_iter_find(struct fds_drec_iter *iter, uint32_t pen, uint16_t id)
             // Field found
             break;
         }
-
-        // TODO: ignorovani forward a reverse polozek???
     }
 
     if (idx >= fields_cnt) {
         // No more fields
-        assert(FDS_ERR_NOTFOUND < 0);
+        static_assert(FDS_ERR_NOTFOUND < 0, "Error codes must be always negative!");
         iter->internal.next_idx = idx;
         return FDS_ERR_NOTFOUND;
     }
 
     // We found required field
-    iter->internal.next_idx = idx + 1;
+    iter->internal.next_idx = idx + 1U;
     iter->field.data = &rec_start[offset];
     iter->field.size = field_size;
     iter->field.info = field_def;

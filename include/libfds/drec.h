@@ -153,7 +153,7 @@ fds_drec_iter_destroy(struct fds_drec_iter *iter);
  *
  *  while (fds_drec_iter_next(&it) != FDS_ERR_NOTFOUND) {
  *      // Add your code here, for example:
- *      const struct fds_template_field *field = it.field.info;
+ *      const struct fds_tfield *field = it.field.info;
  *      printf("en: %" PRIu32 " & id: %" PRIu16 "\n", field->en, field->id);
  *  }
  *  fds_drec_iter_destroy(&it);
@@ -192,15 +192,17 @@ fds_drec_iter_next(struct fds_drec_iter *iter);
  *
  * \note Iterator flag ::FDS_DREC_UNKNOWN_SKIP is ignored.
  * \note If one of Biflow direction flags (i.e. ::FDS_DREC_BIFLOW_FWD or ::FDS_DREC_BIFLOW_REV) is
- *   set, opposite direction fields are be skipped and common directional fields (such as
- *   src/dst IP, src/dst port, etc.) are searched from the point of the view of the selected
- *   direction. In other words, by using normal (i.e. forward Information Elements) in case of
- *   enabled reverse direction flag (::FDS_DREC_BIFLOW_REV), the required Information Element
- *   IDs are automatically mapped to correct fields.
+ *   set, fields are searched from the point of view of the selected direction. In case of
+ *   the forward flag (::FDS_DREC_BIFLOW_FWD) fields are search as present in an IPFIX template.
+ *   In case of reverse flag (::FDS_DREC_BIFLOW_REV) fields are remapped to represent fields in
+ *   opposite direction using reverse template fields (fds_template#fields_rev). In other words,
+ *   common directional fields are converted to opposite direction, for example, source IP address
+ *   to destination IP address and vice versa. Forward only fields to reverse only fields and vice
+ *   versa.
  * \param[in,out] iter Pointer to the iterator
  * \param[in]     pen  Private Enterprise Number
  * \param[in]     id   Information Element ID
- * \return On success returns an index of the field in the record.
+ * \return On success returns an index of the field in the record (the index starts from 0).
  *   Otherwise returns #FDS_ERR_NOTFOUND.
  */
 FDS_API int

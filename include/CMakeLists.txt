@@ -10,6 +10,7 @@ set(SUB_HEADERS
 	libfds/template.h
 	libfds/template_mgr.h
 	libfds/drec.h
+	libfds/converters.h
 	)
 
 # Installation targets

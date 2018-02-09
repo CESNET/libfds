@@ -58,5 +58,6 @@
 #include <libfds/template.h>
 #include <libfds/template_mgr.h>
 #include <libfds/drec.h>
+#include <libfds/converters.h>
 
 #endif /* LIBFDS_H_ */

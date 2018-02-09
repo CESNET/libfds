@@ -49,8 +49,8 @@
  */
 
 /**
- * \defgroup publicAPIs Public libfds's APIs
- * \brief APIs for manipulation with flow files.
+ * \defgroup publicAPIs Public APIs
+ * \brief APIs for manipulation with IPFIX Messages.
  */
 
 #include <libfds/xml_parser.h>

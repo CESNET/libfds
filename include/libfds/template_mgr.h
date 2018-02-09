@@ -52,6 +52,62 @@ extern "C" {
 #include "template.h"
 #include "iemgr.h"
 
+/**
+ * \defgroup fds_template_mgr IPFIX Template manager
+ * \ingroup publicAPIs
+ * \brief Template management
+ *
+ * Main goal of the Template manager is to make ensure, to the extend possible, that Exporting and
+ * Collecting process have a consistent view of the Template and Options Template used to encode
+ * and decode IPFIX records sent from the Exporting Process to the Collecting Process.
+ * Template manager supports IPFIX template sent over SCTP, UDP, TCP and FILE. Based on selected
+ * export method, internal rules are set to comply with required behavior. For example, in case of
+ * export over UDP, withdrawal requests are not accepted etc.
+ *
+ * Template management supports standard operations such as adding/redefining/withdrawing templates.
+ * Since there is no guarantee of ordering of exported IPFIX Messages across SCTP streams and
+ * over UDP, all template management actions (i.e. defining new Templates, withdrawing them, etc.)
+ * are sequenced using Export Time field in the IPFIX Message header. Therefore, all function that
+ * directly manipulate with Template definitions must know recent Export Time.
+ *
+ * Template manager allows to create consistent snapshots of Templates valid at a certain time
+ * of processing. This can be useful if it is necessary to access/find templates later. Snapshot
+ * is not affected by later modification of Template (adding/redefining/etc.).
+ *
+ * Example usage of the manager:
+ * \code{.c}
+ *   // Initialize
+ *   fds_tmgr_create(...);
+ *   fds_tmgr_set_udp_timeouts(...); // optional, UDP only
+ *   fds_tmgr_set_iemgr(...);        // optional
+ *
+ *   while (until end) {
+ *     fds_tmgr_set_time(...);       // MUST be called BEFORE processing each packet !!!
+ *
+ *     // multiple times any combination of:
+ *       fds_tmgr_snapshot_get(...);
+ *       fds_tmgr_template_get(...);
+ *       fds_tmgr_template_add(...);
+ *       fds_tmgr_template_withdraw(...);
+ *       fds_tmgr_template_withdraw_all(...);
+ *       fds_tmgr_template_remove(...);
+ *
+ *     // Cleanup of old snapshots/templates (usually after modification add/withdraw/remove)
+ *     fds_tmgr_garbage_get(...);
+ *   }
+ *
+ *   // Destruction
+ *   fds_tmgr_destroy(...);
+ * \endcode
+ *
+ * \warning
+ *   Keep on mind that after any memory allocation error, consistency of the templates
+ *   cannot be guaranteed! We strongly recommend to delete the manager and close a transport
+ *   session..
+ * \remark Based on RFC 7011 (see https://tools.ietf.org/html/rfc7011)
+ * @{
+ */
+
 /** \brief Session type of a flow source                                     */
 enum fds_session_type {
     FDS_SESSION_TYPE_UDP,        /**< IPFIX over UDP transfer protocol       */
@@ -67,10 +123,8 @@ typedef struct fds_tsnapshot fds_tsnapshot_t;
 /** Internal template garbage declaration   */
 typedef struct fds_tgarbage fds_tgarbage_t;
 
-// TODO: overit ze se budou generovat nove snapshoty pokud budu pridavat/rusit/odvolavat salbon
 
 // TODO: describe how it works, something about snapshots etc.
-// TODO: waring: after memory allocation error consistency cannot be guaranteed!!!! We suggest to delete the manager and close session
 /*
  * Operations that manipulates with templates always use information about current Export Time,
  * in this documentation called as Time context.
@@ -391,6 +445,9 @@ fds_tmgr_snapshot_get(const fds_tmgr_t *tmgr, const fds_tsnapshot_t **snap);
 FDS_API const struct fds_template *
 fds_tsnapshot_template_get(const fds_tsnapshot_t *snap, uint16_t id);
 
+/**
+ * @}
+ */
 #ifdef __cplusplus
 }
 #endif

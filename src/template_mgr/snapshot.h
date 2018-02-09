@@ -44,6 +44,39 @@
 
 #include <libfds.h>
 
+/**
+ * \defgroup snapshot_aux_func Snapshot structure and auxiliary functions
+ * \ingroup template_manager
+ *
+ * \brief Function for elementary manipulation with snapshot
+ *
+ * Following functions do NOT manipulate with the parameters of the structure except adding
+ * and removing snapshot records (a.k.a. a reference to template). Snapshot logic must be
+ * therefor implemented by somewhere else, in this case in the template manager.
+ *
+ * Snapshot is organized as hierarchy of L1 and L2 tables. Main L1 table consists of 256
+ * pointers to L2 tables. Each L2 table consists of 256 snapshot records. Therefore, the snapshot
+ * is able to handle up to 65536 snapshot records. Each record represents reference to a template.
+ *
+ * \verbatim
+ *    +----------+      +-------+        +--------+
+ *    |          |      |       |    +-->| Record |
+ *    | Snapshot |   +->|  L2   |----+   +--------+
+ *    |          |   |  | table |    |
+ *    +----------+   |  |       |    |   +--------+
+ *    |          |   |  +-------+    +-->| Record |
+ *    |          |   |     ...       |   +--------+
+ *    |          |---+  +-------+    |
+ *    | L1 table |      |       |    |      ...
+ *    |          |----->|  L2   |    |
+ *    |          |      | table |    |   +--------+
+ *    |          |      |       |    +-->| Record |
+ *    +----------+      +-------+        +--------+
+ * \endverbatim
+ *
+ * @{
+ */
+
 // Declaration (to avoid cross include)
 struct fds_tmgr;
 
@@ -178,16 +211,6 @@ struct fds_tsnapshot {
     struct snapshot_l1_table l1_table;
 };
 
-/**
- * \defgroup snapshot_aux_func Snapshot auxiliary functions
- * \brief Function for elementary manipulation with snapshot
- *
- * Following functions do NOT manipulate with the parameters of the structure except adding
- * and removing snapshot records (a.k.a. a reference to template). Snapshot logic must be
- * therefor implemented by somewhere else, in this case in the template manager.
- *
- * @{
- */
 
 /**
  * \brief Create a new snapshot structure

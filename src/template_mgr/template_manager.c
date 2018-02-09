@@ -2,7 +2,7 @@
  * \file   src/template_mgr/template_manager.c
  * \author Lukas Hutak <lukas.hutak@cesnet.cz>
  * \brief  Template manager (header file)
- * \date   October - December 2017
+ * \date   February 2018
  */
 
 /*
@@ -61,33 +61,64 @@ enum withdraw_mod_e {
     WITHDRAW_REQUIRED
 };
 
-// TODO: vyresit situaci, kdyz se nekdo bude chtit vratit hodne v case (napr. pri posilani ve
-// smycce) ... asi zablokovat pristup pri seeku... pokud je okno vetsi nez...
-
-// TODO: warning that after NOMEM error consistency cannot be guaranteed and the connection MUST be closed!!!
-
-// TODO: možna upravit definicie min_life... trochu to sjednotit
-// TODO: zkontrolovat TIME_ porovnavaci funkce
-
-
-/*
- * TODO: popis jak to cca funguje
- * - existuji snapshoty dle exportniho casu, kdy byly sablony do manageru vlozeny
- * - kazdy snapshot obsahuje odkazy na sablony a u toho ma flagy Create a Delete
- *   - delete flag oznacuje, ze je posledni snapshot v hierarchi a je odpovedny za jeji ruseni,
- *     pri klonovani se prenasi na novy snapshot...
- *   - create flag oznacuje snapshot, ktery sablonu vlozil (tj. jeji prvni vyskyt)
- * - snapshoty jsou linearne provazany dle casu, kdy snapshot, ktery jiz byl pouzit mimo
- *   manager je uzavřen a needitovatelny, pokud ma dojit ke zmene je snapshot naklonovan
- *   a zmeny jsou provedeny ve vznikle kopii, ktera zastini tu původni.
- * - dodrzuje se striktni hierarchie dle casu a je nutne mit zajisteno, ze pro kazdou šablonu
- *   plati, ze posledni snaphot v hierachii vzdy na ni odkazuje...
+/**
+ * \defgroup template_manager Template manager (internal)
  *
- *   Validity range of each snapshot is defined by a start time and an end time. In other words, the
- * end time is a time when a snapshot was replaced by a newer one. Therefore, if the end time of
- * a snapshot is
+ * \brief Template manager internal structure
  *
+ * Template manager is internally represented as a double linked list of snapshots ordered by
+ * Export Time from the newest one to the oldest one. Validity range of a snapshot is defined
+ * by a start time and an end time. In other words, the end time is a time when a snapshot was
+ * replaced by a newer one. Each snapshot has only references to templates that are valid in its
+ * context.
  *
+ * Each template reference has a set of flags (Create, Delete, etc.).
+ * "Create" flag represents the first snapshot that added a reference to a new template. This
+ * flags vanishes with snapshot destruction. On the other hand, "Delete" flag represents the
+ * newest snapshot that has a reference to a template. A snapshot with this flag is also responsible
+ * for destruction of the template when it is not valid anymore. Therefore, every time a snapshot
+ * is copied, all "Delete" flags are moved to the new copy. Every time a snapshot is removed from
+ * the template manager's hierarchy, "Delete" flags (if possible) must be moved to another snapshot
+ * first. Flags are only thing that can be modified on frozen snapshots! A newly added template
+ * (a refreshed template is also a new one) inserted to the manager's snapshot always has both
+ * flags ("Create" and "Delete") set.
+ *
+ * All template operations (adding/withdrawing/etc.) are always performed on a snapshot in the
+ * hierarchy (usually on the newest one) that is in editable mode. When a reference to a template
+ * in the snapshot or a reference to the snapshot itself is passed to user, the snapshot must be
+ * frozen. Change of current Export Time usually also freeze all previous snapshots. Once the
+ * snapshot is frozen, it is not possible to modify it anymore. If it is necessary to make
+ * modifications of the snapshot, a new copy must be created first. Therefore, all snapshots
+ * (except the oldest one) are create only by copying!
+ *
+ * See example of the template hierarchy below:
+ * \verbatim
+ *
+ *     The oldest                                             The newest
+ *   +------------+     +------------+    +------------+    +------------+
+ *   |  Snapshot  |     |  Snapshot  |    |  Snapshot  |    |  Snapshot  |
+ *   |   Time X   |     |  Time X+1  |    |  Time X+1  |    |  Time X+2  |
+ *   +------------+     +------------+    +------------+    +------------+
+ *         |C               |D   |C           |_               |D     |CD
+ *         |                |    v            |                |      |
+ *         |                |    T2 <---------+----------------+      |
+ *         v                |                                         v
+ *         T1 <-------------+                                         T1
+ *
+ *   Legend: C = Create flag, D = Delete flag, _ = no flags
+ *
+ * \endverbatim
+ *
+ * How the example above was probably created?
+ * The snapshot at time X was created and a template T1 was added (flags CD).
+ * At export time X+1, a user added the new template T2 with flags CD and the "Delete" flag of T1
+ * was automatically moved to the new snapshot. The user probably wanted a reference to the
+ * snapshot that disabled modification of the snapshot. Therefore, following withdrawing the
+ * template T1 caused creating a new copy with the same time (without the reference to the
+ * template T1) and moving "Delete" flag of T2 to the copy. At time X+2 a new template T1 was
+ * defined.
+ *
+ * @{
  */
 
 /**
@@ -150,12 +181,6 @@ struct fds_tmgr {
     fds_tgarbage_t *garbage;
 };
 
-/*
- * TODO: dokumentace
- * - snapshot is valid until it is replaced by another snapshot (with the same or greater start
- *   time).
- */
-
 /**
  * \brief Maximum of two integers
  * \param[in] a First integer
@@ -163,10 +188,6 @@ struct fds_tmgr {
  * \return Maximum
  */
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
-
-// TODO: DULEZITE PROJIT VSECHNY MISTA KDE SE POUZIVA ČAS: start_time, time_now a pouzivat funkci pro porovnani casu
-
-// TODO: zkontrolovat, ze při každém používání min_lifetime se kontroluje počet záznamů
 
 /**
  * \brief Compare snapshot timestamps (with timestamp wraparound support)
@@ -828,7 +849,9 @@ mgr_snap_template_add(struct fds_tsnapshot *snap, struct fds_template *tmplt)
         tmplt2add->time.first_seen = mgr->time_now;
 
         // Update IE definitions
-        fds_template_ies_define(tmplt2add, mgr->ies_db, false); // TODO: check returnn code ...............
+        if ((ret_code = fds_template_ies_define(tmplt2add, mgr->ies_db, false)) != FDS_OK) {
+            return ret_code;
+        }
     }
 
     if (snap_rec != NULL) {
@@ -1873,8 +1896,13 @@ fds_tmgr_set_iemgr_cb(struct snapshot_rec *rec, void *data)
     }
 
     // Add new definitions
+    info->ret_code = fds_template_ies_define(ptr_new, info->ie_defs, false);
+    if (info->ret_code != FDS_OK) {
+        fds_template_destroy(ptr_new);
+        return true;
+    }
+
     rec->ptr = ptr_new;
-    fds_template_ies_define(ptr_new, info->ie_defs, false); // TODO: check return code................
 
     // Now propagate the pointer to predecessors
     struct fds_tsnapshot *snap_ptr = info->snap->link.older;
@@ -2142,3 +2170,7 @@ fds_tmgr_template_set_fkey(fds_tmgr_t *tmgr, uint16_t id, uint64_t key)
 
     return FDS_OK;
 }
+
+/**
+ * @}
+ */

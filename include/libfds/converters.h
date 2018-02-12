@@ -1050,16 +1050,26 @@ fds_get_string(const void *field, size_t size, char *value)
  */
 
 /**
+ * \def FDS_CONVERT_STRLEN_INT
+ * \brief Minimal size of na output buffer for any signed and unsigned integer conversion
+ * \note Unsigned numbers: 20 numbers + 1x '\0'
+ * \note Signed numbers: 1 sign character + 19 numbers + 1x '\0'
+ */
+#define FDS_CONVERT_STRLEN_INT (21)
+
+/**
  * \def FDS_CONVERT_STRLEN_MAC
  * \brief Minimal size of an output buffer for any MAC address conversion
+ * \note 2 * 6 groups + 5 colons + 1 * '\0'
  */
-#define FDS_CONVERT_STRLEN_MAC (18) // 2 * 6 groups + 5 colons + 1 * '\0'
+#define FDS_CONVERT_STRLEN_MAC (18)
 
 /**
  * \def FDS_CONVERT_STRLEN_IP
  * \brief Minimal size of an output buffer for any IP address conversion
+ * \note Usually 48 bytes
  */
-#define FDS_CONVERT_STRLEN_IP (INET6_ADDRSTRLEN) // Usually 48 bytes
+#define FDS_CONVERT_STRLEN_IP (INET6_ADDRSTRLEN)
 
 /**
  * \def FDS_CONVERT_STRLEN_DATE
@@ -1142,11 +1152,13 @@ enum fds_convert_time_fmt {
  * The \p value is read from a data \p field and converted from
  * the appropriate byte order to host byte order and converted to string.
  * Terminating null byte ('\0') is always added to the string.
+ *
+ * \warning The buffer size \p str_size MUST be always greater or equal to
+ *   #FDS_CONVERT_STRLEN_INT!
  * \param[in]  field     Pointer to a data field (in "network byte order")
  * \param[in]  size      Size of the data field (in bytes)
  * \param[out] str       Pointer to an output character buffer
  * \param[in]  str_size  Size of the output buffer (in bytes)
- * \warning The buffer size \p str_size MUST be always greater than zero!
  * \return On success returns a number of characters (excluding the termination
  *   null byte) placed into the buffer \p str. Therefore, if the result is
  *   greater than zero, conversion was successful. If the length of the result
@@ -1164,11 +1176,13 @@ fds_uint2str_be(const void *field, size_t size, char *str, size_t str_size);
  * The \p value is read from a data \p field, converted from
  * the appropriate byte order to host byte order and converted to string.
  * Terminating null byte ('\0') is always added to the string.
+ *
+ * warning The buffer size \p str_size MUST be always greater or equal to
+ *   #FDS_CONVERT_STRLEN_INT!
  * \param[in]  field     Pointer to a data field (in "network byte order")
  * \param[in]  size      Size of the data field (in bytes)
  * \param[out] str       Pointer to an output character buffer
  * \param[in]  str_size  Size of the output buffer (in bytes)
- * \warning The buffer size \p str_size MUST be always greater than zero!
  * \return Same as a return value of fds_uint2str_be().
  */
 FDS_API int
@@ -1239,6 +1253,8 @@ fds_bool2str(const void *field, char *str, size_t str_size);
 /**
  * \brief Convert a value of an IP address (IPv4/IPv6) to a character string
  *
+ * \remark The size of the output buffer (\p str_size) should be at least
+ *   #FDS_CONVERT_STRLEN_IP bytes to guarantee enough size for conversion.
  * \note This function should be byte order independent, because it assumes that
  *   IP addresses are always stored in network byte order on all platforms as
  *   usual on Linux operating systems. Therefore, the \p field should be also
@@ -1247,8 +1263,6 @@ fds_bool2str(const void *field, char *str, size_t str_size);
  * \param[in]  size      Size of the data field (4 or 16 bytes)
  * \param[out] str       Pointer to an output character buffer
  * \param[in]  str_size  Size of the output buffer (in bytes)
- * \remark The size of the output buffer (\p str_size) should be at least
- *   #FDS_CONVERT_STRLEN_IP bytes to guarantee enough size for conversion.
  * \return Same as a return value of fds_uint2str_be().
  */
 FDS_API int

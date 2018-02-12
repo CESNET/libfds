@@ -77,16 +77,16 @@ int main(int argc, char **argv)
 void
 uint2strNormal_check(size_t data_size, uint64_t value)
 {
-    SCOPED_TRACE("Data size: " + std::to_string(data_size));
+    SCOPED_TRACE("Data size: " + std::to_string(data_size) + ", value: " + std::to_string(value));
     // Calculate expected result
     std::string res_str = std::to_string(value);
     size_t res_size = res_str.length() + 1; // 1 == '\0'
 
     std::unique_ptr<uint8_t[]> data_ptr{new uint8_t[data_size]};
-    std::unique_ptr<char[]> res_ptr{new char[res_size]};
+    std::unique_ptr<char[]> res_ptr{new char[FDS_CONVERT_STRLEN_INT]};
 
     ASSERT_EQ(fds_set_uint_be(data_ptr.get(), data_size, value), FDS_OK);
-    ASSERT_EQ(fds_uint2str_be(data_ptr.get(), data_size, res_ptr.get(), res_size),
+    ASSERT_EQ(fds_uint2str_be(data_ptr.get(), data_size, res_ptr.get(), FDS_CONVERT_STRLEN_INT),
         static_cast<int>(res_size - 1));
     EXPECT_EQ(res_str, res_ptr.get());
 }
@@ -150,16 +150,16 @@ TEST(ConverterToStrings, uint2strFormatErr)
 void
 int2strNormal_check(size_t data_size, int64_t value)
 {
-    SCOPED_TRACE("Data size: " + std::to_string(data_size));
+    SCOPED_TRACE("Data size: " + std::to_string(data_size) + ", value: " + std::to_string(value));
     // Calculate expected result
     std::string res_str = std::to_string(value);
     size_t res_size = res_str.length() + 1; // 1 == '\0'
 
     std::unique_ptr<uint8_t[]> data_ptr{new uint8_t[data_size]};
-    std::unique_ptr<char[]> res_ptr{new char[res_size]};
+    std::unique_ptr<char[]> res_ptr{new char[FDS_CONVERT_STRLEN_INT]};
 
     ASSERT_EQ(fds_set_int_be(data_ptr.get(), data_size, value), FDS_OK);
-    ASSERT_EQ(fds_int2str_be(data_ptr.get(), data_size, res_ptr.get(), res_size),
+    ASSERT_EQ(fds_int2str_be(data_ptr.get(), data_size, res_ptr.get(), FDS_CONVERT_STRLEN_INT),
         static_cast<int>(res_size - 1));
     EXPECT_EQ(res_str, res_ptr.get());
 }
@@ -168,7 +168,7 @@ TEST(ConverterToStrings, int2strNormal)
 {
     for (size_t i = 1; i <= 8U; ++i) {
         int64_t value = (i - 1) << 8 * (i - 1); // Just "random" numbers
-        value *= (i / 2) ? 1 : (-1);
+        value *= (i % 2) ? 1 : (-1);
         int2strNormal_check(i, value);
     }
 }

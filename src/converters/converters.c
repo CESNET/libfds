@@ -41,8 +41,9 @@
  */
 
 #include <libfds.h>
-#include <stdio.h>    // snprintf
-#include <inttypes.h> // PRIi64, PRIu32,...
+#include <stdio.h>      // snprintf
+#include <inttypes.h>   // PRIi64, PRIu32,...
+#include "branchlut2.h"
 
 int
 fds_uint2str_be(const void *field, size_t size, char *str, size_t str_size)
@@ -53,13 +54,12 @@ fds_uint2str_be(const void *field, size_t size, char *str, size_t str_size)
         return FDS_ERR_ARG;
     }
 
-    // TODO: use something faster than snprintf
-    int str_real_len = snprintf(str, str_size, "%" PRIu64, result);
-    if (str_real_len < 0 || (size_t) str_real_len >= str_size) {
+    if (str_size < FDS_CONVERT_STRLEN_INT) {
         return FDS_ERR_BUFFER;
     }
 
-    return str_real_len;
+    char *pos = u64toa_branchlut2(result, str);
+    return (int)(pos - str);
 }
 
 int
@@ -71,13 +71,12 @@ fds_int2str_be(const void *field, size_t size, char *str, size_t str_size)
         return FDS_ERR_ARG;
     }
 
-    // TODO: use something faster than snprintf
-    int str_real_len = snprintf(str, str_size, "%" PRIi64, result);
-    if (str_real_len < 0 || (size_t) str_real_len >= str_size) {
+    if (str_size < FDS_CONVERT_STRLEN_INT) {
         return FDS_ERR_BUFFER;
     }
 
-    return str_real_len;
+    char *pos = i64toa_branchlut2(result, str);
+    return (int)(pos - str);
 }
 
 int
@@ -248,11 +247,21 @@ int
 fds_ip2str(const void *field, size_t size, char *str, size_t str_size)
 {
     if (size == 4U) {
-        if (!inet_ntop(AF_INET, field, str, str_size)) {
+        const size_t min_size = 16; // 4x groups (max. 3 chars) + 3x "." + '\0'
+        if (str_size < min_size) {
             return FDS_ERR_BUFFER;
         }
 
-        return (int) strlen(str);
+        char *pos;
+        pos = u32toa_branchlut2(((uint8_t *) field)[0], str);
+        pos++[0] = '.';
+        pos = u32toa_branchlut2(((uint8_t *) field)[1], pos);
+        pos++[0] = '.';
+        pos = u32toa_branchlut2(((uint8_t *) field)[2], pos);
+        pos++[0] = '.';
+        pos = u32toa_branchlut2(((uint8_t *) field)[3], pos);
+
+        return (int) (pos - str);
     }
 
     if (size == 16U) {

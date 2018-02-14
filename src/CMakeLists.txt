@@ -1,4 +1,4 @@
-find_package(LIBXML2 REQUIRED)
+find_package(LibXml2 REQUIRED)
 mark_as_advanced(LIBXML2_DIR)
 
 # Configure a header file to pass some CMake variables
@@ -12,7 +12,7 @@ include_directories(
 	"${PROJECT_SOURCE_DIR}/include/"
 #   "${PROJECT_BINARY_DIR}/include/"  # Nothing useful now - disabled
 	"${PROJECT_BINARY_DIR}/src/"      # for build_config.h
-    "${LIBXML2_INCLUDE_DIRS}"
+	"${LIBXML2_INCLUDE_DIR}"
 )
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -42,11 +42,11 @@ target_link_libraries(fds ${LIBXML2_LIBRARIES})
 # Set versions of the library
 set_target_properties(fds PROPERTIES
 	VERSION   "${LIBFDS_VERSION_MAJOR}.${LIBFDS_VERSION_MINOR}.${LIBFDS_VERSION_PATCH}"
-	SOVERSION "${LIBFDS_VERSION_MAJOR}.${LIBFDS_VERSION_MINOR}"
+	SOVERSION "${LIBFDS_VERSION_MAJOR}"
 )
 
 # Installation targets
 install(
 	TARGETS fds LIBRARY
-	DESTINATION lib
+	DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
 )

@@ -51,6 +51,7 @@
 #include <cstring>
 #include <cmath>
 #include <endian.h>
+#include <arpa/inet.h> // ntohs, ntohl
 
 extern "C" {
 	#include <libfds/converters.h>
@@ -1079,18 +1080,23 @@ TEST_F(ConverterInt, SetIntInRandom)
 	EXPECT_EQ(*i8, i8_rand4);
 
 	// 2 bytes
+	int16_t tmp16_val;
 	const int16_t i16_rand1 = -24854;
 	const int16_t i16_rand2 =  -5120;
 	const int16_t i16_rand3 =  16542;
 	const int16_t i16_rand4 =  27858;
 	EXPECT_EQ(fds_set_int_be(i16, BYTES_2, i16_rand1), FDS_OK);
-	EXPECT_EQ((int16_t) ntohs(*i16), i16_rand1);
+	tmp16_val = ntohs(*i16);
+	EXPECT_EQ(tmp16_val, i16_rand1);
 	EXPECT_EQ(fds_set_int_be(i16, BYTES_2, i16_rand2), FDS_OK);
-	EXPECT_EQ((int16_t) ntohs(*i16), i16_rand2);
+	tmp16_val = ntohs(*i16);
+	EXPECT_EQ(tmp16_val, i16_rand2);
 	EXPECT_EQ(fds_set_int_be(i16, BYTES_2, i16_rand3), FDS_OK);
-	EXPECT_EQ((int16_t) ntohs(*i16), i16_rand3);
+	tmp16_val = ntohs(*i16);
+	EXPECT_EQ(tmp16_val, i16_rand3);
 	EXPECT_EQ(fds_set_int_be(i16, BYTES_2, i16_rand4), FDS_OK);
-	EXPECT_EQ((int16_t) ntohs(*i16), i16_rand4);
+	tmp16_val = ntohs(*i16);
+	EXPECT_EQ(tmp16_val, i16_rand4);
 
 	// 4 bytes
 	const int32_t i32_rand1 = -2044382111L;

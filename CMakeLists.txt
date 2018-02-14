@@ -53,6 +53,8 @@ endif()
 option(ENABLE_DOC            "Enable documentation building"            ON)
 option(ENABLE_TESTS          "Build Unit tests (make test)"     ${TESTS_DEFAULT})
 option(ENABLE_TESTS_VALGRIND "Build Unit tests with Valgrind Memcheck"  OFF)
+option(PACKAGE_BUILDER_RPM   "Enable RPM package builder (make rpm)"    OFF)
+option(PACKAGE_BUILDER_DEB   "Enable DEB package builder (make deb)"    OFF)
 
 ## -----------------------------------------------------------------------------
 # Hard coded definitions
@@ -71,6 +73,7 @@ add_subdirectory(include)
 add_subdirectory(src)
 add_subdirectory(docs)
 add_subdirectory(config)
+add_subdirectory(pkg)
 
 if (ENABLE_TESTS)
 	enable_testing()

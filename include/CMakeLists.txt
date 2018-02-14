@@ -16,10 +16,10 @@ set(SUB_HEADERS
 # Installation targets
 install(
 	FILES ${TOP_HEADERS}
-	DESTINATION include
+	DESTINATION ${CMAKE_INSTALL_FULL_INCLUDEDIR}
 )
 
 install(
 	FILES ${SUB_HEADERS}
-	DESTINATION include/libfds/
+	DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/libfds/"
 )

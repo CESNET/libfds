@@ -1,0 +1,72 @@
+Name:           @CPACK_PACKAGE_NAME@
+Version:        @CPACK_PACKAGE_VERSION@
+Release:        @CPACK_PACKAGE_RELEASE@%{?dist}
+Summary:        @CPACK_PACKAGE_DESCRIPTION_SUMMARY@
+
+License:        BSD
+URL:            http://www.liberouter.org/
+Source0:        %{name}-%{version}.tar.gz
+Group:          Liberouter
+Vendor:         @CPACK_PACKAGE_VENDOR@
+Packager:       @CPACK_PACKAGE_CONTACT@
+
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}
+BuildRequires:  gcc, gcc-c++, cmake >= 2.8.8, make, doxygen, pkg-config
+BuildRequires:  libxml2-devel, gtest >= 1.6.0, gtest-devel
+Requires:       libxml2
+
+%description
+libfds is library for processing IPFIX and NetFlow v5/v9 flow data.
+It provides tools for processing records and management of templates and
+Information Elements.
+
+# Create also devel package with header files
+%package        devel
+Summary:        @CPACK_PACKAGE_DESCRIPTION_SUMMARY@ (development package)
+Group:          Liberouter
+Requires:       %{name}%{?_isa} = %{version}-%{release}
+
+%description devel
+libfds is library for processing IPFIX and NetFlow v5/v9 flow data.
+It provides tools for processing records and management of templates and
+Information Elements.
+
+This package contains header files for libfds.
+
+# Unzip files from tar archive
+%prep
+%autosetup
+
+%post
+/sbin/ldconfig
+
+%postun
+/sbin/ldconfig
+
+# Build source code
+%build
+%cmake . -DENABLE_TESTS=ON
+make %{?_smp_mflags}
+
+# Perform installation into build directory
+%install
+make install DESTDIR=%{buildroot}
+
+# Run tests
+ctest -V %{?_smp_mflags}
+
+%files
+%license LICENSE
+# %doc add-docs-here
+%{_libdir}/libfds.so*
+# Configuration
+%{_sysconfdir}/libfds/system/*
+%config(noreplace) %{_sysconfdir}/libfds/user
+
+%files devel
+%{_includedir}/libfds.h
+%{_includedir}/libfds/*.h
+
+%changelog
+* Tue Feb  13 2018 Lukas Hutak <lukas.hutak@cesnet.cz>
+-

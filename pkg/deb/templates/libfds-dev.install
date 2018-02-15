@@ -1,2 +1,3 @@
 /usr/lib/*/*.so
+/usr/lib/*/pkgconfig/libfds.pc
 /usr/include/

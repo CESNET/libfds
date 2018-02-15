@@ -58,9 +58,21 @@ endif()
 
 message(STATUS "Maintainer contact for packages: " ${CPACK_PACKAGE_CONTACT})
 
-add_subdirectory(tgz)
+find_package(PkgConfig QUIET)
+if (PKG_CONFIG_FOUND)
+	# Generate and install pkg-config file
+	configure_file(
+		"${CMAKE_CURRENT_SOURCE_DIR}/libfds.pc.in"
+		"${CMAKE_CURRENT_BINARY_DIR}/libfds.pc"
+		@ONLY)
+	install(
+		FILES "${CMAKE_CURRENT_BINARY_DIR}/libfds.pc"
+		DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig/")
+endif()
 
 # Package builders
+add_subdirectory(tgz)
+
 if (PACKAGE_BUILDER_RPM)
 	add_subdirectory(rpm)
 endif()

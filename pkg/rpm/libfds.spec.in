@@ -66,6 +66,7 @@ ctest -V %{?_smp_mflags}
 %files devel
 %{_includedir}/libfds.h
 %{_includedir}/libfds/*.h
+%{_libdir}/pkgconfig/libfds.pc
 
 %changelog
 * Tue Feb  13 2018 Lukas Hutak <lukas.hutak@cesnet.cz>

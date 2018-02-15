@@ -42,6 +42,10 @@
 #ifndef IPFIXCOL_DATA_RECORD_H
 #define IPFIXCOL_DATA_RECORD_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include "template.h"
 
@@ -218,5 +222,8 @@ fds_drec_iter_find(struct fds_drec_iter *iter, uint32_t pen, uint16_t id);
 FDS_API void
 fds_drec_iter_rewind(struct fds_drec_iter *iter);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif //IPFIXCOL_DATA_RECORD_H

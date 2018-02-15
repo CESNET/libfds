@@ -42,6 +42,10 @@
 #ifndef _FDS_CONVERTERS_H_
 #define _FDS_CONVERTERS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>    // size_t
 #include <stdint.h>    // uintXX_t, intXX_t
 #include <stdbool.h>   // bool
@@ -1350,6 +1354,10 @@ fds_string2str(const void *field, size_t size, char *str, size_t str_size);
  */
 FDS_API int
 fds_string_utf8check(const void *field, size_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _FDS_CONVERTERS_H_ */
 

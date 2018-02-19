@@ -39,8 +39,8 @@
  *
  */
 
-#ifndef IPFIXCOL_TEMPLATE_H
-#define IPFIXCOL_TEMPLATE_H
+#ifndef LIBFDS_TEMPLATE_H
+#define LIBFDS_TEMPLATE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -484,4 +484,4 @@ fds_template_flowkey_cmp(const struct fds_template *tmplt, uint64_t flowkey);
 #ifdef __cplusplus
 }
 #endif
-#endif // IPFIXCOL_TEMPLATE_H
+#endif // LIBFDS_TEMPLATE_H

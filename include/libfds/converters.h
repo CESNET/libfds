@@ -39,8 +39,8 @@
  *
  */
 
-#ifndef _FDS_CONVERTERS_H_
-#define _FDS_CONVERTERS_H_
+#ifndef LIBFDS_CONVERTERS_H
+#define LIBFDS_CONVERTERS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -1359,7 +1359,7 @@ fds_string_utf8check(const void *field, size_t size);
 }
 #endif
 
-#endif /* _FDS_CONVERTERS_H_ */
+#endif /* LIBFDS_CONVERTERS_H */
 
 /**
  * @}

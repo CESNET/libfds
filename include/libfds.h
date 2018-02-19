@@ -39,8 +39,8 @@
  *
  */
 
-#ifndef LIBFDS_H_
-#define LIBFDS_H_
+#ifndef LIBFDS_H
+#define LIBFDS_H
 
 /**
  * \mainpage Flow Data Storage Library - Developer's Documentation
@@ -60,4 +60,4 @@
 #include <libfds/drec.h>
 #include <libfds/converters.h>
 
-#endif /* LIBFDS_H_ */
+#endif /* LIBFDS_H */

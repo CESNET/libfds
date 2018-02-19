@@ -39,8 +39,8 @@
  *
  */
 
-#ifndef IPFIXCOL_DATA_RECORD_H
-#define IPFIXCOL_DATA_RECORD_H
+#ifndef LIBFDS_DREC_H
+#define LIBFDS_DREC_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,9 +58,10 @@ extern "C" {
  * Represents a one parsed data record in the IPFIX packet.
  */
 struct fds_drec {
-    uint8_t *data;                     /**< Start of the record                 */
-    uint16_t size;                     /**< Size of the record (in bytes)       */
-    const struct fds_template *tmplt;  /**< Template (always must be defined)   */
+    uint8_t *data;                     /**< Start of the record                     */
+    uint16_t size;                     /**< Size of the record (in bytes)           */
+    const struct fds_template *tmplt;  /**< Template (always must be defined)       */
+    const fds_tsnapshot_t *snap;       /**< Template manager snapshot (can be NULL) */
 };
 
 /**
@@ -226,4 +227,4 @@ fds_drec_iter_rewind(struct fds_drec_iter *iter);
 }
 #endif
 
-#endif //IPFIXCOL_DATA_RECORD_H
+#endif // LIBFDS_DREC_H

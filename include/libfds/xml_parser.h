@@ -154,8 +154,8 @@
  * }
  */
 
-#ifndef XML_PARSER_H_
-#define XML_PARSER_H_
+#ifndef LIBFDS_XML_PARSER_H
+#define LIBFDS_XML_PARSER_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -405,4 +405,4 @@ fds_xml_last_err(fds_xml_t *parser);
 }
 #endif
 
-#endif // XML_PARSER_H_
+#endif // LIBFDS_XML_PARSER_H

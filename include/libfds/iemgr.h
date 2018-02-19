@@ -40,8 +40,8 @@
  *
  */
 
-#ifndef _IPFIX_IEMGR_
-#define _IPFIX_IEMGR_
+#ifndef LIBFDS_IEMGR_H
+#define LIBFDS_IEMGR_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -569,4 +569,4 @@ fds_iemgr_last_err(const fds_iemgr_t *mgr);
 }
 #endif
 
-#endif /* _IPFIX_IEMGR_ */
+#endif /* LIBFDS_IEMGR_H */

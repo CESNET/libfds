@@ -39,8 +39,8 @@
  *
  */
 
-#ifndef LIBFDS_API_H_
-#define LIBFDS_API_H_
+#ifndef LIBFDS_API_H
+#define LIBFDS_API_H
 
 /**
  * \def FDS_API
@@ -73,4 +73,4 @@
 /** Status code for modification error                                         */
 #define FDS_ERR_DIFF            (-9)
 
-#endif /* LIBFDS_API_H_ */
+#endif /* LIBFDS_API_H */

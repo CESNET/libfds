@@ -72,7 +72,7 @@ extern "C" {
  *
  * Template manager allows to create consistent snapshots of Templates valid at a certain time
  * of processing. This can be useful if it is necessary to access/find templates later. Snapshot
- * is not affected by later modification of Template (adding/redefining/etc.).
+ * is not affected by later modification of Templates (adding/redefining/etc.).
  *
  * Example usage of the manager:
  * \code{.c}
@@ -110,10 +110,10 @@ extern "C" {
 
 /** \brief Session type of a flow source                                     */
 enum fds_session_type {
-    FDS_SESSION_TYPE_UDP,        /**< IPFIX over UDP transfer protocol       */
-    FDS_SESSION_TYPE_TCP,        /**< IPFIX over TCP transfer protocol       */
-    FDS_SESSION_TYPE_SCTP,       /**< IPFIX over SCTP transfer protocol      */
-    FDS_SESSION_TYPE_IPFIX_FILE  /**< IPFIX from IPFIX File format           */
+    FDS_SESSION_UDP,        /**< IPFIX over UDP transfer protocol            */
+    FDS_SESSION_TCP,        /**< IPFIX over TCP transfer protocol            */
+    FDS_SESSION_SCTP,       /**< IPFIX over SCTP transfer protocol           */
+    FDS_SESSION_FILE        /**< IPFIX from IPFIX File format                */
 };
 
 /** Internal template manager declaration   */
@@ -123,31 +123,6 @@ typedef struct fds_tsnapshot fds_tsnapshot_t;
 /** Internal template garbage declaration   */
 typedef struct fds_tgarbage fds_tgarbage_t;
 
-
-// TODO: describe how it works, something about snapshots etc.
-/*
- * Operations that manipulates with templates always use information about current Export Time,
- * in this documentation called as Time context.
- *
- * PSEUDOCODE:
- * fds_tmgr_create()
- * fds_tmgr_set_udp_timeouts() [optional]
- * fds_tmgr_set_iemgr()        [optional]
- * while (new ipfix packet) {
- *    fds_tmgr_set_time(packet time)  (!!! MUST BE CALLED FIRST !!!)
- *    multiple times any combination of:
- *      fds_tmgr_snapshot_get(...)
- *      fds_tmgr_template_get(...)
- *      fds_tmgr_template_add(...)
- *      fds_tmgr_template_withdraw(...)
- *      fds_tmgr_template_withdraw_all(...)
- *      fds_tmgr_template_remove(...)
- *
- *    fds_tmgr_garbage_get()         (from time to time... usually after modification add/withdraw/remove)
- * }
- * fds_tmgr_destroy()
- *
- */
 
 /**
  * \brief Create a new template manager

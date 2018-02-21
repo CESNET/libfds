@@ -36,7 +36,7 @@ protected:
 
 // Define parameters of parametrized test
 INSTANTIATE_TEST_CASE_P(TemplateManager, udpSctpFile,
-    ::testing::Values(FDS_SESSION_TYPE_UDP, FDS_SESSION_TYPE_SCTP, FDS_SESSION_TYPE_IPFIX_FILE));
+    ::testing::Values(FDS_SESSION_UDP, FDS_SESSION_SCTP, FDS_SESSION_FILE));
 
 // Try to access templates defined in history
 TEST_P(udpSctpFile, historyAccess)
@@ -166,7 +166,7 @@ TEST_P(udpSctpFile, historyRedefinition)
     // Go back and change template T1
     const uint32_t time19 = 19;
     EXPECT_EQ(fds_tmgr_set_time(tmgr, time19), FDS_OK);
-    if (GetParam() == FDS_SESSION_TYPE_SCTP) {
+    if (GetParam() == FDS_SESSION_SCTP) {
         EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid1, FDS_TYPE_TEMPLATE_UNDEF), FDS_OK);
     }
     EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::OPTS_ERPOC_RSTAT, tid1)), FDS_OK);
@@ -278,7 +278,7 @@ TEST_P(udpSctpFile, historyLimitAutoRemove)
 
     // Change export time and Remove/redefine templates
     EXPECT_EQ(fds_tmgr_set_time(tmgr, 600), FDS_OK);
-    if (GetParam() == FDS_SESSION_TYPE_SCTP) {
+    if (GetParam() == FDS_SESSION_SCTP) {
         // Remove template T1
         EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid1, FDS_TYPE_TEMPLATE), FDS_OK);
     } else {
@@ -292,7 +292,7 @@ TEST_P(udpSctpFile, historyLimitAutoRemove)
     EXPECT_EQ(fds_tmgr_garbage_get(tmgr, &garbage), FDS_OK);
 
     const struct fds_template *tmplt2check;
-    if (GetParam() == FDS_SESSION_TYPE_SCTP) {
+    if (GetParam() == FDS_SESSION_SCTP) {
         EXPECT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_ERR_NOTFOUND);
     } else {
         ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
@@ -368,7 +368,7 @@ TEST_P(udpSctpFile, withdrawInHistory)
 
     // Set export time, withdraw the template T1 and define new one
     EXPECT_EQ(fds_tmgr_set_time(tmgr, 70), FDS_OK);
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         ASSERT_EQ(fds_tmgr_template_withdraw(tmgr, tid1, FDS_TYPE_TEMPLATE), FDS_OK);
     }
     ASSERT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::OPTS_MPROC_STAT, tid1)), FDS_OK);
@@ -379,7 +379,7 @@ TEST_P(udpSctpFile, withdrawInHistory)
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
     EXPECT_EQ(tmplt2check->id, tid1);
 
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         ASSERT_EQ(fds_tmgr_template_withdraw(tmgr, tid1, FDS_TYPE_TEMPLATE_UNDEF), FDS_OK);
     }
 
@@ -424,7 +424,7 @@ TEST_P(udpSctpFile, redefineInHistory)
     EXPECT_EQ(tmplt2check->time.first_seen, 50);
 
     // Redefine the template T2
-    if (GetParam() == FDS_SESSION_TYPE_SCTP) {
+    if (GetParam() == FDS_SESSION_SCTP) {
         ASSERT_EQ(fds_tmgr_template_withdraw(tmgr, tid2, FDS_TYPE_TEMPLATE_UNDEF), FDS_OK);
     }
     EXPECT_EQ(fds_tmgr_template_add(tmgr,TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid2)), FDS_OK);
@@ -477,7 +477,7 @@ TEST_P(udpSctpFile, flowKeyPropagation)
     // Change export time and refresh the template T1 and redefine T2
     EXPECT_EQ(fds_tmgr_set_time(tmgr, 1005), FDS_OK);
     EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid1)), FDS_OK);
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid2, FDS_TYPE_TEMPLATE), FDS_OK);
         EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid3, FDS_TYPE_TEMPLATE), FDS_OK);
     }
@@ -505,7 +505,7 @@ TEST_P(udpSctpFile, flowKeyPropagation)
     EXPECT_EQ(fds_template_flowkey_cmp(tmplt2check, tid1_key), 0);
     // Template T2 should not have the flow key (it was redefined) (except UDP)
     ASSERT_EQ(fds_tmgr_template_get(tmgr, tid2, &tmplt2check), FDS_OK);
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         EXPECT_EQ(fds_template_flowkey_cmp(tmplt2check, 0), 0);
         EXPECT_EQ(tmplt2check->flags & FDS_TEMPLATE_FKEY, 0);
     } else {
@@ -514,7 +514,7 @@ TEST_P(udpSctpFile, flowKeyPropagation)
         EXPECT_NE(tmplt2check->flags & FDS_TEMPLATE_FKEY, 0);
     }
     // Template T3 should not be available (expect UDP)
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         ASSERT_EQ(fds_tmgr_template_get(tmgr, tid3, &tmplt2check), FDS_ERR_NOTFOUND);
     } else {
         ASSERT_EQ(fds_tmgr_template_get(tmgr, tid3, &tmplt2check), FDS_OK);
@@ -533,7 +533,7 @@ TEST_P(udpSctpFile, flowKeyPropagation)
     // T2
     ASSERT_NE(tmplt2check = fds_tsnapshot_template_get(snap, tid2), nullptr);
     EXPECT_EQ(fds_template_flowkey_cmp(tmplt2check, 0), 0);
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         EXPECT_EQ(tmplt2check->time.first_seen, 1005);
         EXPECT_EQ(tmplt2check->time.last_seen, 1005);
     } else {
@@ -541,7 +541,7 @@ TEST_P(udpSctpFile, flowKeyPropagation)
         EXPECT_EQ(tmplt2check->time.last_seen, 1005);
     }
     // T3
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         EXPECT_EQ(tmplt2check = fds_tsnapshot_template_get(snap, tid3), nullptr);
     } else {
         ASSERT_NE(tmplt2check = fds_tsnapshot_template_get(snap, tid3), nullptr);
@@ -577,7 +577,7 @@ TEST_P(udpSctpFile, clearGarbageInHistory)
     EXPECT_EQ(fds_tmgr_snapshot_get(tmgr, &dummy_snap), FDS_OK);
 
     // Redefine a template
-    if (GetParam() == FDS_SESSION_TYPE_SCTP) {
+    if (GetParam() == FDS_SESSION_SCTP) {
         EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid1, FDS_TYPE_TEMPLATE_UNDEF), FDS_OK);
     }
     EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::OPTS_FKEY, tid1)), FDS_OK);

@@ -37,8 +37,8 @@ protected:
 
 // Define parameters of parametrized test
 INSTANTIATE_TEST_CASE_P(TemplateManager, Common,
-    ::testing::Values(FDS_SESSION_TYPE_UDP, FDS_SESSION_TYPE_TCP, FDS_SESSION_TYPE_SCTP,
-        FDS_SESSION_TYPE_IPFIX_FILE));
+    ::testing::Values(FDS_SESSION_UDP, FDS_SESSION_TCP, FDS_SESSION_SCTP,
+        FDS_SESSION_FILE));
 
 // Try to create and immediately destroy the manager
 TEST_P(Common, createAndDestroy)
@@ -287,7 +287,7 @@ TEST_P(Common, templateRemove)
     EXPECT_EQ(fds_tmgr_snapshot_get(tmgr, &snap1), FDS_OK);  // All templates available
 
     // Replace the template T2
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid2, FDS_TYPE_TEMPLATE), FDS_OK);
     }
     struct fds_template *t2_new = TMock::create(TMock::type::OPTS_MPROC_RSTAT, tid2);
@@ -333,7 +333,7 @@ TEST_P(Common, templateReplaceImmediately)
     EXPECT_EQ(fds_tmgr_template_add(tmgr, t2), FDS_OK);
 
     // Replace T1 (withdraw first)
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid1, FDS_TYPE_TEMPLATE_UNDEF), FDS_OK);
     }
     struct fds_template *t1_new = TMock::create(TMock::type::OPTS_MPROC_RSTAT, tid1);
@@ -442,7 +442,7 @@ TEST_P(Common, doNotInheritFlowKey)
 
     // Redefine the template
     EXPECT_EQ(fds_tmgr_set_time(tmgr, 12345680), FDS_OK);
-    if (GetParam() != FDS_SESSION_TYPE_UDP && GetParam() != FDS_SESSION_TYPE_IPFIX_FILE) {
+    if (GetParam() != FDS_SESSION_UDP && GetParam() != FDS_SESSION_FILE) {
         EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid1, FDS_TYPE_TEMPLATE_UNDEF), FDS_OK);
     }
     tmplt = TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid1);
@@ -489,7 +489,7 @@ TEST_P(Common, timeWraparound)
     EXPECT_EQ(tmplt2check->id, tid3);
 
     // Try to redefine template T1
-    if (GetParam() == FDS_SESSION_TYPE_UDP) {
+    if (GetParam() == FDS_SESSION_UDP) {
         EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid1, FDS_TYPE_TEMPLATE_UNDEF), FDS_ERR_DENIED);
         ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
         EXPECT_EQ(tmplt2check->id, tid1);
@@ -535,7 +535,7 @@ TEST_P(Common, addAlreadyAddedTemplate)
 
     const struct fds_template *tmplt2check = nullptr;
     struct fds_template *t1_new = TMock::create(TMock::type::OPTS_MPROC_RSTAT, tid1);
-    if (GetParam() == FDS_SESSION_TYPE_UDP || GetParam() == FDS_SESSION_TYPE_IPFIX_FILE) {
+    if (GetParam() == FDS_SESSION_UDP || GetParam() == FDS_SESSION_FILE) {
         // We should be able to redefine the template
         EXPECT_EQ(fds_tmgr_template_add(tmgr, t1_new), FDS_OK);
         ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);
@@ -598,7 +598,7 @@ TEST_P(Common, ieManagerSimple)
     }
 
     // Try template redefinition and make sure that definitions will be set
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid2, FDS_TYPE_TEMPLATE_UNDEF), FDS_OK);
     }
     EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_FLOW, tid2)), FDS_OK);
@@ -681,7 +681,7 @@ TEST_P(Common, ieManagerRedefine)
     const uint16_t tid3 = 258;
     EXPECT_EQ(fds_tmgr_template_add(tmgr, TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid3)), FDS_OK);
     // Withdraw the T1 template (expect UDP)
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         EXPECT_EQ(fds_tmgr_template_withdraw(tmgr, tid1, FDS_TYPE_TEMPLATE_UNDEF), FDS_OK);
     }
 
@@ -696,7 +696,7 @@ TEST_P(Common, ieManagerRedefine)
     // Time context has been lost -> define it again
     EXPECT_EQ(fds_tmgr_set_time(tmgr, 110), FDS_OK);
     // Check templates (T1 is available only for UDP)
-    if (GetParam() != FDS_SESSION_TYPE_UDP) {
+    if (GetParam() != FDS_SESSION_UDP) {
         EXPECT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_ERR_NOTFOUND);
     } else {
         // UDP only
@@ -723,7 +723,7 @@ TEST_P(Common, ieManagerRedefine)
     EXPECT_STRNE(field->def->name, elem_bytes.name);
 
     // Check history (except TCP)
-    if (GetParam() != FDS_SESSION_TYPE_TCP) {
+    if (GetParam() != FDS_SESSION_TCP) {
         EXPECT_EQ(fds_tmgr_set_time(tmgr, 105), FDS_OK);
         // Template T1 should be available and all fields should have a reference to an IE def.
         ASSERT_EQ(fds_tmgr_template_get(tmgr, tid1, &tmplt2check), FDS_OK);

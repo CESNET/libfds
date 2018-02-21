@@ -36,7 +36,7 @@ protected:
 
 // Define parameters of parametrized test
 INSTANTIATE_TEST_CASE_P(TemplateManager, udp,
-    ::testing::Values(FDS_SESSION_TYPE_UDP));
+    ::testing::Values(FDS_SESSION_UDP));
 
 // Try to withdraw a template (not permitted operation)
 TEST_P(udp, invalidWithdraw)

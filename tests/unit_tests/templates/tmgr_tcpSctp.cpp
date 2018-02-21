@@ -36,7 +36,7 @@ protected:
 
 // Define parameters of parametrized test
 INSTANTIATE_TEST_CASE_P(TemplateManager, tcpSctp,
-    ::testing::Values(FDS_SESSION_TYPE_TCP, FDS_SESSION_TYPE_SCTP));
+    ::testing::Values(FDS_SESSION_TCP, FDS_SESSION_SCTP));
 
 TEST_P(tcpSctp, basic)
 {

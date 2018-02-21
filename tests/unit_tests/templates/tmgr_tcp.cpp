@@ -35,7 +35,7 @@ protected:
 
 // Define parameters of parametrized test
 INSTANTIATE_TEST_CASE_P(TemplateManager, tcp,
-    ::testing::Values(FDS_SESSION_TYPE_TCP));
+    ::testing::Values(FDS_SESSION_TCP));
 
 
 // TODO: try to access history...

@@ -1393,12 +1393,12 @@ fds_tmgr_create(enum fds_session_type type)
     mgr->cfg.session_type = type;
 
     switch (type) {
-    case FDS_SESSION_TYPE_TCP:
+    case FDS_SESSION_TCP:
         mgr->cfg.en_history_access = false; // All records MUST be send reliably
         mgr->cfg.en_history_mod = false;    // Everything is reliable -> no history required
         mgr->cfg.withdraw_mod = WITHDRAW_REQUIRED;
         break;
-    case FDS_SESSION_TYPE_UDP:
+    case FDS_SESSION_UDP:
         /* By default, template timeouts are disabled (values are 0), user must manually specify
          * timeouts using fds_tmgr_set_udp_timeouts().
          */
@@ -1406,7 +1406,7 @@ fds_tmgr_create(enum fds_session_type type)
         mgr->cfg.en_history_mod = true;
         mgr->cfg.withdraw_mod = WITHDRAW_PROHIBITED;
         break;
-    case FDS_SESSION_TYPE_SCTP:
+    case FDS_SESSION_SCTP:
         mgr->cfg.en_history_access = true; // Data records can be send unreliably
         /* Templates MUST be send reliably (ordered delivery), but they can be send on any SCTP
          * stream. Different streams can have different export times, therefore, history
@@ -1415,7 +1415,7 @@ fds_tmgr_create(enum fds_session_type type)
         mgr->cfg.en_history_mod = true;
         mgr->cfg.withdraw_mod = WITHDRAW_REQUIRED;
         break;
-    case FDS_SESSION_TYPE_IPFIX_FILE:
+    case FDS_SESSION_FILE:
         mgr->cfg.en_history_access = true;
         mgr->cfg.en_history_mod = true;
         mgr->cfg.withdraw_mod = WITHDRAW_OPTIONAL;
@@ -1828,7 +1828,7 @@ fds_tmgr_template_get(fds_tmgr_t *tmgr, uint16_t id, const struct fds_template *
 int
 fds_tmgr_set_udp_timeouts(fds_tmgr_t *tmgr, uint16_t tl_data, uint16_t tl_opts)
 {
-    if (tmgr->cfg.session_type != FDS_SESSION_TYPE_UDP) {
+    if (tmgr->cfg.session_type != FDS_SESSION_UDP) {
         return FDS_ERR_ARG;
     }
 

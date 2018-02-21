@@ -36,7 +36,7 @@ protected:
 
 // Define parameters of parametrized test
 INSTANTIATE_TEST_CASE_P(TemplateManager, tcpSctpFile,
-    ::testing::Values(FDS_SESSION_TYPE_TCP, FDS_SESSION_TYPE_SCTP, FDS_SESSION_TYPE_IPFIX_FILE));
+    ::testing::Values(FDS_SESSION_TCP, FDS_SESSION_SCTP, FDS_SESSION_FILE));
 
 // Test template withdrawal mechanism
 TEST_P(tcpSctpFile, withdrawal)

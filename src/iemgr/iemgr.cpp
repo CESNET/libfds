@@ -239,7 +239,7 @@ dir_read(fds_iemgr_t* mgr, const char* path, fds_xml_t* parser, const string& na
 
     auto dir = unique_dir(opendir(dir_path.c_str()), &::closedir);
     if (dir == nullptr) {
-        mgr->err_msg = "Folder with path '" +string(path)+ "' doesn't exist";
+        mgr->err_msg = "Folder with path '" + dir_path + "' doesn't exist!";
         return false;
     }
 

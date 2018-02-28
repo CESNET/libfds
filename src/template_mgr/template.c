@@ -47,8 +47,7 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#include <libfds/template.h>
-#include "../ipfix_structures.h"
+#include <libfds.h>
 
 /**
  * Calculate size of template structure (based on number of fields)
@@ -392,8 +391,8 @@ template_parse_header(enum fds_template_type type, const void *ptr, uint16_t *le
     struct fds_template **tmplt)
 {
     assert(type == FDS_TYPE_TEMPLATE || type == FDS_TYPE_TEMPLATE_OPTS);
-    const size_t size_normal = sizeof(struct ipfix_template_record) - sizeof(template_ie);
-    const size_t size_opts = sizeof(struct ipfix_options_template_record) - sizeof(template_ie);
+    const size_t size_normal = sizeof(struct fds_ipfix_trec) - sizeof(fds_ipfix_tmplt_ie);
+    const size_t size_opts = sizeof(struct fds_ipfix_opts_trec) - sizeof(fds_ipfix_tmplt_ie);
 
     uint16_t template_id;
     uint16_t fields_total;
@@ -408,10 +407,24 @@ template_parse_header(enum fds_template_type type, const void *ptr, uint16_t *le
      * Because Options Template header is superstructure of "Normal" Template header we can use it
      * also for parsing "Normal" Template. Just use only shared fields...
      */
-    const struct ipfix_options_template_record *rec = ptr;
+    const struct fds_ipfix_opts_trec *rec = ptr;
     template_id = ntohs(rec->template_id);
-    if (template_id < IPFIX_SET_MIN_DATA_SET_ID) {
-        return FDS_ERR_FORMAT;
+    if (template_id < FDS_IPFIX_SET_MIN_DSET) {
+        if (template_id != FDS_IPFIX_SET_TMPLT && template_id != FDS_IPFIX_SET_OPTS_TMPLT) {
+            // Not All Options Template Withdrawal
+            return FDS_ERR_FORMAT;
+        }
+
+        // Only All Options Templates Withdrawals
+        if (ntohs(rec->count) != 0) {
+            return FDS_ERR_FORMAT;
+        }
+
+        if (!(type == FDS_TYPE_TEMPLATE && template_id == FDS_IPFIX_SET_TMPLT)
+            && !(type == FDS_TYPE_TEMPLATE_OPTS && template_id == FDS_IPFIX_SET_OPTS_TMPLT)) {
+            // Types doesn't match...
+            return FDS_ERR_FORMAT;
+        }
     }
 
     fields_total = ntohs(rec->count);
@@ -455,9 +468,10 @@ template_parse_header(enum fds_template_type type, const void *ptr, uint16_t *le
  *   the parameter will be unchanged and the function will return #FDS_ERR_FORMAT
  */
 static int
-template_parse_fields(struct fds_template *tmplt, const template_ie *field_ptr, uint16_t *len)
+template_parse_fields(struct fds_template *tmplt, const fds_ipfix_tmplt_ie *field_ptr,
+    uint16_t *len)
 {
-    const uint16_t field_size = sizeof(template_ie);
+    const uint16_t field_size = sizeof(fds_ipfix_tmplt_ie);
     const uint16_t fields_cnt = tmplt->fields_cnt_total;
     struct fds_tfield *tfield_ptr = &tmplt->fields[0];
     uint16_t len_remain = *len;
@@ -580,24 +594,24 @@ template_calc_features(struct fds_template *tmplt)
         }
 
         const uint16_t field_len = field_ptr->length;
-        if (field_len == IPFIX_VAR_IE_LENGTH) {
+        if (field_len == FDS_IPFIX_VAR_IE_LEN) {
             // Variable length Information Element must be at least 1 byte long
             tmplt->flags |= FDS_TEMPLATE_DYNAMIC;
             data_len += 1;
-            field_offset = IPFIX_VAR_IE_LENGTH;
+            field_offset = FDS_IPFIX_VAR_IE_LEN;
             continue;
         }
 
         data_len += field_len;
-        if (field_offset != IPFIX_VAR_IE_LENGTH) {
+        if (field_offset != FDS_IPFIX_VAR_IE_LEN) {
             field_offset += field_len; // Overflow is resolved by check of total data length
         }
     }
 
     // Check if a record described by this templates fits into an IPFIX message
     const uint16_t max_rec_size = UINT16_MAX // Maximum length of an IPFIX message
-        - sizeof(struct ipfix_header)        // IPFIX message header
-        - sizeof(struct ipfix_set_header);   // IPFIX set header
+        - sizeof(struct fds_ipfix_msg_hdr)   // IPFIX message header
+        - sizeof(struct fds_ipfix_set_hdr);  // IPFIX set header
     if (max_rec_size < data_len) {
         // Too long data record
         return FDS_ERR_FORMAT;
@@ -662,7 +676,7 @@ fds_template_parse(enum fds_template_type type, const void *ptr, uint16_t *len,
     }
 
     // Parse fields
-    const template_ie *fields_ptr = (template_ie *)(((uint8_t *) ptr) + len_header);
+    const fds_ipfix_tmplt_ie *fields_ptr = (fds_ipfix_tmplt_ie *)(((uint8_t *) ptr) + len_header);
     len_fields = *len - len_header;
     ret_code = template_parse_fields(template, fields_ptr, &len_fields);
     if (ret_code != FDS_OK) {

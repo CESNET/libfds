@@ -141,14 +141,14 @@ struct fds_tfield {
     /**
      * \brief The real length of the Information Element.
      *
-     * The value #IPFIX_VAR_IE_LENGTH (i.e. 65535) is reserved for variable-length information
+     * The value #FDS_IPFIX_VAR_IE_LEN (i.e. 65535) is reserved for variable-length information
      *   elements.
      */
     uint16_t length;
     /**
      * \brief The offset from the start of a data record in octets.
      *
-     * The value #IPFIX_VAR_IE_LENGTH (i.e. 65535) is reserved for unknown offset if there is
+     * The value #FDS_IPFIX_VAR_IE_LEN (i.e. 65535) is reserved for unknown offset if there is
      * at least one variable-length element among preceding elements in the same template.
      */
     uint16_t offset;

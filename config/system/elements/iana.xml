@@ -7,7 +7,7 @@ and will be lost when the list is regenerated.
 -->
 <ipfix-elements>
     <scope>
-        <pen>1</pen>
+        <pen>0</pen>
         <name>iana</name>
         <biflow mode="pen">29305</biflow>
     </scope>

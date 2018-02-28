@@ -9,3 +9,8 @@ install(
 	DIRECTORY
 	DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/libfds/user"
 )
+
+install(
+	DIRECTORY
+	DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/libfds/user/elements"
+)

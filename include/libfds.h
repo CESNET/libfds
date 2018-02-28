@@ -52,12 +52,14 @@
  * \defgroup publicAPIs Public APIs
  * \brief APIs for manipulation with IPFIX Messages.
  */
-
-#include <libfds/xml_parser.h>
+#include <libfds/api.h>
+#include <libfds/converters.h>
+#include <libfds/drec.h>
 #include <libfds/iemgr.h>
+#include <libfds/ipfix_parsers.h>
+#include <libfds/ipfix_structs.h>
 #include <libfds/template.h>
 #include <libfds/template_mgr.h>
-#include <libfds/drec.h>
-#include <libfds/converters.h>
+#include <libfds/xml_parser.h>
 
 #endif /* LIBFDS_H */

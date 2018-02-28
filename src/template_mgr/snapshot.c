@@ -46,7 +46,6 @@
 #include <assert.h>
 #include <string.h>  // memcpy
 
-#include "../ipfix_structures.h"
 #include "snapshot.h"
 
 /**
@@ -200,7 +199,7 @@ snapshot_copy(const struct fds_tsnapshot *snap)
 int
 snapshot_rec_add(struct fds_tsnapshot *snap, struct snapshot_rec *rec)
 {
-    assert(rec->id >= IPFIX_SET_MIN_DATA_SET_ID);
+    assert(rec->id >= FDS_IPFIX_SET_MIN_DSET);
 
     const uint16_t l1_idx = rec->id / SNAPSHOT_TABLE_SIZE;
     struct snapshot_l2_table *l2_table = snap->l1_table.tables[l1_idx];
@@ -231,7 +230,7 @@ snapshot_rec_add(struct fds_tsnapshot *snap, struct snapshot_rec *rec)
 int
 snapshot_rec_remove(struct fds_tsnapshot *snap, uint16_t id)
 {
-    assert(id >= IPFIX_SET_MIN_DATA_SET_ID);
+    assert(id >= FDS_IPFIX_SET_MIN_DSET);
 
     // Find the record
     const uint16_t l1_idx = id / SNAPSHOT_TABLE_SIZE;

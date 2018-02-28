@@ -48,6 +48,7 @@ extern "C" {
 
 #include <stdint.h>
 #include "template.h"
+#include "template_mgr.h"
 
 // TODO: const version?
 // TODO: get structure data types... -> new interator? new data_rec?

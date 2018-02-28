@@ -32,7 +32,7 @@ def add_el(name, src, dst):
 def create_root():
     root   = ET.Element("ipfix-elements")
     scope  = ET.Element("scope")
-    add_el("pen",    "1",    scope)
+    add_el("pen",    "0",    scope)
     add_el("name",   "iana", scope)
     add_el("biflow", "29305",   scope).set("mode", "pen")
     root.append(scope)

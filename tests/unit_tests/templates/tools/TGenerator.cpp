@@ -6,7 +6,7 @@
 #include <arpa/inet.h> // htons,...
 
 #include "TGenerator.h"
-#include "../../../../src/ipfix_structures.h"
+#include <libfds.h>
 
 TGenerator::TGenerator(uint16_t id, uint16_t field_cnt, uint16_t scope_cnt)
 {
@@ -14,14 +14,12 @@ TGenerator::TGenerator(uint16_t id, uint16_t field_cnt, uint16_t scope_cnt)
     size_alloc = DEF_SIZE;
 
     if (scope_cnt == 0) {
-        struct ipfix_template_record *rec
-            = reinterpret_cast<struct ipfix_template_record *>(data.get());
+        struct fds_ipfix_trec *rec = reinterpret_cast<struct fds_ipfix_trec *>(data.get());
         rec->template_id = htons(id);
         rec->count = htons(field_cnt);
         size_used = 4U;
     } else {
-        struct ipfix_options_template_record *rec
-            = reinterpret_cast<struct ipfix_options_template_record *>(data.get());
+        struct fds_ipfix_opts_trec *rec = reinterpret_cast<struct fds_ipfix_opts_trec*>(data.get());
         rec->template_id = htons(id);
         rec->count = htons(field_cnt);
         rec->scope_field_count = htons(scope_cnt);
@@ -56,7 +54,7 @@ TGenerator::append(uint16_t ie_id, uint16_t len, uint32_t ie_en)
         size_alloc = new_alloc;
     }
 
-    template_ie *field = reinterpret_cast<template_ie *>(&(data.get()[size_used]));
+    fds_ipfix_tmplt_ie *field = reinterpret_cast<fds_ipfix_tmplt_ie *>(&(data.get()[size_used]));
     field->ie.id = htons(ie_id);
     field->ie.length = htons(len);
     size_used += 4U;

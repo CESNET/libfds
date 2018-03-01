@@ -133,13 +133,6 @@ fds_drec_iter_init(struct fds_drec_iter *iter, struct fds_drec *record, uint16_t
 }
 
 void
-fds_drec_iter_destroy(struct fds_drec_iter *iter)
-{
-    // Placeholder for the future modifications
-    (void) iter;
-}
-
-void
 fds_drec_iter_rewind(struct fds_drec_iter *iter)
 {
     iter->internal.next_offset = 0;

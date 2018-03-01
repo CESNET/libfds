@@ -52,6 +52,32 @@ extern "C" {
 #include "template.h"
 #include "ipfix_structs.h"
 
+/**
+ * \defgroup fds_parsers IPFIX Parsers
+ * \ingroup publicAPIs
+ * \brief Parsers for IPFIX Message, Data Sets and (Options) Template Sets
+ * \remark Based on RFC 7011, Section 3. (see https://tools.ietf.org/html/rfc7011#section-3)
+ *
+ * Parsers are implemented as simple iterators that also check correct consistency of IPFIX data
+ * structures.
+ *
+ * @{
+ */
+
+/**
+ * \defgroup fds_sets_iter IPFIX Sets iterator
+ * \ingroup fds_parsers
+ * \brief Iterator over IPFIX Sets in an IPFIX Message
+ *
+ * The iterator provides a simple way to go through all Sets in an IPFIX Message.
+ * Every time a Sets is prepared by fds_sets_iter_next() it is guaranteed that the header and
+ * the length of the Set is valid. Content of the Set is NOT checked for consistency because it is
+ * provides by the \ref fds_dset_iter "IPFIX Data Set iterator" and the \ref fds_tset_iter
+ * "IPFIX (Options) Template Set iterator".
+ *
+ * @{
+ */
+
 /** Iterator over IPFIX Sets in an IPFIX Message                */
 struct fds_sets_iter {
     /** Pointer to the current IPFIX Set header                 */
@@ -121,7 +147,24 @@ fds_sets_iter_next(struct fds_sets_iter *it);
 FDS_API const char *
 fds_sets_iter_err(const struct fds_sets_iter *it);
 
-// -------------------------------------------------------------------------------------------------
+/**
+ * @}
+ *
+ * \defgroup fds_dset_iter IPFIX Data Set iterator
+ * \ingroup fds_parsers
+ * \brief Iterator over IPFIX Data records in an IPFIX Data Set
+ *
+ * The iterator provides a simple way to go through all Data Records in an IPFIX Data Set.
+ * Every time a Record is prepared by fds_dset_iter_next() it is guaranteed that the record
+ * length is valid in a context of a corresponding IPFIX template. To iterate over the Data Record
+ * or to find a specific field in it, you can use \ref fds_drec "Data record" tools.
+ *
+ * \warning
+ *   Only for Data Sets, i.e. Set ID >= 256 (::FDS_IPFIX_SET_MIN_DSET). Using on different types
+ *   of Sets cause undefined behaviour.
+ *
+ * @{
+ */
 
 /** Iterator over data records in an IPFIX Data Set  */
 struct fds_dset_iter {
@@ -200,11 +243,35 @@ fds_dset_iter_next(struct fds_dset_iter *it);
 FDS_API const char *
 fds_dset_iter_err(const struct fds_dset_iter *it);
 
-// -------------------------------------------------------------------------------------------------
 
-
-// TODO: sepsat, ze kdyz kontoruje vsechny chyby... parsuje i vsechny typy
-// TODO: tj. withdrawal, all withdrawal... atd. Vraci jen pokud data jsou zkontrolovana...
+/**
+ * @}
+ *
+ * \defgroup fds_tset_iter IPFIX (Options) Template Set iterator
+ * \ingroup fds_parsers
+ * \brief Iterator over IPFIX (Options) Template Records in an IPFIX (Options) Template Set
+ *
+ * The iterator provides a simple way to go through all (Options) Template Records in an IPFIX
+ * (Options) Template Set. Every time a Record is prepared by fds_tset_iter_next() it is
+ * guaranteed that the record is fully valid. Each record can be then parsed using
+ * fds_template_parse() function.
+ *
+ * Keep in mind that (Options) Template Set can contain also (Options) Template Withdrawals.
+ * Therefore, you have to determine type of the template during later processing. Withdrawal
+ * records always have zero Field count. On the other hand, (Options) Template definitions have
+ * non-zero field count.
+ * \note
+ *   Template definitions and Withdrawals cannot be mixed within one (Options) Template Set
+ *   and the iterator makes sure that this rule is followed correctly in the Set. Also, don't
+ *   forget do distinguish (Options) Template Withdrawals and All (Options) Template Withdrawals.
+ *
+ * \warning
+ *   Only for Template Sets and Options Template Sets, i.e. Set ID == 2 (::FDS_IPFIX_SET_TMPLT)
+ *   or Set ID == 3 (::FDS_IPFIX_SET_OPTS_TMPLT). Using on different types of Sets cause undefined
+ *   behaviour.
+ *
+ * @{
+ */
 
 /** Iterator over template records in an IPFIX Template Set  */
 struct fds_tset_iter {
@@ -298,3 +365,8 @@ fds_tset_iter_err(const struct fds_tset_iter *it);
 #endif
 
 #endif // LIBFDS_IPFIX_PARSERS_H
+
+/**
+ * @}
+ * @}
+ */

@@ -50,6 +50,16 @@ extern "C" {
 #include "iemgr.h"
 #include "api.h"
 
+/**
+ * \defgroup fds_template IPFIX (Options) Template
+ * \ingroup publicAPIs
+ * \brief Tools for processing of IPFIX (Options) Templates
+ * \remark Based on RFC 7011, Section 3.4.1. - 3.4.2.
+ *   (see https://tools.ietf.org/html/rfc7011#section-3)
+ *
+ * @{
+ */
+
 /** Unsigned integer type able to hold all template flags */
 typedef uint16_t fds_template_flag_t;
 
@@ -485,3 +495,7 @@ fds_template_flowkey_cmp(const struct fds_template *tmplt, uint64_t flowkey);
 }
 #endif
 #endif // LIBFDS_TEMPLATE_H
+
+/**
+ * @}
+ */

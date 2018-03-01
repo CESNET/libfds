@@ -50,8 +50,19 @@ extern "C" {
 #include "template.h"
 #include "template_mgr.h"
 
-// TODO: const version?
-// TODO: get structure data types... -> new interator? new data_rec?
+/**
+ * \defgroup fds_drec IPFIX Data Record
+ * \ingroup publicAPIs
+ * \brief Function for accessing IPFIX fields of an individual Data Record
+ * \remark Based on RFC 7011, Section 3.4.3. (see https://tools.ietf.org/html/rfc7011#section-3.4.3)
+ *
+ * Following functions can be used to find an occurrence of a field in a Data Record that
+ * belongs to a particular (Options) Template Record. Advanced features (such as accessing
+ * multiple occurrences of the same element in the Data Record or distinction Data fields of
+ * a Biflow Data Record by direction) are provided by Data Record iterator.
+ *
+ * @{
+ */
 
 /**
  * \brief Structure for parsed IPFIX Data record
@@ -139,13 +150,6 @@ FDS_API void
 fds_drec_iter_init(struct fds_drec_iter *iter, struct fds_drec *record, uint16_t flags);
 
 /**
- * \brief Destroy an iterator to a data field
- * \param[in] iter Pointer to the iterator
- */
-FDS_API void
-fds_drec_iter_destroy(struct fds_drec_iter *iter);
-
-/**
  * \brief Get the next field in the record
  *
  * Move the iterator to the next field in the order. If this function was NOT previously called
@@ -162,7 +166,6 @@ fds_drec_iter_destroy(struct fds_drec_iter *iter);
  *      const struct fds_tfield *field = it.field.info;
  *      printf("en: %" PRIu32 " & id: %" PRIu16 "\n", field->en, field->id);
  *  }
- *  fds_drec_iter_destroy(&it);
  * \endcode
  *
  * \note Padding fields (PEN: 0, IE: 210, "paddingOctets") are automatically skipped.
@@ -192,8 +195,6 @@ fds_drec_iter_next(struct fds_drec_iter *iter);
  *  while (fds_drec_iter_find(&it, pen, id) != FDS_ERR_NOTFOUND) {
  *      // Add your code here...
  *  }
- *
- *  fds_drec_iter_destroy(&it);
  * \endcode
  *
  * \note Iterator flag ::FDS_DREC_UNKNOWN_SKIP is ignored.
@@ -229,3 +230,7 @@ fds_drec_iter_rewind(struct fds_drec_iter *iter);
 #endif
 
 #endif // LIBFDS_DREC_H
+
+/**
+ * @}
+ */

@@ -223,7 +223,7 @@ fds_dset_iter_next(struct fds_dset_iter *it)
             break;
         }
 
-        field_size += ntohs(*(uint16_t *) &it->_private.rec_next[size]);
+        field_size = ntohs(*(uint16_t *) &it->_private.rec_next[size]);
         size += 2U + field_size;
     }
 

@@ -354,7 +354,7 @@ enum fds_iemgr_element_biflow {
 
 /** Metadata for a scope                                                          */
 struct fds_iemgr_scope {
-    uint32_t pen;                                 /**< Private Enterprise Number */
+    uint32_t pen;                                 /**< Private Enterprise Number  */
     char *name;                                   /**< Scope name                 */
     enum fds_iemgr_element_biflow biflow_mode;    /**< Mode for reverse IEs       */
     /**

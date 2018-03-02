@@ -49,8 +49,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdio.h>
-#include <dirent.h>
-#include "api.h"
+#include <libfds/api.h>
 
 /**
  * \defgroup fds_iemgr IPFIX Information Elements (IE) Manager

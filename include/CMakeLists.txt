@@ -1,10 +1,16 @@
+# Configure a header file to pass library version to the source code
+configure_file(
+	"${PROJECT_SOURCE_DIR}/include/libfds/api.h.in"
+	"${PROJECT_BINARY_DIR}/include/libfds/api.h"
+	)
+
 # List of header files
 set(TOP_HEADERS
 	libfds.h
 )
 
 set(SUB_HEADERS
-	libfds/api.h
+	"${PROJECT_BINARY_DIR}/include/libfds/api.h"
 	libfds/converters.h
 	libfds/drec.h
 	libfds/iemgr.h

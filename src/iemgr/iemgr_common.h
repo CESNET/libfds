@@ -57,6 +57,7 @@
 #include <sys/stat.h>
 #include <libfds/iemgr.h>
 #include <libfds/xml_parser.h>
+#include <dirent.h>
 
 using std::vector;
 using std::pair;

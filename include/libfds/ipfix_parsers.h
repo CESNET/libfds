@@ -48,7 +48,7 @@ extern "C" {
 
 /** Size of an internal error buffer */
 #include <stdint.h>
-#include "api.h"
+#include <libfds/api.h>
 #include "template.h"
 #include "ipfix_structs.h"
 

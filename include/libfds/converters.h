@@ -58,7 +58,7 @@ extern "C" {
 #include <math.h>      // isnormal
 
 #include "iemgr.h"
-#include "api.h"
+#include <libfds/api.h>
 
 /**
  * \defgroup fds_converters Data conversion

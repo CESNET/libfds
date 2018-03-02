@@ -48,7 +48,7 @@ extern "C" {
 
 #include <stdint.h>
 #include "iemgr.h"
-#include "api.h"
+#include <libfds/api.h>
 
 /**
  * \defgroup fds_template IPFIX (Options) Template

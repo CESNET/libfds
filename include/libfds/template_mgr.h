@@ -48,7 +48,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-#include "api.h"
+#include <libfds/api.h>
 #include "template.h"
 #include "iemgr.h"
 

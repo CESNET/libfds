@@ -3,7 +3,7 @@ include(${CMAKE_SOURCE_DIR}/CMakeModules/unit_tests.cmake)
 # Include public headers
 include_directories(
 	"${PROJECT_SOURCE_DIR}/include/"
-#	"${PROJECT_BINARY_DIR}/include/" # nothing useful right now
+	"${PROJECT_BINARY_DIR}/include/" # libfds/api.h
 )
 
 # List of tests

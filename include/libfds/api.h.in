@@ -43,6 +43,12 @@
 #define LIBFDS_API_H
 
 /**
+ * \def FDS_VERSION_STR
+ * \brief The library version string (like "1.2.3")
+ */
+#define FDS_VERSION_STR "${LIBFDS_VERSION}"
+
+/**
  * \def FDS_API
  * \brief Make an interface public outside
  *

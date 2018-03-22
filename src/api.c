@@ -40,6 +40,7 @@
  */
 
 #include <libfds/api.h>
+#include <libxml/parser.h>
 #include "build_config.h"
 
 static const char *fds_cfg_dir = FDS_DEFAULT_CFG_DIR;
@@ -48,4 +49,12 @@ const char *
 fds_api_cfg_dir()
 {
     return fds_cfg_dir;
+}
+
+/** Destructor called on "library destruction" */
+__attribute__((destructor)) void
+fds_destructor(void)
+{
+    // Cleanup
+    xmlCleanupParser();
 }

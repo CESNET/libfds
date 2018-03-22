@@ -1348,7 +1348,6 @@ fds_xml_parse_mem(fds_xml_t *parser, const char *mem, bool pedantic)
     }
 
     LIBXML_TEST_VERSION;
-    xmlInitParser();
 
     // error handling function
     auto handler = (xmlGenericErrorFunc) error_handler;
@@ -1373,7 +1372,6 @@ fds_xml_parse_mem(fds_xml_t *parser, const char *mem, bool pedantic)
     fds_xml_ctx_t *ctx = ctx_parse(parser, std::move(conf), pedantic);
 
     xmlCtx.reset(nullptr);
-    xmlCleanupParser();
     return ctx;
 }
 
@@ -1396,7 +1394,6 @@ fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic)
     }
 
     LIBXML_TEST_VERSION;
-    xmlInitParser();
 
     // error handling function
     auto handler = (xmlGenericErrorFunc) error_handler;
@@ -1421,7 +1418,6 @@ fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic)
     fds_xml_ctx_t *ctx = ctx_parse(parser, std::move(conf), pedantic);
 
     xmlCtx.reset(nullptr);
-    xmlCleanupParser();
     return ctx;
 }
 

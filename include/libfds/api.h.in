@@ -42,6 +42,10 @@
 #ifndef LIBFDS_API_H
 #define LIBFDS_API_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \def FDS_VERSION_STR
  * \brief The library version string (like "1.2.3")
@@ -85,5 +89,9 @@
  */
 FDS_API const char *
 fds_api_cfg_dir();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LIBFDS_API_H */

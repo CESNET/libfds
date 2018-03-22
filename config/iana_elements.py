@@ -88,9 +88,9 @@ def parse_rec(rec):
         raise Exception("Wrong name of the record")
     if add_el("dataType", find_text("dataType", rec), el) is None:
         raise Exception("Wrong data type of the record")
-    add_el("dataSemantic", find_text("dataTypeSemantics", rec), el)
-    add_el("units",        find_unit("units",             rec), el)
-    add_el("status",       find_text("status",            rec), el)
+    add_el("dataSemantics", find_text("dataTypeSemantics", rec), el)
+    add_el("units",         find_unit("units",             rec), el)
+    add_el("status",        find_text("status",            rec), el)
     return el
 
 # Find root element with information elements in a file

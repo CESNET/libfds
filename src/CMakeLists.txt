@@ -28,7 +28,7 @@ add_subdirectory(parsers)
 # Create a dynamic library from all source code
 add_library(
 	fds SHARED
-	${CORE_SOURCE}
+	api.c
 	$<TARGET_OBJECTS:xml_parser_obj>   # XML parser
 	$<TARGET_OBJECTS:iemgr_obj>        # IE manager
 	$<TARGET_OBJECTS:template_mgr_obj> # Template manager

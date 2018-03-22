@@ -79,4 +79,11 @@
 /** Status code for modification error                                         */
 #define FDS_ERR_DIFF            (-9)
 
+/**
+ * \brief Get the default directory with configuration
+ * \return Statically allocated string
+ */
+FDS_API const char *
+fds_api_cfg_dir();
+
 #endif /* LIBFDS_API_H */

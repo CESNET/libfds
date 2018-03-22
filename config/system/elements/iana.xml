@@ -607,7 +607,7 @@ and will be lost when the list is regenerated.
     <element>
         <id>89</id>
         <name>forwardingStatus</name>
-        <dataType>unsigned32</dataType>
+        <dataType>unsigned8</dataType>
         <dataSemantic>identifier</dataSemantic>
         <status>current</status>
     </element>
@@ -3165,6 +3165,83 @@ and will be lost when the list is regenerated.
         <name>httpReasonPhrase</name>
         <dataType>string</dataType>
         <dataSemantic>default</dataSemantic>
+        <status>current</status>
+    </element>
+    <element>
+        <id>471</id>
+        <name>maxSessionEntries</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantic>identifier</dataSemantic>
+        <status>current</status>
+    </element>
+    <element>
+        <id>472</id>
+        <name>maxBIBEntries</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantic>identifier</dataSemantic>
+        <status>current</status>
+    </element>
+    <element>
+        <id>473</id>
+        <name>maxEntriesPerUser</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantic>identifier</dataSemantic>
+        <status>current</status>
+    </element>
+    <element>
+        <id>474</id>
+        <name>maxSubscribers</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantic>identifier</dataSemantic>
+        <status>current</status>
+    </element>
+    <element>
+        <id>475</id>
+        <name>maxFragmentsPendingReassembly</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantic>identifier</dataSemantic>
+        <status>current</status>
+    </element>
+    <element>
+        <id>476</id>
+        <name>addressPoolHighThreshold</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantic>identifier</dataSemantic>
+        <status>current</status>
+    </element>
+    <element>
+        <id>477</id>
+        <name>addressPoolLowThreshold</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantic>identifier</dataSemantic>
+        <status>current</status>
+    </element>
+    <element>
+        <id>478</id>
+        <name>addressPortMappingHighThreshold</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantic>identifier</dataSemantic>
+        <status>current</status>
+    </element>
+    <element>
+        <id>479</id>
+        <name>addressPortMappingLowThreshold</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantic>identifier</dataSemantic>
+        <status>current</status>
+    </element>
+    <element>
+        <id>480</id>
+        <name>addressPortMappingPerUserHighThreshold</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantic>identifier</dataSemantic>
+        <status>current</status>
+    </element>
+    <element>
+        <id>481</id>
+        <name>globalAddressMappingHighThreshold</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantic>identifier</dataSemantic>
         <status>current</status>
     </element>
 </ipfix-elements>

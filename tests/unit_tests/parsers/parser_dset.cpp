@@ -200,7 +200,7 @@ TEST(dsetIter, singleVarField)
             fds_dset_iter_init(&iter, hdr_set.get(), tmplt);
 
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
-            EXPECT_EQ(iter.size, str1.length() + 1); // +1 short var. header
+            EXPECT_EQ(iter.size, rec1.size());
             EXPECT_EQ(iter.rec, reinterpret_cast<uint8_t *>(hdr_set.get() + 1));
 
             // End has been reached
@@ -223,19 +223,19 @@ TEST(dsetIter, singleVarField)
 
             // 1. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
-            EXPECT_EQ(iter.size, str1.length() + 1); // +1 short var. header
+            EXPECT_EQ(iter.size, rec1.size());
             EXPECT_EQ(iter.rec, reinterpret_cast<uint8_t *>(hdr_set_multi.get() + 1));
             next_pos = iter.rec + iter.size;
 
             // 2. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
-            EXPECT_EQ(iter.size, str2.length() + 3); // +2 long var. header
+            EXPECT_EQ(iter.size, rec2.size());
             EXPECT_EQ(iter.rec, next_pos);
             next_pos = iter.rec + iter.size;
 
             // 3. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
-            EXPECT_EQ(iter.size, str3.length() + 1); // +1 short var. header
+            EXPECT_EQ(iter.size, rec3.size());
             EXPECT_EQ(iter.rec, next_pos);
 
             // End has been reached
@@ -300,6 +300,7 @@ TEST(dsetIter, mixVarAndFixed)
 
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
             EXPECT_EQ(iter.rec, reinterpret_cast<uint8_t *>(hdr_set.get() + 1));
+            EXPECT_EQ(iter.size, rec1.size());
             EXPECT_EQ(fds_get_uint_be(iter.rec, 4, &rec_value), FDS_OK);
             EXPECT_EQ(rec_value, 11);
 
@@ -325,6 +326,7 @@ TEST(dsetIter, mixVarAndFixed)
             // 1. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
             EXPECT_EQ(iter.rec, reinterpret_cast<uint8_t *>(hdr_set_multi.get() + 1));
+            EXPECT_EQ(iter.size, rec1.size());
             next_pos = iter.rec + iter.size;
             EXPECT_EQ(fds_get_uint_be(iter.rec, 4, &rec_value), FDS_OK);
             EXPECT_EQ(rec_value, 11);
@@ -332,12 +334,14 @@ TEST(dsetIter, mixVarAndFixed)
             // 2. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
             EXPECT_EQ(iter.rec, next_pos);
+            EXPECT_EQ(iter.size, rec2.size());
             next_pos = iter.rec + iter.size;
             EXPECT_EQ(fds_get_uint_be(iter.rec, 4, &rec_value), FDS_OK);
             EXPECT_EQ(rec_value, 12);
             // 3. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
             EXPECT_EQ(iter.rec, next_pos);
+            EXPECT_EQ(iter.size, rec3.size());
             EXPECT_EQ(fds_get_uint_be(iter.rec, 4, &rec_value), FDS_OK);
             EXPECT_EQ(rec_value, 13);
 
@@ -364,11 +368,13 @@ TEST(dsetIter, mixVarAndFixed)
             // 1. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
             EXPECT_EQ(iter.rec, reinterpret_cast<uint8_t *>(hdr_set_multi.get() + 1));
+            EXPECT_EQ(iter.size, rec1.size());
             next_pos = iter.rec + iter.size;
             EXPECT_EQ(fds_get_uint_be(iter.rec, 4, &rec_value), FDS_OK);
             EXPECT_EQ(rec_value, 11);
             // 2. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
+            EXPECT_EQ(iter.size, rec2.size());
             EXPECT_EQ(iter.rec, next_pos);
             EXPECT_EQ(fds_get_uint_be(iter.rec, 4, &rec_value), FDS_OK);
             EXPECT_EQ(rec_value, 12);
@@ -434,6 +440,7 @@ TEST(dsetIter, multipeVarFields)
 
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
             EXPECT_EQ(iter.rec, reinterpret_cast<uint8_t *>(hdr_set.get() + 1));
+            EXPECT_EQ(iter.size, rec1.size());
 
             // End has been reached
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
@@ -456,15 +463,18 @@ TEST(dsetIter, multipeVarFields)
             // 1. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
             EXPECT_EQ(iter.rec, reinterpret_cast<uint8_t *>(hdr_set_multi.get() + 1));
+            EXPECT_EQ(iter.size, rec1.size());
             next_pos = iter.rec + iter.size;
 
             // 2. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
             EXPECT_EQ(iter.rec, next_pos);
+            EXPECT_EQ(iter.size, rec2.size());
             next_pos = iter.rec + iter.size;
 
             // 3. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
+            EXPECT_EQ(iter.size, rec3.size());
             EXPECT_EQ(iter.rec, next_pos);
 
             // End has been reached
@@ -491,10 +501,12 @@ TEST(dsetIter, multipeVarFields)
             // 1. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
             EXPECT_EQ(iter.rec, reinterpret_cast<uint8_t *>(hdr_set_multi.get() + 1));
+            EXPECT_EQ(iter.size, rec1.size());
             next_pos = iter.rec + iter.size;
             // 2. record
             EXPECT_EQ(fds_dset_iter_next(&iter), FDS_OK);
             EXPECT_EQ(iter.rec, next_pos);
+            EXPECT_EQ(iter.size, rec2.size());
             next_pos = iter.rec + iter.size;
 
             // End has been reached

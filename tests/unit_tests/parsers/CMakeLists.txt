@@ -7,3 +7,4 @@ set(AUX_TOOLS
 )
 
 unit_tests_register_test(parser_tset.cpp ${AUX_TOOLS})
+unit_tests_register_test(parser_dset.cpp ${AUX_TOOLS})

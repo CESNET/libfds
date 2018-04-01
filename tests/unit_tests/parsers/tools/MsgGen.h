@@ -31,6 +31,8 @@ protected:
     ipfix_buffer();
     /** Destructor  */
     ~ipfix_buffer() = default;
+    /** Copy constructor */
+    ipfix_buffer(const ipfix_buffer &other);
 
     /**
      * \brief Get a memory (past-last-byte) for storing N bytes

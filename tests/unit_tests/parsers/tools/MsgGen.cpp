@@ -19,6 +19,18 @@ ipfix_buffer::ipfix_buffer() : data(nullptr, &free)
     size_used = 0;
 }
 
+ipfix_buffer::ipfix_buffer(const ipfix_buffer &other) : data(nullptr, &free)
+{
+    uint8_t *data2copy = static_cast<uint8_t *>(std::malloc(size_max * sizeof(uint8_t)));
+    if (!data2copy) {
+        throw std::runtime_error("malloc() failed!");
+    }
+
+    std::memcpy(data2copy, other.data.get(), other.size_used);
+    data.reset(data2copy);
+    size_used = 0;
+}
+
 uint8_t*
 ipfix_buffer::mem_reserve(size_t n)
 {

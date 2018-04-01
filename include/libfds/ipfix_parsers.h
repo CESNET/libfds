@@ -174,7 +174,9 @@ struct fds_dset_iter {
     uint16_t size;
 
     struct {
-        /** Template */
+        /** Iterator flags                          */
+        uint16_t flags;
+        /** Template                                */
         const struct fds_template *tmplt;
         /** Pointer to the start of the next record */
         uint8_t *rec_next;
@@ -293,6 +295,8 @@ struct fds_tset_iter {
     struct {
         /** Type of templates                       */
         uint16_t type;
+        /** Iterator flags                          */
+        uint16_t flags;
         /** Pointer to the start of the next record */
         uint8_t *rec_next;
         /** Start of the (Options) Template Set     */
@@ -307,7 +311,9 @@ struct fds_tset_iter {
 /**
  * \brief Initialize IPFIX Template records iterator
  *
- * \note Set ID of the \p set must be 2 (::FDS_IPFIX_SET_TMPLT) or 3 (::FDS_IPFIX_SET_OPTS_TMPLT).
+ * \note
+ *   Set ID of the \p set MUST be 2 (::FDS_IPFIX_SET_TMPLT) or 3 (::FDS_IPFIX_SET_OPTS_TMPLT).
+ *   Otherwise behavior of the parser is undefined.
  * \warning
  *   After initialization the iterator has initialized only internal structures but public part
  *   is still undefined i.e. doesn't point to the first Set in the Message. To get the first field

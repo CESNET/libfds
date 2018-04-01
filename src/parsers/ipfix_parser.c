@@ -53,17 +53,21 @@ enum error_codes {
     ERR_SETS_SET_LONG,
     // IPFIX Data record iterator
     ERR_DSET_VAR_LONG,
+    ERR_DSET_EMPTY,
     // IPFIX Template record iterator
     ERR_TSET_WDRL_DEF,
     ERR_TSET_WDRL_ID,
     ERR_TSET_AW_ALONE,
     ERR_TSET_AW_LEN,
     ERR_TSET_AW_ID,
-    ERR_TSET_DEF_SCNT,
+    ERR_TSET_DEF_SZERO,
+    ERR_TSET_DEF_SLONG,
     ERR_TSET_DEF_TID,
     ERR_TSET_DEF_CNT,
     ERR_TSET_DEF_END,
-    ERR_TSET_DEF_DATA
+    ERR_TSET_DEF_DATA,
+    ERR_TSET_DEF_ZERO,
+    ERR_TSET_EMPTY
 };
 
 /** Corresponding error messages */
@@ -76,6 +80,7 @@ static const char *err_msg[] = {
     [ERR_SETS_SET_LONG]  = "Total length of the Set is longer than its enclosing IPFIX Message.",
     // IPFIX Data record iterator
     [ERR_DSET_VAR_LONG]  = "A variable-length Data Record is longer than its enclosing Data Set.",
+    [ERR_DSET_EMPTY]     = "A Data Set must not be empty. At least one record must be present.",
     // IPFIX Template record iterator
     [ERR_TSET_WDRL_DEF]  = "An (Options) Template definition found within the (Options) Template "
         "Set Withdrawal (Field Count > 0).",
@@ -84,14 +89,19 @@ static const char *err_msg[] = {
     [ERR_TSET_AW_LEN]    = "All (Options) Template Set Withdrawal has invalid length.",
     [ERR_TSET_AW_ID]     = "Template ID of All (Options) Template Set Withdrawal doesn't match "
         "its enclosing (Options) Template Set ID.",
-    [ERR_TSET_DEF_SCNT]  = "Scope Field Count of an Options Template is zero.",
+    [ERR_TSET_DEF_SZERO] = "Scope Field Count of an Options Template is zero.",
+    [ERR_TSET_DEF_SLONG] = "Scope Field Count of an Options Template is greater than total Field "
+       "Count.",
     [ERR_TSET_DEF_TID]   = "Template ID of an (Options) Template is invalid (< 256).",
     [ERR_TSET_DEF_CNT]   = "An (Options) Template Withdrawal found within the (Options) Template "
         "Set (Field Count = 0).",
     [ERR_TSET_DEF_END]   = "Invalid definition of an (Options) Template (unexpected end of the "
         "(Options) Template Set).",
     [ERR_TSET_DEF_DATA]  = "An (Options) Template defines a Data Record which length exceeds "
-        "the maximum length of a Data Record that fits into an IPFIX Message."
+        "the maximum length of a Data Record that fits into an IPFIX Message.",
+    [ERR_TSET_DEF_ZERO]  = "An (Options) Template defines a prohibited zero length Data Record.",
+    [ERR_TSET_EMPTY]     = "An (Options) Template Set must not be empty. At least one record must "
+        "be present."
 };
 
 void
@@ -149,6 +159,12 @@ fds_sets_iter_err(const struct fds_sets_iter *it)
 
 // -------------------------------------------------------------------------------------------------
 
+/** \brief Internal iterator flags      */
+enum fds_dset_iter_flags {
+    /** Initialization fail and an error message is set */
+    FDS_DSET_ITER_FAILED = (1 << 0)
+};
+
 void
 fds_dset_iter_init(struct fds_dset_iter *it, struct fds_ipfix_set_hdr *set,
     const struct fds_template *tmplt)
@@ -160,15 +176,27 @@ fds_dset_iter_init(struct fds_dset_iter *it, struct fds_ipfix_set_hdr *set,
     assert(set_len >= FDS_IPFIX_SET_HDR_LEN);
     assert(tmplt->fields_cnt_total > 0);
 
+    it->_private.flags = 0;
     it->_private.tmplt = tmplt;
     it->_private.rec_next = ((uint8_t *) set) + FDS_IPFIX_SET_HDR_LEN;
     it->_private.set_end = ((uint8_t *) set) + set_len;
     it->_private.err_msg = err_msg[ERR_OK];
+
+    if (it->_private.rec_next + tmplt->data_length > it->_private.set_end) {
+        // Empty set is not valid (see RFC 7011, Section 2, Data Set)
+        it->_private.flags |= FDS_DSET_ITER_FAILED;
+        it->_private.err_msg = err_msg[ERR_DSET_EMPTY];
+    }
 }
 
 int
 fds_dset_iter_next(struct fds_dset_iter *it)
 {
+    if ((it->_private.flags & FDS_DSET_ITER_FAILED) != 0) {
+        // Initialization failed, error code is properly set
+        return FDS_ERR_FORMAT;
+    }
+
     if (it->_private.rec_next == it->_private.set_end) {
         // End of the Set
         return FDS_ERR_NOTFOUND;
@@ -247,6 +275,12 @@ fds_dset_iter_err(const struct fds_dset_iter *it)
 
 // -------------------------------------------------------------------------------------------------
 
+/** \brief Internal iterator flags      */
+enum fds_tset_iter_flags {
+    /** Initialization fail and an error message is set */
+    FDS_TSET_ITER_FAILED = (1 << 0)
+};
+
 void
 fds_tset_iter_init(struct fds_tset_iter *it, struct fds_ipfix_set_hdr *set)
 {
@@ -256,18 +290,32 @@ fds_tset_iter_init(struct fds_tset_iter *it, struct fds_ipfix_set_hdr *set)
     assert(set_id == FDS_IPFIX_SET_TMPLT || set_id == FDS_IPFIX_SET_OPTS_TMPLT);
     assert(set_len >= FDS_IPFIX_SET_HDR_LEN);
 
-    it->_private.type = set_id;
+    it->_private.type      = set_id;
+    it->_private.flags     = 0;
     it->_private.rec_next  = ((uint8_t *) set) + FDS_IPFIX_SET_HDR_LEN;
     it->_private.set_begin = set;
     it->_private.set_end   = ((uint8_t *) set) + set_len;
     it->_private.err_msg   = err_msg[ERR_OK];
 
-    if (set_len <  FDS_IPFIX_SET_HDR_LEN + FDS_IPFIX_WDRL_TREC_LEN) {
+    if (set_len < FDS_IPFIX_SET_HDR_LEN + FDS_IPFIX_WDRL_TREC_LEN) {
+        // Empty set is not valid (see RFC 7011, Section 2, (Options) Template Set)
+        it->_private.flags |= FDS_TSET_ITER_FAILED;
+        it->_private.err_msg = err_msg[ERR_TSET_EMPTY];
         return;
     }
 
     if (ntohs(((struct fds_ipfix_wdrl_trec *) it->_private.rec_next)->count) == 0) {
         it->_private.type = 0; // Accept only (All) (Options) Template Withdrawal
+        return;
+    }
+
+    // Minimal size of a definition is a template with just one field (4B + 4B, resp. 6B + 4B)
+    const uint16_t min_size = (set_id == FDS_IPFIX_SET_TMPLT) ? 8U : 10U;
+    if (it->_private.rec_next + min_size > it->_private.set_end) {
+        // Empty set is not valid (see RFC 7011, Section 2, (Options) Template Set)
+        it->_private.flags |= FDS_TSET_ITER_FAILED;
+        it->_private.err_msg = err_msg[ERR_TSET_EMPTY];
+        return;
     }
 }
 
@@ -339,7 +387,7 @@ fds_tset_iter_definitions(struct fds_tset_iter *it)
     const uint16_t type = it->_private.type;
     assert(type == FDS_IPFIX_SET_TMPLT || type == FDS_IPFIX_SET_OPTS_TMPLT);
 
-    // Minimal size of a record a is template with just one field (4B + 4B, resp. 6B + 4B)
+    // Minimal size of a definition is a template with just one field (4B + 4B, resp. 6B + 4B)
     const uint16_t min_size = (type == FDS_IPFIX_SET_TMPLT) ? 8U : 10U;
     if (it->_private.rec_next + min_size > it->_private.set_end) {
         // Skip padding
@@ -368,7 +416,13 @@ fds_tset_iter_definitions(struct fds_tset_iter *it)
 
         if (scope_cnt == 0) {
             // Scope count cannot be zero
-            it->_private.err_msg = err_msg[ERR_TSET_DEF_SCNT];
+            it->_private.err_msg = err_msg[ERR_TSET_DEF_SZERO];
+            return FDS_ERR_FORMAT;
+        }
+
+        if (scope_cnt > field_cnt) {
+            // Too many scope fields (more that total number of fields)
+            it->_private.err_msg = err_msg[ERR_TSET_DEF_SLONG];
             return FDS_ERR_FORMAT;
         }
     }
@@ -415,6 +469,12 @@ fds_tset_iter_definitions(struct fds_tset_iter *it)
         // Ignore the content of the field...
     }
 
+    if (data_size == 0) {
+        // Template definition that describes zero-length records doesn't make sence
+        it->_private.err_msg = err_msg[ERR_TSET_DEF_ZERO];
+        return FDS_ERR_FORMAT;
+    }
+
     // Maximum size of a data record (Max. length - IPFIX Message header - IPFIX Set header)
     const size_t data_max =
         UINT16_MAX - sizeof(struct fds_ipfix_msg_hdr) - sizeof(struct fds_ipfix_set_hdr);
@@ -441,6 +501,11 @@ fds_tset_iter_definitions(struct fds_tset_iter *it)
 int
 fds_tset_iter_next(struct fds_tset_iter *it)
 {
+    if ((it->_private.flags & FDS_TSET_ITER_FAILED) != 0) {
+        // Initialization failed, error code is properly set
+        return FDS_ERR_FORMAT;
+    }
+
     if (it->_private.rec_next == it->_private.set_end) {
         // End of the Set
         return FDS_ERR_NOTFOUND;
@@ -449,12 +514,12 @@ fds_tset_iter_next(struct fds_tset_iter *it)
     // Make sure that the iterator is not beyond the end of the message
     assert(it->_private.rec_next < it->_private.set_end);
 
-    if (it->_private.type == 0) {
-        // (All) (Options) Template Withdrawal
-        return fds_tset_iter_withdrawals(it);
-    } else {
+    if (it->_private.type != 0) {
         // (Options) Template definitions
         return fds_tset_iter_definitions(it);
+    } else {
+        // (All) (Options) Template Withdrawal
+        return fds_tset_iter_withdrawals(it);
     }
 }
 

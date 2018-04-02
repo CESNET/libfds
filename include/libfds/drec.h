@@ -124,14 +124,32 @@ struct fds_drec_iter {
     } internal; /**< Internal field (implementation can be changed!)                     */
 };
 
-/** \brief Configuration flags of Data Record Iterator.                      */
+/** \brief Configuration flags of Data Record Iterator.                                  */
 enum fds_drec_iter_flags {
-    /** Skip fields with unknown definition of an Information Element        */
+    /**
+     * \brief Skip fields with unknown definition of an Information Element
+     */
     FDS_DREC_UNKNOWN_SKIP = (1 << 0),
-    /** In case of a Biflow record, show only forward direction fields       */
-    FDS_DREC_BIFLOW_FWD   = (1 << 1),
-    /** In case of a Biflow record, show only reverse direction fields       */
-    FDS_DREC_BIFLOW_REV   = (1 << 2)
+    /**
+     * \brief in case of a Biflow record, skip all reverse fields
+     */
+    FDS_DREC_REVERSE_SKIP = (1 << 1),
+    /**
+     * \brief In case of a Biflow record, show from Forward point of view
+     */
+    FDS_DREC_BIFLOW_FWD   = (1 << 2),
+    /**
+     * \brief In case of a Biflow record, show from Reverse point of view
+     *
+     * Template fields are remapped to represent fields in opposite direction using reverse
+     * template fields (fds_template#fields_rev). In other words, common directional fields are
+     * converted to opposite direction, for example, source IP address to destination IP address
+     * and vice versa. Forward only fields to reverse only fields and vice versa.
+     *
+     * The flag can be combined with ::FDS_DREC_REVERSE_SKIP. In this case, the reverse filter
+     * is applied on remapped template fields.
+     */
+    FDS_DREC_BIFLOW_REV   = (1 << 3)
 };
 
 /**
@@ -197,7 +215,7 @@ fds_drec_iter_next(struct fds_drec_iter *iter);
  *  }
  * \endcode
  *
- * \note Iterator flag ::FDS_DREC_UNKNOWN_SKIP is ignored.
+ * \note Iterator flags ::FDS_DREC_UNKNOWN_SKIP and ::FDS_DREC_REVERSE_SKIP are ignored.
  * \note If one of Biflow direction flags (i.e. ::FDS_DREC_BIFLOW_FWD or ::FDS_DREC_BIFLOW_REV) is
  *   set, fields are searched from the point of view of the selected direction. In case of
  *   the forward flag (::FDS_DREC_BIFLOW_FWD) fields are search as present in an IPFIX template.

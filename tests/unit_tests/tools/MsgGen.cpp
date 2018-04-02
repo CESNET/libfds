@@ -395,6 +395,25 @@ ipfix_drec::append_datetime(struct timespec ts, enum fds_iemgr_element_type type
 }
 
 void
+ipfix_drec::append_datetime(uint64_t ts, enum fds_iemgr_element_type type)
+{
+    size_t size;
+    switch (type) {
+    case FDS_ET_DATE_TIME_SECONDS:      size = 4U; break;
+    case FDS_ET_DATE_TIME_MILLISECONDS: size = 8U; break;
+    case FDS_ET_DATE_TIME_MICROSECONDS: size = 8U; break;
+    case FDS_ET_DATE_TIME_NANOSECONDS:  size = 8U; break;
+    default:
+        throw std::invalid_argument("Invalid type of timestamp!");
+    }
+
+    uint8_t *mem = mem_reserve(size);
+    if (fds_set_datetime_lp_be(mem, size, type, ts) != FDS_OK) {
+        throw std::invalid_argument("fds_set_datetime_lp_be() failed!");
+    }
+}
+
+void
 ipfix_drec::append_ip(const std::string &value)
 {
     uint8_t buffer[sizeof(struct in6_addr)];

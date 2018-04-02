@@ -269,12 +269,19 @@ public:
     void
     append_string(const std::string &value, uint16_t size = SIZE_VAR);
     /**
-     * \brief Add a timestamp
+     * \brief Add a timestamp (high precision)
      * \param ts   Timestamp
      * \param type Type of timestamp
      */
     void
     append_datetime(struct timespec ts, enum fds_iemgr_element_type type);
+    /**
+     * \brief Add a timestamp (low precision)
+     * \param ts   Timestamp
+     * \param type Type of timestamp
+     */
+    void
+    append_datetime(uint64_t ts, enum fds_iemgr_element_type type);
     /**
      * \brief Add an IPv4/IPv6 address
      * \note Type and size (4 or 16 bytes) is automatically determined.

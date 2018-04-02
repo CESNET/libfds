@@ -12,6 +12,7 @@ add_subdirectory(iemgr)
 add_subdirectory(templates)
 add_subdirectory(converters)
 add_subdirectory(parsers)
+add_subdirectory(drec)
 # >> Add your new tests or test subdirectories HERE <<
 
 # Enable code coverage target (i.e. make coverage) when appropriate build

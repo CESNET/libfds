@@ -188,8 +188,7 @@ fds_drec_iter_next(struct fds_drec_iter *iter)
             continue;
         }
 
-        const fds_template_flag_t dir_flgs = FDS_DREC_BIFLOW_FWD | FDS_DREC_BIFLOW_REV;
-        if ((flags & dir_flgs) != 0 && (field_def->flags & FDS_TFIELD_REVERSE) != 0) {
+        if ((flags & FDS_DREC_REVERSE_SKIP) && (field_def->flags & FDS_TFIELD_REVERSE)) {
             // Skip reverse fields
             continue;
         }

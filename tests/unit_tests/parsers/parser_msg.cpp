@@ -44,8 +44,10 @@ TEST(setIter, singleSet)
         fds_sets_iter_init(&iter, hdr_msg.get());
         // First Set
         EXPECT_EQ(fds_sets_iter_next(&iter), FDS_OK);
-        EXPECT_EQ(ntohs(iter.set->length), set.size());
-        EXPECT_EQ(ntohs(iter.set->flowset_id), set_id);
+        uint16_t set_len = ntohs(iter.set->length);
+        EXPECT_EQ(set_len, set.size());
+        uint16_t flowset_id = ntohs(iter.set->flowset_id);
+        EXPECT_EQ(flowset_id, set_id);
         // End
         EXPECT_EQ(fds_sets_iter_next(&iter), FDS_ERR_NOTFOUND);
         EXPECT_EQ(fds_sets_iter_err(&iter), NO_ERR_STRING);
@@ -76,20 +78,28 @@ TEST(setIter, multipleSets)
     fds_sets_iter_init(&iter, hdr_msg.get());
     // 1. Set
     EXPECT_EQ(fds_sets_iter_next(&iter), FDS_OK);
-    EXPECT_EQ(ntohs(iter.set->length), set_tmplt_norm.size());
-    EXPECT_EQ(ntohs(iter.set->flowset_id), FDS_IPFIX_SET_TMPLT);
+    uint16_t set1_len = ntohs(iter.set->length);
+    uint16_t set1_id  = ntohs(iter.set->flowset_id);
+    EXPECT_EQ(set1_len, set_tmplt_norm.size());
+    EXPECT_EQ(set1_id, FDS_IPFIX_SET_TMPLT);
     // 2. Set
     EXPECT_EQ(fds_sets_iter_next(&iter), FDS_OK);
-    EXPECT_EQ(ntohs(iter.set->length), set_tmplt_opts.size());
-    EXPECT_EQ(ntohs(iter.set->flowset_id), FDS_IPFIX_SET_OPTS_TMPLT);
+    uint16_t set2_len = ntohs(iter.set->length);
+    uint16_t set2_id  = ntohs(iter.set->flowset_id);
+    EXPECT_EQ(set2_len, set_tmplt_opts.size());
+    EXPECT_EQ(set2_id, FDS_IPFIX_SET_OPTS_TMPLT);
     // 3. Set
     EXPECT_EQ(fds_sets_iter_next(&iter), FDS_OK);
-    EXPECT_EQ(ntohs(iter.set->length), set_data1.size());
-    EXPECT_EQ(ntohs(iter.set->flowset_id), FDS_IPFIX_SET_MIN_DSET);
+    uint16_t set3_len = ntohs(iter.set->length);
+    uint16_t set3_id  = ntohs(iter.set->flowset_id);
+    EXPECT_EQ(set3_len, set_data1.size());
+    EXPECT_EQ(set3_id, FDS_IPFIX_SET_MIN_DSET);
     // 4. Set
     EXPECT_EQ(fds_sets_iter_next(&iter), FDS_OK);
-    EXPECT_EQ(ntohs(iter.set->length), set_data2.size());
-    EXPECT_EQ(ntohs(iter.set->flowset_id), FDS_IPFIX_SET_MIN_DSET + 1);
+    uint16_t set4_len = ntohs(iter.set->length);
+    uint16_t set4_id  = ntohs(iter.set->flowset_id);
+    EXPECT_EQ(set4_len, set_data2.size());
+    EXPECT_EQ(set4_id, FDS_IPFIX_SET_MIN_DSET + 1);
     // End
     EXPECT_EQ(fds_sets_iter_next(&iter), FDS_ERR_NOTFOUND);
     EXPECT_EQ(fds_sets_iter_err(&iter), NO_ERR_STRING);

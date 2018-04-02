@@ -561,7 +561,8 @@ TEST(tsetIter, templateSetPadding)
         set_uniq hdr_set(tset.release(), &free);
 
         // Set header + Tmplt header + 2 fields + 1x Enterprise Num + padding
-        EXPECT_EQ(ntohs(hdr_set.get()->length), 4 + 4 + 8 + 4 + padding);
+        uint16_t real_set_len = ntohs(hdr_set.get()->length);
+        EXPECT_EQ(real_set_len, 4 + 4 + 8 + 4 + padding);
 
         // Try to initialize iterator
         struct fds_tset_iter iter;
@@ -598,7 +599,8 @@ TEST(tsetIter, optionsTemplateSetPadding)
         set_uniq hdr_set(tset.release(), &free);
 
         // Set header + Options Tmplt header + 2 fields + 1x Enterprise Num + padding
-        EXPECT_EQ(ntohs(hdr_set.get()->length), 4 + 6 + 8 + 4 + padding);
+        uint16_t real_set_len = ntohs(hdr_set.get()->length);
+        EXPECT_EQ(real_set_len, 4 + 6 + 8 + 4 + padding);
 
         // Try to initialize iterator
         struct fds_tset_iter iter;
@@ -637,7 +639,8 @@ TEST(tsetIter, withdrawalSetPadding)
             set_uniq hdr_set(tset.release(), &free);
 
             // Set header + Withdrawal header + padding
-            EXPECT_EQ(ntohs(hdr_set.get()->length), 4 + 4 + padding);
+            uint16_t real_set_len = ntohs(hdr_set.get()->length);
+            EXPECT_EQ(real_set_len, 4 + 4 + padding);
             SCOPED_TRACE("Set ID " + std::to_string(set_id) + ", padding "
                 + std::to_string(padding) + " byte(s)");
 

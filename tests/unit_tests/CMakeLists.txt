@@ -13,6 +13,8 @@ add_subdirectory(templates)
 add_subdirectory(converters)
 add_subdirectory(parsers)
 add_subdirectory(drec)
+
+unit_tests_register_test(api.cpp)
 # >> Add your new tests or test subdirectories HERE <<
 
 # Enable code coverage target (i.e. make coverage) when appropriate build

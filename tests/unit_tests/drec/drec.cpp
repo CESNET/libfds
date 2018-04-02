@@ -2,10 +2,6 @@
 #include <libfds.h>
 #include <MsgGen.h>
 
-// Unique pointer able to handle IPFIX Set
-using set_uniq = std::unique_ptr<fds_ipfix_set_hdr, decltype(&free)>;
-using uint8_uniq = std::unique_ptr<uint8_t, decltype(&free)>;
-
 int main(int argc, char **argv)
 {
     ::testing::InitGoogleTest(&argc, argv);

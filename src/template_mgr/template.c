@@ -1001,8 +1001,8 @@ fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bo
         tmplt->fields_rev = NULL;
     }
 
-    bool has_reverse = false;
-    bool has_struct = false;
+    bool has_reverse = preserve ? (tmplt->flags & FDS_TEMPLATE_BIFLOW) != 0 : false;
+    bool has_struct =  preserve ? (tmplt->flags & FDS_TEMPLATE_STRUCT) != 0 : false;
     // Ignore reverse (if preserve is enabled and the template is not already labeled as Biflow)
     bool ignore_rev = preserve && !has_reverse;
 
@@ -1012,8 +1012,7 @@ fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bo
     for (uint16_t i = 0; i < fields_cnt; ++i) {
         struct fds_tfield *field_ptr = &tmplt->fields[i];
         if (preserve && field_ptr->def != NULL) {
-            has_reverse = (field_ptr->flags & FDS_TFIELD_REVERSE) ? true : has_reverse;
-            has_struct  = (field_ptr->flags & FDS_TFIELD_STRUCT)  ? true : has_struct;
+            // Skip known fields
             continue;
         }
 
@@ -1025,7 +1024,7 @@ fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bo
         // Find new definition
         const struct fds_iemgr_elem *def_ptr;
         def_ptr = (!iemgr) ? NULL : fds_iemgr_elem_find_id(iemgr, field_ptr->en, field_ptr->id);
-        if (ignore_rev && def_ptr->is_reverse) {
+        if (ignore_rev && def_ptr != NULL && def_ptr->is_reverse) {
             def_ptr = NULL;
         }
 

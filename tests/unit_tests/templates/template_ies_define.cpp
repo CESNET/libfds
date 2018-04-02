@@ -100,22 +100,27 @@ template_create(const ie_template_params &tmplt, const std::vector<struct ie_fie
  * \brief Compare template and expected parameters
  *
  * Check if the flags are the same as expected.
- * \param[in] tmplt  Template parameters
- * \param[in] fields Vector of field parameters
- * \param[in] in Parsed FDS template
+ * \param[in] tmplt   Template parameters
+ * \param[in] fields  Vector of field parameters
+ * \param[in] in      Parsed FDS template
+ * \param[in] reverse Test reverse template fields (biflow template only)
  */
 void
 template_tester(const ie_template_params &tmplt, const std::vector<struct ie_field_params> &fields,
-    uniq_fds_tmplt &in)
+    uniq_fds_tmplt &in, bool reverse = false)
 {
     const struct fds_template *tmplt_rec = in.get();
+    if (reverse && tmplt_rec->fields_rev == nullptr) {
+        FAIL() << "Reverse template fields are not defined!";
+    }
+
     // Check test integrity
     ASSERT_EQ(tmplt_rec->fields_cnt_total, fields.size());
     ASSERT_EQ(tmplt_rec->fields_cnt_scope, tmplt.scope_fields);
 
     for (uint16_t i = 0; i <tmplt_rec->fields_cnt_total; ++i) {
         SCOPED_TRACE("Testing field ID: " + std::to_string(i));
-        const fds_tfield *field = &tmplt_rec->fields[i];
+        const fds_tfield *field = (!reverse) ? &tmplt_rec->fields[i] : &tmplt_rec->fields_rev[i];
         // Check test integrity
         ASSERT_EQ(field->id, fields[i].id);
         ASSERT_EQ(field->en, fields[i].en);
@@ -161,6 +166,8 @@ TEST_F(IEs, StandardFlow)
     // Add definitions
     fds_template_ies_define(aux_template.get(), ie_mgr, false);
     template_tester(tmplt, fields, aux_template);
+    // Biflow should be undefined
+    EXPECT_EQ(aux_template.get()->fields_rev, nullptr);
 }
 
 // Basic biflow template
@@ -192,7 +199,9 @@ TEST_F(IEs, Biflow)
         {152, 29305, 8, flg_rev, FDS_ET_DATE_TIME_MILLISECONDS}, // flowStartMilliseconds (reverse)
         {153, 29305, 8, flg_rev, FDS_ET_DATE_TIME_MILLISECONDS}, // flowEndMilliseconds (reverse)
         {  2, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64},  // packetDeltaCount (reverse)
-        {  1, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64}   // octetDeltaCount (reverse)
+        {  1, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64},  // octetDeltaCount (reverse)
+        // Also add a random field with unknown definition -> should be marked as common
+        { 50, 10000, 4, flg_key, FDS_ET_UNASSIGNED}
     };
 
     uniq_fds_tmplt aux_template(nullptr, &::fds_template_destroy);
@@ -200,6 +209,30 @@ TEST_F(IEs, Biflow)
     // Add definitions
     fds_template_ies_define(aux_template.get(), ie_mgr, false);
     template_tester(tmplt, fields, aux_template);
+
+    // Reverse template (biflow)
+    const std::vector<struct ie_field_params> fields_rev = {
+        // id - en - len - type - flags
+        { 12, 0, 4, flg_key,     FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
+        {  8, 0, 4, flg_key,     FDS_ET_IPV4_ADDRESS}, // sourceIPv4Address
+        { 11, 0, 2, flg_key,     FDS_ET_UNSIGNED_16},  // destinationTransportPort
+        {  7, 0, 2, flg_key,     FDS_ET_UNSIGNED_16},  // sourceTransportPort
+        {  4, 0, 1, flg_key,     FDS_ET_UNSIGNED_8},   // protocolIdentifier
+        {  6, 29305, 1, flg_rev, FDS_ET_UNSIGNED_16},  // tcpControlBits (reverse)
+        {152, 29305, 8, flg_rev, FDS_ET_DATE_TIME_MILLISECONDS}, // flowStartMilliseconds (reverse)
+        {153, 29305, 8, flg_rev, FDS_ET_DATE_TIME_MILLISECONDS}, // flowEndMilliseconds (reverse)
+        {  2, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64},  // packetDeltaCount (reverse)
+        {  1, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64},   // octetDeltaCount (reverse)
+        {  6, 0, 1, flg_comm,    FDS_ET_UNSIGNED_16},  // tcpControlBits
+        {152, 0, 8, flg_comm,    FDS_ET_DATE_TIME_MILLISECONDS}, // flowStartMilliseconds
+        {153, 0, 8, flg_comm,    FDS_ET_DATE_TIME_MILLISECONDS}, // flowEndMilliseconds
+        {  2, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64},  // packetDeltaCount
+        {  1, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64},  // octetDeltaCount
+        // Also add a random field with unknown definition -> should be marked as common
+        { 50, 10000, 4, flg_key, FDS_ET_UNASSIGNED}
+    };
+
+    template_tester(tmplt, fields_rev, aux_template, true);
 }
 
 // Test preservation and removing of all templates
@@ -422,6 +455,7 @@ TEST_F(IEs, addReverse)
     {
         SCOPED_TRACE("Phase I. Without known reverse elements");
         template_tester(tmplt, fields, aux_template);
+        EXPECT_EQ(aux_template.get()->fields_rev, nullptr); // Reverse template undefined
     }
 
     // Prepare new definitions of elements with known reverse elements
@@ -431,10 +465,19 @@ TEST_F(IEs, addReverse)
         // id - en - len - type - flags
         { 8, 0, 4, flg_bkey | FDS_TFIELD_SCOPE, FDS_ET_IPV4_ADDRESS}, // sourceIPv4Address
         {12, 0, 4, flg_bkey | FDS_TFIELD_SCOPE, FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
-        { 2, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64},  // packetDeltaCount
-        { 1, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64},  // octetDeltaCount
+        { 2, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64}, // packetDeltaCount
+        { 1, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64}, // octetDeltaCount
         { 2, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64}, // packetDeltaCount (reverse)
         { 1, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64}  // octetDeltaCount (reverse)
+    };
+    const std::vector<struct ie_field_params> fields_new_rev = {
+        // id - en - len - type - flags
+        {12, 0, 4, flg_bkey | FDS_TFIELD_SCOPE, FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
+        { 8, 0, 4, flg_bkey | FDS_TFIELD_SCOPE, FDS_ET_IPV4_ADDRESS}, // sourceIPv4Address
+        { 2, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64}, // packetDeltaCount (reverse)
+        { 1, 29305, 4, flg_rev, FDS_ET_UNSIGNED_64}, // octetDeltaCount (reverse)
+        { 2, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64}, // packetDeltaCount
+        { 1, 0, 4, flg_comm,    FDS_ET_UNSIGNED_64}  // octetDeltaCount
     };
     tmplt.flags |= FDS_TEMPLATE_BIFLOW;
 
@@ -443,6 +486,8 @@ TEST_F(IEs, addReverse)
     {
         SCOPED_TRACE("Phase II. Added definitions of reverse elements");
         template_tester(tmplt, fields_new, aux_template);
+        EXPECT_NE(aux_template.get()->fields_rev, nullptr); // Reverse template defined
+        template_tester(tmplt, fields_new_rev, aux_template, true);
     }
 
     // Now try to remove definition reverse Information Elements -> flags should be cleared
@@ -451,11 +496,56 @@ TEST_F(IEs, addReverse)
     {
         SCOPED_TRACE("Phase III. Remove definitions of reverse elements");
         template_tester(tmplt, fields, aux_template);
+        EXPECT_EQ(aux_template.get()->fields_rev, nullptr); // Reverse template should be removed
     }
 
     fds_iemgr_destroy(ie_copy);
 }
 
-// TODO: biflow fields should be DEFINED as expected
-//       - reverse direction fields_rev[...]
-//       - do not create biflow if preserve is disabled and ...
+// Add biflow fields as secondary source of fields -> reverse fields should be ignored
+TEST_F(IEs, biflowSecondary)
+{
+    // Create a copy of the manager and remove few reverse elements
+    fds_iemgr_t *ie_copy = fds_iemgr_copy(ie_mgr);
+    ASSERT_NE(ie_copy, nullptr);
+    EXPECT_EQ(fds_iemgr_elem_remove(ie_copy, 29305, 1), FDS_OK);
+    EXPECT_EQ(fds_iemgr_elem_remove(ie_copy, 29305, 2), FDS_OK);
+
+    // Create a test template
+    struct ie_template_params tmplt;
+    tmplt.id = 55000;
+    tmplt.type = FDS_TYPE_TEMPLATE;
+    tmplt.flags = 0;
+    tmplt.scope_fields = 0;
+
+    constexpr fds_template_flag_t flg_comm = FDS_TFIELD_LAST_IE;
+    const std::vector<struct ie_field_params> fields = {
+        // id - en - len - type - flags
+        { 8, 0, 4, flg_comm, FDS_ET_IPV4_ADDRESS}, // sourceIPv4Address
+        {12, 0, 4, flg_comm, FDS_ET_IPV4_ADDRESS}, // destinationIPv4Address
+        { 2, 0, 4, flg_comm, FDS_ET_UNSIGNED_64},  // packetDeltaCount
+        { 1, 0, 4, flg_comm, FDS_ET_UNSIGNED_64},  // octetDeltaCount
+        { 2, 29305, 4, flg_comm, FDS_ET_UNASSIGNED}, // packetDeltaCount <-- unknown here
+        { 1, 29305, 4, flg_comm, FDS_ET_UNASSIGNED}  // octetDeltaCount  <-- unknown here
+    };
+
+    // Create a template and run tests
+    uniq_fds_tmplt aux_template(nullptr, &::fds_template_destroy);
+    template_create(tmplt, fields, aux_template);
+    fds_template_ies_define(aux_template.get(), ie_copy, false); // IEs without biflow
+    {
+        SCOPED_TRACE("Phase I. Without known reverse elements");
+        template_tester(tmplt, fields, aux_template);
+        EXPECT_EQ(aux_template.get()->fields_rev, nullptr); // Reverse template undefined
+    }
+
+    // Add new definitions with reverse elements (use original IE manager)
+    fds_template_ies_define(aux_template.get(), ie_mgr, true); // <-- perform ONLY update of unknown
+    {
+        SCOPED_TRACE("Phase II. Added definitions of reverse elements (should be ignored)");
+        template_tester(tmplt, fields, aux_template);
+        EXPECT_EQ(aux_template.get()->fields_rev, nullptr); // Reverse template still undefined
+    }
+
+    fds_iemgr_destroy(ie_copy);
+}

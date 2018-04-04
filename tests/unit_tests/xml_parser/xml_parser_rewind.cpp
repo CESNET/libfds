@@ -18,8 +18,7 @@ protected:
     fds_xml_t *parser = NULL;
 
     virtual void SetUp() {
-        fds_xml_create(&parser);
-
+        parser = fds_xml_create();
     }
 
     virtual void TearDown(){
@@ -42,7 +41,7 @@ TEST_F(Rewind, valid) {
             "<root>"
             "   <elem>    retezec    </elem>"
             "</root>";
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
     ctx = fds_xml_parse_mem(parser, mem, true);
 
     const struct fds_xml_cont *content_prev;
@@ -71,7 +70,7 @@ TEST_F(Rewind, nested)
             OPTS_NESTED(1, "nested", nested, 0),
             OPTS_END
     };
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_OK);
+    EXPECT_EQ(fds_xml_set_args(parser, args), FDS_OK);
 
     const char *mem =
             "<root>"
@@ -99,7 +98,7 @@ TEST_F(Rewind, over)
             "<root>"
                     "   <elem>    retezec    </elem>"
                     "</root>";
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
     ctx = fds_xml_parse_mem(parser, mem, true);
 
     const struct fds_xml_cont *content_prev;

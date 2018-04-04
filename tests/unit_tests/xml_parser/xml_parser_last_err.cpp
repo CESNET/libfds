@@ -23,9 +23,8 @@ protected:
 
 TEST_F(Last_err, valid)
 {
-    fds_xml_create(&parser);
-    fds_xml_parse_mem(parser, NULL, true);
-
+    parser = fds_xml_create();
+    EXPECT_EQ(fds_xml_parse_mem(parser, NULL, true), nullptr);
     EXPECT_NE(fds_xml_last_err(parser), "No error");
 }
 

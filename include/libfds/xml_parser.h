@@ -39,11 +39,8 @@
  */
 
 /*
- * Implementacni poznamka:
- * - rekurzivni struktury musi byt podporovany (vyžadováno např. v konfiguraci
- *   profilovani toků)
- *   Např.:
- *     <class>
+ * TODO: support recursive structures (required by, for example, profiling)
+ *    <class>
  *		 <name>CLASS A</name>
  *       <subclasses>
  *         <class>
@@ -54,26 +51,52 @@
  *         </class>
  *       <subclasses>
  *     </class>
- *
- * TODO:
- * - Jakym zpusobem budou zajištěna podpora pro "namespace"
- *   U takových položek by šlo použít např. definici jako "ns:name", kde
- *   - "ns" je jmeno pro namespace
- *   - "name" je identifikator polozky
- *   Zde se ale neověřuje řetězec definovany v namespacu
  */
 
-/** TODO zvlast soubor
- * <root>
- *     <timeout>300</timeout>      <- optional
- *     <host proto="TCP">          <- nested & required (1 or more times)
- *         <ip>127.0.0.1</ip>          <- required
- *         <port>4379</port>           <- required
- *     </host>
- * </root>
+/**
+ * \defgroup fds_xml_parser XML parser
+ * \ingroup publicAPIs
+ * \brief Simple XML parser with type and tag occurrence check
  *
- * ///user identification of XML elements
- * enum MODULE_XML {
+ * The main purpose of this parser is to make parsing XML documents easier. Working directly with
+ * libxml2 library is not always easy, therefore, this parser represents simplified interface
+ * with few enhancements over the library.
+ *
+ * User MUST describe an XML document to parser using simple C structures. The description consists
+ * of expected XML elements and attributes, their data type, identification numbers and occurrence
+ * indicators. It allows the parser to check if all requirements are met during parsing so the
+ * user doesn't have to check it manually. To make processing of parsed document easy, all
+ * elements and attributes are mapped to user defined identification numbers. In other words,
+ * the user doesn't have to compare strings or elements or attributes. XML namespaces are ignored.
+ *
+ * Example usage:
+ *
+ * Let's say that we want to parse following document:
+ * \verbatim
+ *   <params>
+ *     <timeout>300</timeout>      <!-- optional -->
+ *     <host proto="TCP">          <!-- nested & required (1 or more times) -->
+ *       <ip>127.0.0.1</ip>        <!-- required -->
+ *       <port>4379</port>         <!-- required -->
+ *     </host>
+ *   </params>
+ * \endverbatim
+ *
+ * We have to describe an XML document structure. First, create a unique identification number
+ * for all elements and arguments (enum module_xml) and describe the the document root (structure
+ * args_main). As you can see the root of the document is called "params" (see OPTS_ROOT)
+ * and consists of 2 children, "timeout" and "host". The timeout is simple element that should
+ * hold unsigned number and it is also optional. To describe this, we use OPTS_ELEM with type
+ * OPTS_UINT and property OPTS_P_OPT. On the other hand, the host is a nested node
+ * (see OPTS_NESTED) with a parameter. Nested structures are described by another document
+ * description structures. In this case, it is called args_host.
+ *
+ * NOTE: if #OPTS_P_OPT or #OPTS_P_MULTI is not defined as an element/attribute option, the parser
+ *   expects that the element must occur exactly once.
+ * NOTE: all structure descriptions MUST be ended with #OPTS_END.
+ *
+ * \code{.c}
+ * enum module_xml {
  *     MODULE_TIMEOUT = 1,
  *     MODULE_HOST,
  *     HOST_PROTO,
@@ -82,29 +105,34 @@
  * };
  *
  * static const struct FDS_XML_ARGS args_host[] = {
- *         OPTS_ROOT("host"),
  *         OPTS_ATTR(HOST_PROTO, "proto", OPTS_T_STRING, 0),
- *         OPTS_ELEM(HOST_IP, "ip", OPTS_T_STRING, 0),
- *         OPTS_ELEM(HOST_PORT, "port", OPTS_T_UINT, 0),
+ *         OPTS_ELEM(HOST_IP,    "ip",    OPTS_T_STRING, 0),
+ *         OPTS_ELEM(HOST_PORT,  "port",  OPTS_T_UINT,   0),
  *         OPTS_END
  * };
  *
  * static const struct fds_xml_args args_main[] = {
  *         OPTS_ROOT("root"),
  *         OPTS_ELEM(MODULE_TIMEOUT, "timeout", OPTS_UINT, OPTS_P_OPT),
- *         OPTS_NESTED(MODULE_HOST, "host", args_host, OPTS_P_MULTI),
+ *         OPTS_NESTED(MODULE_HOST,  "host",    args_host, OPTS_P_MULTI),
  *         OPTS_END
  * };
  *
+ * \endcode
+ *
+ * When the description of the XML document is ready. Is time to use it inside a parser. Here
+ * is an example code that tries to parse the document described above. Note that the function
+ * fds_xml_set_args() takes the description of the root.
+ *
+ * \code{.c}
  * void
  * parse_cfg(const char *cfg) {
- *     fds_xml_parser *parser;
- *
- *     if (fds_xml_create(args_main, &parser) != FDS_XML_OK) {
+ *     fds_xml_parser *parser = fds_xml_create();
+ *     if (!parser) {
  *         // error
  *     }
  *
- *     if(fds_xml_set_args(args_main, parser) != FDS_XML_OK) {
+ *     if (fds_xml_set_args(parser, args_main) != FDS_OK) {
  *         // error
  *     }
  *
@@ -152,6 +180,9 @@
  *         }
  *     }
  * }
+ * \endcode
+ *
+ * @{
  */
 
 #ifndef LIBFDS_XML_PARSER_H
@@ -191,81 +222,67 @@ enum FDS_XML_TYPE {
 
 /**
  * \brief Define a parent element (optional)
- * \param[in] _name_  Name of the element
+ * \param[in] name  Name of the element
  */
-#define OPTS_ROOT(_name_)                                                                          \
-    {                                                                                              \
-        OPTS_C_ROOT, OPTS_T_NONE, 0, _name_, NULL, 0                                               \
-    }
+#define OPTS_ROOT(name) \
+    {OPTS_C_ROOT, OPTS_T_NONE, 0, (name), NULL, 0}
 
 /**
  * \brief Define an XML element
- * \param[in] _id_    User identification of an element
- * \param[in] _name_  Name of the element
- * \param[in] _type_  Data type of the element
- * \param[in] _flags_ Properties
+ * \param[in] id    User identification of an element
+ * \param[in] name  Name of the element
+ * \param[in] type  Data type of the element
+ * \param[in] flags Properties
  */
-#define OPTS_ELEM(_id_, _name_, _type_, _flags_)                                                   \
-    {                                                                                              \
-        OPTS_C_ELEMENT, _type_, _id_, _name_, NULL, _flags_                                        \
-    }
+#define OPTS_ELEM(id, name, type, flags) \
+    {OPTS_C_ELEMENT, (type), (id), (name), NULL, (flags)}
 
 /**
  * \brief Define a text content
- * \param[in] _id_    User identification of the content
- * \param[in] _type_  Data type of the text (usually just string)
- * \param[in] _flags_ Properties
+ * \param[in] id    User identification of the content
+ * \param[in] type  Data type of the text (usually just string)
+ * \param[in] flags Properties
  * \warning There cannot be more than one text context inside an element!
  */
-#define OPTS_TEXT(_id_, _type_, _flags_)                                                           \
-    {                                                                                              \
-        OPTS_C_TEXT, _type_, _id_, NULL, NULL, _flags_                                             \
-    }
+#define OPTS_TEXT(id, type, flags) \
+    {OPTS_C_TEXT, (type), (id), NULL, NULL, (flags)}
 
 /**
  * \brief Define an XML attribute
- * \param[in] _id_    User identification of an attribute
- * \param[in] _name_  Name of the attribute
- * \param[in] _type_  Data type of the attribute
- * \param[in] _flags_ Properties
+ * \param[in] id    User identification of an attribute
+ * \param[in] name  Name of the attribute
+ * \param[in] type  Data type of the attribute
+ * \param[in] flags Properties
  * \warning Flag #OPTS_P_MULTI is not allowed.
  */
-#define OPTS_ATTR(_id_, _name_, _type_, _flags_)                                                   \
-    {                                                                                              \
-        OPTS_C_ATTR, _type_, _id_, _name_, NULL, _flags_                                           \
-    }
+#define OPTS_ATTR(id, name, type, flags) \
+    {OPTS_C_ATTR, (type), (id), (name), NULL, (flags)}
 
 /**
  * \brief Define a nested XML element
- * \param[in] _id_    User identification of an element
- * \param[in] _name_  Name of the element
- * \param[in] _ptr_   Pointer to the description of nested element
- * \param[in] _flags_ Properties
+ * \param[in] id    User identification of an element
+ * \param[in] name  Name of the element
+ * \param[in] ptr   Pointer to the description of nested element
+ * \param[in] flags Properties
  */
-#define OPTS_NESTED(_id_, _name_, _ptr_, _flags_)                                                  \
-    {                                                                                              \
-        OPTS_C_NESTED, OPTS_T_CONTEXT, _id_, _name_, _ptr_, _flags_                                \
-    }
+#define OPTS_NESTED(id, name, ptr, flags) \
+    {OPTS_C_NESTED, OPTS_T_CONTEXT, (id), (name), (ptr), (flags)}
 
 /**
  * \brief Define a raw XML element
- * \param[in] _id_    User identification of an element
- * \param[in] _name_  Name of the element
- * \param[in] _flags_ Properties
+ * \param[in] id    User identification of an element
+ * \param[in] name  Name of the element
+ * \param[in] flags Properties
  */
-#define OPTS_RAW(_id_, _name_, _flags_)                                                            \
-    {                                                                                              \
-        OPTS_C_RAW, OPTS_T_STRING, _id_, _name_, NULL, _flags_                                     \
-    }
+#define OPTS_RAW(id, name, flags) \
+    {OPTS_C_RAW, OPTS_T_STRING, (id), (name), NULL, (flags)}
 
 /**
  * \brief Terminator of a description array of XML elements
  * \warning This element always MUST be last field in the array!
  */
-#define OPTS_END                                                                                   \
-    {                                                                                              \
-        OPTS_C_TERMINATOR, OPTS_T_NONE, 0, NULL, NULL, 0                                           \
-    }
+#define OPTS_END \
+    {OPTS_C_TERMINATOR, OPTS_T_NONE, 0, NULL, NULL, 0}
 
 /**
  * Component properties
@@ -300,26 +317,26 @@ struct fds_xml_cont {
     enum FDS_XML_TYPE type;
     /** Pointer to the value                                                  */
     union {
-        bool val_bool;               /**< Boolean                         */
-        int64_t val_int;             /**< Signed integer                  */
-        uint64_t val_uint;           /**< Unsigned integer                */
-        double val_double;           /**< Double                          */
-        char *ptr_string;            /**< String                          */
-        struct fds_xml_ctx *ptr_ctx; /**< Context of the nested element   */
+        bool val_bool;               /**< Boolean                             */
+        int64_t val_int;             /**< Signed integer                      */
+        uint64_t val_uint;           /**< Unsigned integer                    */
+        double val_double;           /**< Double                              */
+        char *ptr_string;            /**< String                              */
+        struct fds_xml_ctx *ptr_ctx; /**< Context of the nested element       */
     };
 };
 
+/** Internal XML parser type  */
 typedef struct fds_xml fds_xml_t;
+/** Internal XML context type */
 typedef struct fds_xml_ctx fds_xml_ctx_t;
 
 /**
  * \brief Create an XML parser
- * \param[out] parser Pointer to the newly created parser
- * \return On success returns #FDS_OK. Otherwise #FDS_ERR_NOMEM or
- *   #FDS_ERR_FORMAT.
+ * \return Pointer to the newly created parser or NULL (memory allocation error)
  */
-FDS_API int
-fds_xml_create(fds_xml_t **parser);
+FDS_API fds_xml_t *
+fds_xml_create();
 
 /**
  * \brief Destroy an XML parser
@@ -331,41 +348,41 @@ fds_xml_destroy(fds_xml_t *parser);
 /**
  * \brief Check user defined conditions and save opts to parser
  *
- * \param[in]  opts   Pointer to the definition of the root element
  * \param[out] parser Pointer to filled parser
- * \return
+ * \param[in]  opts   Pointer to the XML definition of the root element
+ * \return #FDS_OK on success
+ * \return #FDS_ERR_NOMEM if a memory allocation error has occurred
+ * \return #FDS_ERR_FORMAT if an XML document definition is invalid and an error message is set.
  */
 FDS_API int
-fds_xml_set_args(const struct fds_xml_args *opts, fds_xml_t *parser);
+fds_xml_set_args(fds_xml_t *parser, const struct fds_xml_args *opts);
 
 /**
- * \brief Parse an XML from memory
+ * \brief Parse an XML from a memory
  *
- * After successful document parsing it is guaranteed that all elements have
- * met all required conditions.
+ * After successful document parsing it is guaranteed that all elements have met all required
+ * conditions.
  * \param[in] parser   Parser
  * \param[in] mem      XML configuration
- * \param[in] pedantic If enabled, all unexpected XML elements are considered
- *   as errors. Otherwise unexpected elements are ignored.
+ * \param[in] pedantic If enabled, all unexpected XML elements are considered as errors. Otherwise
+ *   unexpected elements are ignored.
  * \return On success returns a pointer to the context of the root element.
- *   Otherwise returns NULL and an error message is set
- *   (see fds_xml_last_err()).
+ *   Otherwise returns NULL and an error message is set (see fds_xml_last_err()).
  */
 FDS_API fds_xml_ctx_t *
 fds_xml_parse_mem(fds_xml_t *parser, const char *mem, bool pedantic);
 
 /**
- * \brief Parse an XML from file
+ * \brief Parse an XML from a file
  *
- * After successful document parsing it is guaranteed that all elements have
- * met all required conditions.
+ * After successful document parsing it is guaranteed that all elements have met all required
+ * conditions.
  * \param[in] parser   Parser
- * \param[in] mem      XML configuration
- * \param[in] pedantic If enabled, all unexpected XML elements are considered
- *   as errors. Otherwise unexpected elements are ignored.
+ * \param[in] file     XML configuration
+ * \param[in] pedantic If enabled, all unexpected XML elements are considered as errors.
+ *   Otherwise unexpected elements are ignored.
  * \return On success returns a pointer to the context of the root element.
- *   Otherwise returns NULL and an error message is set
- *   (see fds_xml_last_err()).
+ *   Otherwise returns NULL and an error message is set (see fds_xml_last_err()).
  */
 FDS_API fds_xml_ctx_t *
 fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic);
@@ -373,9 +390,9 @@ fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic);
 /**
  * \brief Get the next option
  *
- * The content of the element (with type corresponding to the definition) is
- * filled to the \p content.
- * \param[in]  ctx Parser context
+ * The content of the element (with type corresponding to the definition) is filled to
+ * the \p content.
+ * \param[in]  ctx     Parser context
  * \param[out] content Value of the element (or attribute)
  * \return On success returns FDS_OK.
  *   If all options have been parsed, then returns FDS_EOC.
@@ -386,8 +403,7 @@ fds_xml_next(fds_xml_ctx_t *ctx, const struct fds_xml_cont **content);
 /**
  * \brief Rewind iterator
  *
- * The function resets the iterator position for to the beginnig of the current
- * context.
+ * The function resets the iterator position to the beginning of the current context.
  * \param[in] ctx Parser context
  */
 FDS_API void
@@ -404,5 +420,9 @@ fds_xml_last_err(fds_xml_t *parser);
 #ifdef __cplusplus
 }
 #endif
+
+/**
+ * @}
+ */
 
 #endif // LIBFDS_XML_PARSER_H

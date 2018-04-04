@@ -27,13 +27,14 @@ TEST_F(Destroy, all)
 
 TEST_F(Destroy, valid)
 {
-    EXPECT_EQ(fds_xml_create(&parser), FDS_OK);
+    parser = fds_xml_create();
+    EXPECT_NE(parser, nullptr);
     fds_xml_destroy(parser);
 }
 
 TEST_F(Destroy, nested_context)
 {
-    fds_xml_create(&parser);
+    parser = fds_xml_create();
 
     const struct fds_xml_args nested[] = {
             OPTS_ELEM(2, "name", OPTS_T_DOUBLE, 0),
@@ -44,7 +45,7 @@ TEST_F(Destroy, nested_context)
             OPTS_NESTED(1, "nested", nested, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"

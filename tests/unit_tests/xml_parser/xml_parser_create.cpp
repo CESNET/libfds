@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 class Create : public ::testing::Test
 {
 protected:
-    fds_xml_t *parser = NULL;
+    fds_xml_t *parser;
 
     virtual void TearDown() {
         fds_xml_destroy(parser);
@@ -28,10 +28,5 @@ protected:
 
 TEST_F(Create, all)
 {
-    EXPECT_EQ(fds_xml_create(&parser), FDS_OK);
-}
-
-TEST_F(Create, parser_null)
-{
-    EXPECT_EQ(fds_xml_create(NULL), FDS_ERR_FORMAT);
+    EXPECT_NE(parser = fds_xml_create(), nullptr);
 }

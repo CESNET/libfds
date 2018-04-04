@@ -18,7 +18,7 @@ public:
     const char *err_msg = (const char *) "No error";
 
     virtual void SetUp() {
-        fds_xml_create(&parser);
+        parser = fds_xml_create();
     }
 
     virtual void TearDown() {
@@ -33,7 +33,7 @@ TEST_F(Parse, inputs_null)
             OPTS_ELEM(1, "name", OPTS_T_UINT, 0),
             OPTS_END
     };
-    fds_xml_set_args(opts, parser);
+    fds_xml_set_args(parser, opts);
 
     const char *mem =
             "<root>"
@@ -50,7 +50,7 @@ TEST_F(Parse, xml_file_wrong)
             OPTS_ROOT("root"),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem = "ABCD";
 
@@ -72,7 +72,7 @@ TEST_F(Parse, two_root_nodes)
             OPTS_ROOT("root"),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root></root>"
@@ -94,7 +94,7 @@ TEST_F(Parse, missing_element)
                     "<name>300</name>"
             "</root>";
 
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
     EXPECT_NE(fds_xml_parse_mem(parser, mem, false), (fds_xml_ctx_t *) NULL);
     EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
@@ -107,7 +107,7 @@ TEST_F(Parse, opts_flag)
             OPTS_ELEM(1, "name", OPTS_T_UINT, OPTS_P_OPT),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -132,7 +132,7 @@ TEST_F(Parse, valid)
                 "<name>300</name>"
             "</root>";
 
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
@@ -159,7 +159,7 @@ TEST_F(Parse, one_more_element)
                 "<third>42</third>"
             "</root>";
 
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
     EXPECT_NE(fds_xml_parse_mem(parser, mem, false), (fds_xml_ctx_t *) NULL);
     EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
@@ -181,7 +181,7 @@ TEST_F(Parse, optional)
                     "<opt>2</opt>"
             "</root>";
 
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
     EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
 }
@@ -200,7 +200,7 @@ TEST_F(Parse, no_trim)
             "<root>"
                     "<name>  retezec  </name>"
             "</root>";
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
@@ -226,7 +226,7 @@ TEST_F(Parse, multi)
                     "<name>  retezec  </name>"
                     "<name>  retezec  </name>"
             "</root>";
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
@@ -257,7 +257,7 @@ TEST_F(Parse, no_multi)
                     "<name>  retezec  </name>"
                     "<name>  retezec  </name>"
                     "</root>";
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     EXPECT_EQ(fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
@@ -278,7 +278,7 @@ TEST_F(Parse, text_component)
             "<root>"
             "text component"
             "</root>";
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     EXPECT_NE(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
@@ -302,7 +302,7 @@ TEST_F(Parse, no_text_component)
             "<root>"
             "</root>";
 
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     EXPECT_EQ(ctx = fds_xml_parse_mem(parser, mem, true), (fds_xml_ctx_t *) NULL);
     EXPECT_STRNE(fds_xml_last_err(parser), err_msg);
@@ -318,7 +318,7 @@ TEST_F(Parse, ignore_namespaces)
             OPTS_ELEM(1, "value", OPTS_T_INT, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root xmlns:h=\"http://xmlsoft.org/namespaces.html\">"
@@ -343,7 +343,7 @@ TEST_F(Parse, bool_valid_values)
             OPTS_ELEM(2, "false", OPTS_T_BOOL, OPTS_P_MULTI),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -378,7 +378,7 @@ TEST_F(Parse, bool_wrong_value)
             OPTS_END
     };
 
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -399,7 +399,7 @@ TEST_F(Parse, uint_valid_value)
             OPTS_ELEM(1, "uint", OPTS_T_UINT, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -420,7 +420,7 @@ TEST_F(Parse, uint_text_instead_number)
             OPTS_ELEM(1, "wrong", OPTS_T_UINT, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -441,7 +441,7 @@ TEST_F(Parse, int_valid_value)
             OPTS_ELEM(1, "int", OPTS_T_INT, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -462,7 +462,7 @@ TEST_F(Parse, int_text_instead_number)
             OPTS_ELEM(1, "wrong", OPTS_T_INT, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -483,7 +483,7 @@ TEST_F(Parse, double_valid_value)
             OPTS_ELEM(1, "int", OPTS_T_DOUBLE, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -504,7 +504,7 @@ TEST_F(Parse, double_text_instead_number)
             OPTS_ELEM(1, "wrong", OPTS_T_DOUBLE, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -529,7 +529,7 @@ TEST_F(Parse, properties_valid)
             OPTS_NESTED(1, "nes", nested, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -557,7 +557,7 @@ TEST_F(Parse, properties_not_defined)
             OPTS_NESTED(1, "nes", nested, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -581,7 +581,7 @@ TEST_F(Parse, content_not_defined)
             OPTS_NESTED(1, "nes", nested, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"
@@ -612,7 +612,7 @@ TEST_F(Parse, raw_valid)
                 "</raw>"
             "</root>";
 
-    EXPECT_EQ(fds_xml_set_args(args, parser), FDS_OK);
+    EXPECT_EQ(fds_xml_set_args(parser, args), FDS_OK);
     ctx = fds_xml_parse_mem(parser, mem, true);
 
     EXPECT_EQ(fds_xml_next(ctx, &content), FDS_OK);
@@ -634,7 +634,7 @@ TEST_F(Parse, text_not_defined)
             OPTS_NESTED(1, "nes", nested, 0),
             OPTS_END
     };
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
 
     const char *mem =
             "<root>"

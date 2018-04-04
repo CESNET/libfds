@@ -108,13 +108,13 @@ mtime_save(fds_iemgr_t* mgr, const string& path)
 {
     char* file_path = realpath(path.c_str(), nullptr);
     if (file_path == nullptr) {
-        mgr->err_msg = "Relative path '"+path+ "' could not be changed to absolute";
+        mgr->err_msg = "Relative path '" + path + "' could not be changed to absolute";
         return false;
     }
 
     struct stat sb{};
     if (stat(file_path, &sb) != 0) {
-        mgr->err_msg = "Could not read information about the file '" +string(file_path)+ "'";
+        mgr->err_msg = "Could not read information about the file '" + string(file_path) + "'";
         return false;
     }
 
@@ -213,7 +213,7 @@ file_parse(fds_iemgr_t *mgr, fds_xml_t* parser, const char *path)
 {
     auto file = unique_file(fopen(path, "r"), &::fclose);
     if (file == nullptr) {
-        mgr->err_msg = "File '" +string(path)+ "' could not be found";
+        mgr->err_msg = "File '" + string(path) + "' could not be found!";
         return false;
     }
 
@@ -269,9 +269,9 @@ dir_read(fds_iemgr_t* mgr, const char* path, fds_xml_t* parser, const string& na
 fds_xml_t *
 parser_create(fds_iemgr_t* mgr)
 {
-    fds_xml_t *parser = nullptr;
-    if (fds_xml_create(&parser) != FDS_OK) {
-        mgr->err_msg = "No memory for creating a parser in fds_iemgr_read_dir";
+    fds_xml_t *parser = fds_xml_create();
+    if (!parser) {
+        mgr->err_msg = "No memory for creating an XML parser!";
         return nullptr;
     }
 
@@ -303,7 +303,7 @@ parser_create(fds_iemgr_t* mgr)
         OPTS_END
     };
 
-    if (fds_xml_set_args(args_main, parser) != FDS_OK) {
+    if (fds_xml_set_args(parser, args_main) != FDS_OK) {
         mgr->err_msg = fds_xml_last_err(parser);
         fds_xml_destroy(parser);
         return nullptr;
@@ -509,7 +509,7 @@ fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, uint32_t pen, uint16_t id, uint16_t
 
     auto scope = binary_find(mgr->pens, pen);
     if (scope == nullptr) {
-        mgr->err_msg = "Scope with PEN '" +to_string(pen)+ "' cannot be found.";
+        mgr->err_msg = "Scope with PEN '" + to_string(pen) + "' cannot be found.";
         return FDS_ERR_NOTFOUND;
     }
     if (scope->head.biflow_mode != FDS_BF_INDIVIDUAL) {
@@ -519,12 +519,12 @@ fds_iemgr_elem_add_reverse(fds_iemgr_t *mgr, uint32_t pen, uint16_t id, uint16_t
 
     auto elem = binary_find(scope->ids, id);
     if (elem == nullptr) {
-        mgr->err_msg = "Element with ID '" +to_string(id)+ "' cannot be found.";
+        mgr->err_msg = "Element with ID '" + to_string(id) + "' cannot be found.";
         return FDS_ERR_NOTFOUND;
     }
 
     if (elem->reverse_elem != nullptr && !overwrite) {
-        mgr->err_msg = "Element with ID '" +to_string(id)+ "' already has reverse element.";
+        mgr->err_msg = "Element with ID '" + to_string(id) + "' already has reverse element.";
         return FDS_ERR_FORMAT;
     }
 

@@ -19,7 +19,7 @@ protected:
     fds_xml_t *parser = NULL;
 
     virtual void SetUp() {
-        fds_xml_create(&parser);
+        parser = fds_xml_create();
     }
 
     virtual void TearDown() {
@@ -48,7 +48,7 @@ TEST_F(Next, not_same)
                     "<elem1>retezec</elem1>"
                     "<elem2>True</elem2>"
             "</root>";
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
     ctx = fds_xml_parse_mem(parser, mem, true);
 
     const struct fds_xml_cont *content_prev;
@@ -74,7 +74,7 @@ TEST_F(Next, last)
                 "<elem1>retezec</elem1>"
             "</root>";
 
-    fds_xml_set_args(args, parser);
+    fds_xml_set_args(parser, args);
     ctx = fds_xml_parse_mem(parser, mem, true);
 
     const struct fds_xml_cont *content;

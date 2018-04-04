@@ -82,28 +82,18 @@ struct attributes {
 /** Return value when some elements are cyclically nested */
 #define FDS_XML_NESTED (-4)
 
-/**
- * Create parser
- *
- * \param[out] parser Created parser
- * \return Ok on success, otherwise Err
- */
-int
-fds_xml_create(fds_xml_t **parser)
+fds_xml_t *
+fds_xml_create()
 {
+    fds_xml *parser = new (std::nothrow) fds_xml;
     if (parser == nullptr) {
-        return FDS_ERR_FORMAT;
+        return nullptr;
     }
 
-    *parser = new (std::nothrow) fds_xml;
-    if (*parser == nullptr) {
-        return FDS_ERR_NOMEM;
-    }
+    parser->ctx = nullptr;
+    parser->opts = nullptr;
 
-    (*parser)->ctx = nullptr;
-    (*parser)->opts = nullptr;
-
-    return FDS_OK;
+    return parser;
 }
 
 /**
@@ -129,11 +119,6 @@ destroy_context(fds_xml_ctx *ctx)
     delete ctx;
 }
 
-/**
- * Destroy XML parser.
- *
- * \param[in] parser Parser to destroy.
- */
 void
 fds_xml_destroy(fds_xml_t *parser)
 {
@@ -226,13 +211,13 @@ check_common(const fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
 
     // ID
     if (opt.id < 0) {
-        parser->error_msg = "Wrong ID of element " + get_type(&opt);
+        parser->error_msg = "Wrong ID of element '" + get_type(&opt) + "'";
         return FDS_ERR_FORMAT;
     }
 
     // each element must have unique ID
     if (opt.id != 0 && attr.ids.find(opt.id) != attr.ids.end()) { // founded
-        parser->error_msg = "ID of element " + get_type(&opt) + " is previously used";
+        parser->error_msg = "ID of element '" + get_type(&opt) + "' is previously used";
         return FDS_ERR_FORMAT;
     }
     if (opt.id != 0) {
@@ -241,7 +226,7 @@ check_common(const fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
 
     // FLAGS
     if (opt.flags < 0) {
-        parser->error_msg = "Wrong flags of element " + get_type(&opt);
+        parser->error_msg = "Wrong flags of element '" + get_type(&opt) + "̈́'";
         return FDS_ERR_FORMAT;
     }
 
@@ -252,7 +237,7 @@ check_common(const fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
 
     // NAME
     if (opt.name == nullptr) {
-        parser->error_msg = "Name of the " + get_type(&opt) + " is missing";
+        parser->error_msg = "Name of the '" + get_type(&opt) + "' is missing";
         return FDS_ERR_FORMAT;
     }
 
@@ -277,7 +262,7 @@ check_root(const struct fds_xml_args opt, fds_xml_t *parser, struct attributes &
     }
 
     if (opt.type != OPTS_T_NONE) {
-        parser->error_msg = "Root element " + get_type(&opt) + " must have type OPTS_T_NONE";
+        parser->error_msg = "Root element '" + get_type(&opt) + "' must have type OPTS_T_NONE";
         return FDS_ERR_FORMAT;
     }
 
@@ -591,7 +576,8 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
             ret = check_raw(opts[i], parser, names, attr);
             break;
         case OPTS_C_ROOT:
-            parser->error_msg = get_type(&opts[i]) + " should be only on beginning of args";
+            parser->error_msg = "'" + get_type(&opts[i]) + "' should be only on beginning of "
+                "arguments";
             return FDS_ERR_FORMAT;
         default:
             parser->error_msg = "Wrong definition of arg component in args with root '"
@@ -615,17 +601,11 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
     return FDS_OK;
 }
 
-/**
- * Take all conditions defined by user and check if are true
- *
- * \param[in, out]  opts   All elements. Must exist all the time. (when parsing, etc.)
- * \param[out] parser Parsed elements for another usage.
- * \return OK if conditions are true, else format error, or memory error.
- */
 int
-fds_xml_set_args(const fds_xml_args *opts, fds_xml_t *parser)
+fds_xml_set_args(fds_xml_t *parser, const struct fds_xml_args *opts)
 {
-    if (opts == nullptr || parser == nullptr) {
+    if (opts == nullptr) {
+        parser->error_msg = "XML options are not specified!";
         return FDS_ERR_FORMAT;
     }
 
@@ -643,7 +623,7 @@ fds_xml_set_args(const fds_xml_args *opts, fds_xml_t *parser)
     try {
         ret = check_all(opts+1, parser, attr);
     } catch (...) {
-        parser->error_msg = "Memory allocation problem";
+        parser->error_msg = "Memory allocation error";
         return FDS_ERR_NOMEM;
     }
     if (ret != FDS_OK) {
@@ -652,7 +632,6 @@ fds_xml_set_args(const fds_xml_args *opts, fds_xml_t *parser)
     }
 
     parser->opts = opts;
-
     return FDS_OK;
 }
 
@@ -1329,14 +1308,6 @@ ctx_parse(fds_xml_t *parser, unique_doc conf, bool pedantic)
     return ctx;
 }
 
-/**
- * Check XML file with user defined conditions and parse it to better form.
- *
- * \param[in] parser   User defined conditions.
- * \param[in] mem      Part of XML file.
- * \param[in] pedantic Strictly compare conditions.
- * \return Context with saved elements on success, otherwise nullptr.
- */
 fds_xml_ctx_t *
 fds_xml_parse_mem(fds_xml_t *parser, const char *mem, bool pedantic)
 {
@@ -1375,21 +1346,13 @@ fds_xml_parse_mem(fds_xml_t *parser, const char *mem, bool pedantic)
     return ctx;
 }
 
-/**
- * Check XML file with user defined conditions and parse it to better form.
- *
- * \param[in] parser   User defined conditions.
- * \param[in] file     File descriptor
- * \param[in] pedantic Strictly compare conditions.
- * \return Context with saved elements on success, otherwise nullptr.
- */
 fds_xml_ctx_t *
 fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic)
 {
     if (parser == nullptr)
         return nullptr;
     if (file == nullptr) {
-        parser->error_msg = "FILE points to nullptr";
+        parser->error_msg = "FILE points to nullptr!";
         return nullptr;
     }
 
@@ -1402,7 +1365,7 @@ fds_xml_parse_file(fds_xml_t *parser, FILE *file, bool pedantic)
     // create new parser context (multi thread safety)
     unique_ctx xmlCtx(xmlNewParserCtxt(), &::xmlFreeParserCtxt);
     if (xmlCtx == nullptr || !parser->error_msg.empty()) {
-        parser->error_msg = "Failed to create context";
+        parser->error_msg = "Failed to create context!";
         return nullptr;
     }
 
@@ -1438,11 +1401,6 @@ fds_xml_next(fds_xml_ctx_t *ctx, const struct fds_xml_cont **content)
     return FDS_OK;
 }
 
-/**
- * Reset index to 0, recursively
- *
- * \param[in,out] ctx In which context
- */
 void
 fds_xml_rewind(fds_xml_ctx_t *ctx)
 {
@@ -1460,12 +1418,6 @@ fds_xml_rewind(fds_xml_ctx_t *ctx)
     ctx->index = 0;
 }
 
-/**
- * Get last error.
- *
- * \param[in] parser Error from which parser.
- * \return Error message.
- */
 const char *
 fds_xml_last_err(fds_xml_t *parser)
 {

@@ -1,10 +1,10 @@
 /**
  * \author Lukas Hutak <lukas.hutak@cesnet.cz>
  * \brief  Simple XML parser (header file)
- * \date   2017
+ * \date   2017-2018
  */
 
-/* Copyright (C) 2017 CESNET, z.s.p.o.
+/* Copyright (C) 2017-2018 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,7 +87,7 @@
  * args_main). As you can see the root of the document is called "params" (see OPTS_ROOT)
  * and consists of 2 children, "timeout" and "host". The timeout is simple element that should
  * hold unsigned number and it is also optional. To describe this, we use OPTS_ELEM with type
- * OPTS_UINT and property OPTS_P_OPT. On the other hand, the host is a nested node
+ * OPTS_T_UINT and property OPTS_P_OPT. On the other hand, the host is a nested node
  * (see OPTS_NESTED) with a parameter. Nested structures are described by another document
  * description structures. In this case, it is called args_host.
  *
@@ -103,17 +103,15 @@
  *     HOST_IP,
  *     HOST_PORT
  * };
- *
- * static const struct FDS_XML_ARGS args_host[] = {
+ * static const struct fds_xml_args args_host[] = {
  *         OPTS_ATTR(HOST_PROTO, "proto", OPTS_T_STRING, 0),
  *         OPTS_ELEM(HOST_IP,    "ip",    OPTS_T_STRING, 0),
  *         OPTS_ELEM(HOST_PORT,  "port",  OPTS_T_UINT,   0),
  *         OPTS_END
  * };
- *
  * static const struct fds_xml_args args_main[] = {
- *         OPTS_ROOT("root"),
- *         OPTS_ELEM(MODULE_TIMEOUT, "timeout", OPTS_UINT, OPTS_P_OPT),
+ *         OPTS_ROOT("params"),
+ *         OPTS_ELEM(MODULE_TIMEOUT, "timeout", OPTS_T_UINT, OPTS_P_OPT),
  *         OPTS_NESTED(MODULE_HOST,  "host",    args_host, OPTS_P_MULTI),
  *         OPTS_END
  * };
@@ -126,45 +124,10 @@
  *
  * \code{.c}
  * void
- * parse_cfg(const char *cfg) {
- *     fds_xml_parser *parser = fds_xml_create();
- *     if (!parser) {
- *         // error
- *     }
- *
- *     if (fds_xml_set_args(parser, args_main) != FDS_OK) {
- *         // error
- *     }
- *
- *     fds_xml_ctx_t *ctx = fds_xml_parse(parser, cfg, true);
- *     if (ctx == NULL) {
- *         // error
- *     }
- *
- *     struct fds_xml_cont content;
- *     while(fds_xml_next(ctx, &content) != FDS_XML_EOC) {
- *         switch (content.id) {
- *         case MODULE_TIMEOUT:
- *             // do something
- *             break;
- *         case MODULE_HOST:
- *             // nested
- *             parse_host(content.ptr_ctx);
- *             break;
- *         default:
- *             // unexpected element
- *             break;
- *         }
- *     }
- *
- *     fds_xml_destroy(parser);
- * }
- *
- * void
  * parse_host(fds_xml_ctx_t *ctx) {
- *     struct fds_xml_cont content;
- *     while(fds_xml_next(ctx, &content) != FDS_XML_EOC) {
- *         switch (content.id) {
+ *     const struct fds_xml_cont *content;
+ *     while(fds_xml_next(ctx, &content) != FDS_EOC) {
+ *         switch (content->id) {
  *         case HOST_PROTO:
  *             // do something
  *             break;
@@ -179,6 +142,37 @@
  *             break;
  *         }
  *     }
+ * }
+ *
+ * void
+ * parse_cfg(const char *cfg) {
+ *     fds_xml_t *parser = fds_xml_create();
+ *     if (!parser) {
+ *         // error
+ *     }
+ *     if (fds_xml_set_args(parser, args_main) != FDS_OK) {
+ *         // error
+ *     }
+ *     fds_xml_ctx_t *ctx = fds_xml_parse_mem(parser, cfg, true);
+ *     if (ctx == NULL) {
+ *         // error
+ *     }
+ *     const struct fds_xml_cont *content;
+ *     while(fds_xml_next(ctx, &content) != FDS_EOC) {
+ *         switch (content->id) {
+ *         case MODULE_TIMEOUT:
+ *             // do something
+ *             break;
+ *         case MODULE_HOST:
+ *             // nested
+ *             parse_host(content->ptr_ctx);
+ *             break;
+ *         default:
+ *             // unexpected element
+ *             break;
+ *         }
+ *     }
+ *     fds_xml_destroy(parser);
  * }
  * \endcode
  *

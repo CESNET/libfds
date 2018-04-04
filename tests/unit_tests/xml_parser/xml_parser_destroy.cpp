@@ -37,13 +37,13 @@ TEST_F(Destroy, nested_context)
     parser = fds_xml_create();
 
     const struct fds_xml_args nested[] = {
-            OPTS_ELEM(2, "name", OPTS_T_DOUBLE, 0),
-            OPTS_END
+            FDS_OPTS_ELEM(2, "name", FDS_OPTS_T_DOUBLE, 0),
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_NESTED(1, "nested", nested, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_NESTED(1, "nested", nested, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 

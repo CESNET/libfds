@@ -29,9 +29,9 @@ public:
 TEST_F(Parse, inputs_null)
 {
     const struct fds_xml_args opts[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "name", OPTS_T_UINT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "name", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, opts);
 
@@ -47,8 +47,8 @@ TEST_F(Parse, inputs_null)
 TEST_F(Parse, xml_file_wrong)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -69,8 +69,8 @@ TEST_F(Parse, parser_opts_not_set)
 TEST_F(Parse, two_root_nodes)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -85,8 +85,8 @@ TEST_F(Parse, two_root_nodes)
 TEST_F(Parse, missing_element)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_END
     };
 
     const char *mem =
@@ -103,9 +103,9 @@ TEST_F(Parse, missing_element)
 TEST_F(Parse, opts_flag)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "name", OPTS_T_UINT, OPTS_P_OPT),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "name", FDS_OPTS_T_UINT, FDS_OPTS_P_OPT),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -123,9 +123,9 @@ TEST_F(Parse, valid)
     fds_xml_ctx *ctx;
 
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "name", OPTS_T_UINT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "name", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_END
     };
     const char *mem =
             "<root>"
@@ -139,17 +139,17 @@ TEST_F(Parse, valid)
     EXPECT_NE(fds_xml_next(ctx, &content), FDS_EOC);
 
     EXPECT_EQ(content->id, 1);
-    EXPECT_EQ(content->type, OPTS_T_UINT);
+    EXPECT_EQ(content->type, FDS_OPTS_T_UINT);
     EXPECT_EQ(content->val_uint, (uint64_t) 300);
 }
 
 TEST_F(Parse, one_more_element)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "name", OPTS_T_UINT, 0),
-            OPTS_ELEM(2, "second", OPTS_T_STRING, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "name", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_ELEM(2, "second", FDS_OPTS_T_STRING, 0),
+            FDS_OPTS_END
     };
 
     const char *mem =
@@ -168,10 +168,10 @@ TEST_F(Parse, one_more_element)
 TEST_F(Parse, optional)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "name", OPTS_T_UINT, 0),
-            OPTS_ELEM(2, "opt", OPTS_T_UINT, OPTS_P_OPT),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "name", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_ELEM(2, "opt", FDS_OPTS_T_UINT, FDS_OPTS_P_OPT),
+            FDS_OPTS_END
     };
 
     const char *mem =
@@ -191,9 +191,9 @@ TEST_F(Parse, no_trim)
     fds_xml_ctx *ctx;
     const struct fds_xml_cont *content;
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "name", OPTS_T_STRING, OPTS_P_NOTRIM),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "name", FDS_OPTS_T_STRING, FDS_OPTS_P_NOTRIM),
+            FDS_OPTS_END
     };
 
     const char *mem =
@@ -207,7 +207,7 @@ TEST_F(Parse, no_trim)
     EXPECT_NE(fds_xml_next(ctx, &content), FDS_EOC);
 
     EXPECT_EQ(content->id, 1);
-    EXPECT_EQ(content->type, OPTS_T_STRING);
+    EXPECT_EQ(content->type, FDS_OPTS_T_STRING);
     EXPECT_STREQ(content->ptr_string, "  retezec  ");
 }
 
@@ -216,9 +216,9 @@ TEST_F(Parse, multi)
     fds_xml_ctx *ctx;
     const struct fds_xml_cont *content;
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "name", OPTS_T_STRING, OPTS_P_MULTI),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "name", FDS_OPTS_T_STRING, FDS_OPTS_P_MULTI),
+            FDS_OPTS_END
     };
 
     const char *mem =
@@ -234,22 +234,22 @@ TEST_F(Parse, multi)
     // first elem
     EXPECT_NE(fds_xml_next(ctx, &content), FDS_EOC);
     EXPECT_EQ(content->id, 1);
-    EXPECT_EQ(content->type, OPTS_T_STRING);
+    EXPECT_EQ(content->type, FDS_OPTS_T_STRING);
     EXPECT_STREQ(content->ptr_string, "retezec");
 
     // second elem
     EXPECT_NE(fds_xml_next(ctx, &content), FDS_EOC);
     EXPECT_EQ(content->id, 1);
-    EXPECT_EQ(content->type, OPTS_T_STRING);
+    EXPECT_EQ(content->type, FDS_OPTS_T_STRING);
     EXPECT_STREQ(content->ptr_string, "retezec");
 }
 
 TEST_F(Parse, no_multi)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "name", OPTS_T_STRING, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "name", FDS_OPTS_T_STRING, 0),
+            FDS_OPTS_END
     };
 
     const char *mem =
@@ -269,9 +269,9 @@ TEST_F(Parse, text_component)
     const struct fds_xml_cont *content;
 
     const struct fds_xml_args args[] {
-            OPTS_ROOT("root"),
-            OPTS_TEXT(1, OPTS_T_STRING, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_TEXT(1, FDS_OPTS_T_STRING, 0),
+            FDS_OPTS_END
     };
 
     const char *mem =
@@ -293,9 +293,9 @@ TEST_F(Parse, no_text_component)
     fds_xml_ctx_t *ctx;
 
     const struct fds_xml_args args[] {
-            OPTS_ROOT("root"),
-            OPTS_TEXT(1, OPTS_T_STRING, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_TEXT(1, FDS_OPTS_T_STRING, 0),
+            FDS_OPTS_END
     };
 
     const char *mem =
@@ -314,9 +314,9 @@ TEST_F(Parse, ignore_namespaces)
     const fds_xml_cont *cont;
 
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "value", OPTS_T_INT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "value", FDS_OPTS_T_INT, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -338,10 +338,10 @@ TEST_F(Parse, bool_valid_values)
     const struct fds_xml_cont *content;
 
     const struct fds_xml_args args[] {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "true", OPTS_T_BOOL, OPTS_P_MULTI),
-            OPTS_ELEM(2, "false", OPTS_T_BOOL, OPTS_P_MULTI),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "true", FDS_OPTS_T_BOOL, FDS_OPTS_P_MULTI),
+            FDS_OPTS_ELEM(2, "false", FDS_OPTS_T_BOOL, FDS_OPTS_P_MULTI),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -373,9 +373,9 @@ TEST_F(Parse, bool_valid_values)
 TEST_F(Parse, bool_wrong_value)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "wrong", OPTS_T_BOOL, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "wrong", FDS_OPTS_T_BOOL, 0),
+            FDS_OPTS_END
     };
 
     fds_xml_set_args(parser, args);
@@ -395,9 +395,9 @@ TEST_F(Parse, uint_valid_value)
     const struct fds_xml_cont *content;
 
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "uint", OPTS_T_UINT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "uint", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -416,9 +416,9 @@ TEST_F(Parse, uint_valid_value)
 TEST_F(Parse, uint_text_instead_number)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "wrong", OPTS_T_UINT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "wrong", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -437,9 +437,9 @@ TEST_F(Parse, int_valid_value)
     const struct fds_xml_cont *content;
 
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "int", OPTS_T_INT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "int", FDS_OPTS_T_INT, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -458,9 +458,9 @@ TEST_F(Parse, int_valid_value)
 TEST_F(Parse, int_text_instead_number)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "wrong", OPTS_T_INT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "wrong", FDS_OPTS_T_INT, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -479,9 +479,9 @@ TEST_F(Parse, double_valid_value)
     const struct fds_xml_cont *content;
 
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "int", OPTS_T_DOUBLE, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "int", FDS_OPTS_T_DOUBLE, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -500,9 +500,9 @@ TEST_F(Parse, double_valid_value)
 TEST_F(Parse, double_text_instead_number)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "wrong", OPTS_T_DOUBLE, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "wrong", FDS_OPTS_T_DOUBLE, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -521,13 +521,13 @@ TEST_F(Parse, properties_valid)
     const struct fds_xml_cont *content;
 
     const struct fds_xml_args nested[] = {
-            OPTS_ATTR(2, "attr", OPTS_T_STRING, OPTS_P_NOTRIM),
-            OPTS_END
+            FDS_OPTS_ATTR(2, "attr", FDS_OPTS_T_STRING, FDS_OPTS_P_NOTRIM),
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_NESTED(1, "nes", nested, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_NESTED(1, "nes", nested, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -550,12 +550,12 @@ TEST_F(Parse, properties_valid)
 TEST_F(Parse, properties_not_defined)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_NESTED(1, "nes", nested, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_NESTED(1, "nes", nested, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -574,12 +574,12 @@ TEST_F(Parse, properties_not_defined)
 TEST_F(Parse, content_not_defined)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_NESTED(1, "nes", nested, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_NESTED(1, "nes", nested, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 
@@ -600,9 +600,9 @@ TEST_F(Parse, raw_valid)
     struct fds_xml_ctx *ctx = NULL;
 
     static const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_RAW(1, "raw", 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_RAW(1, "raw", 0),
+            FDS_OPTS_END
     };
 
     const char *mem =
@@ -618,7 +618,7 @@ TEST_F(Parse, raw_valid)
     EXPECT_EQ(fds_xml_next(ctx, &content), FDS_OK);
 
     EXPECT_EQ(content->id, 1);
-    EXPECT_EQ(content->type, OPTS_T_STRING);
+    EXPECT_EQ(content->type, FDS_OPTS_T_STRING);
     EXPECT_STREQ(content->ptr_string, "<raw>   <some_text>asdas</some_text></raw>");
 
     EXPECT_STREQ(fds_xml_last_err(parser), err_msg);
@@ -627,12 +627,12 @@ TEST_F(Parse, raw_valid)
 TEST_F(Parse, text_not_defined)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_NESTED(1, "nes", nested, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_NESTED(1, "nes", nested, 0),
+            FDS_OPTS_END
     };
     fds_xml_set_args(parser, args);
 

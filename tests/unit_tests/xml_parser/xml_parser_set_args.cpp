@@ -27,13 +27,13 @@ protected:
 TEST_F(Set_args, working)
 {
     static const struct fds_xml_args nested[] = {
-            OPTS_ELEM(2, "na", OPTS_T_INT, 0),
-            OPTS_END
+            FDS_OPTS_ELEM(2, "na", FDS_OPTS_T_INT, 0),
+            FDS_OPTS_END
     };
     static const fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_NESTED(1, "name", nested, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_NESTED(1, "name", nested, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_OK);
@@ -47,8 +47,8 @@ TEST_F(Set_args, opts_null)
 TEST_F(Set_args, no_root)
 {
     const fds_xml_args args_main[] = {
-            OPTS_ELEM(1, "timeout", OPTS_T_INT, 0),
-            OPTS_END
+            FDS_OPTS_ELEM(1, "timeout", FDS_OPTS_T_INT, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args_main), FDS_ERR_FORMAT);
@@ -58,8 +58,8 @@ TEST_F(Set_args, no_root)
 TEST_F(Set_args, root_context_type)
 {
     const struct fds_xml_args args[] = {
-            {OPTS_C_ROOT, OPTS_T_CONTEXT, 0, "root", NULL, 0},
-            OPTS_END
+            {FDS_OPTS_C_ROOT, FDS_OPTS_T_CONTEXT, 0, "root", NULL, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -69,8 +69,8 @@ TEST_F(Set_args, root_context_type)
 TEST_F(Set_args, root_uint_type)
 {
     const struct fds_xml_args args[] = {
-            {OPTS_C_ROOT, OPTS_T_UINT, 0, "root", NULL, 0},
-            OPTS_END
+            {FDS_OPTS_C_ROOT, FDS_OPTS_T_UINT, 0, "root", NULL, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -80,8 +80,8 @@ TEST_F(Set_args, root_uint_type)
 TEST_F(Set_args, root_negative_id)
 {
     const struct fds_xml_args args[] = {
-            {OPTS_C_ROOT, OPTS_T_NONE, -1, "root", NULL, 0},
-            OPTS_END
+            {FDS_OPTS_C_ROOT, FDS_OPTS_T_NONE, -1, "root", NULL, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -91,8 +91,8 @@ TEST_F(Set_args, root_negative_id)
 TEST_F(Set_args, root_no_name)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT(NULL),
-            OPTS_END
+            FDS_OPTS_ROOT(NULL),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -102,9 +102,9 @@ TEST_F(Set_args, root_no_name)
 TEST_F(Set_args, root_two_same_name)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ROOT("root"),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -114,11 +114,11 @@ TEST_F(Set_args, root_two_same_name)
 TEST_F(Set_args, root_nested)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            {OPTS_C_ROOT, OPTS_T_NONE, 1, "root", nested, 0},
-            OPTS_END
+            {FDS_OPTS_C_ROOT, FDS_OPTS_T_NONE, 1, "root", nested, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -128,8 +128,8 @@ TEST_F(Set_args, root_nested)
 TEST_F(Set_args, root_set_flags)
 {
     const struct fds_xml_args args[] = {
-            {OPTS_C_ROOT, OPTS_T_NONE, 1, "root", NULL, OPTS_P_MULTI},
-            OPTS_END
+            {FDS_OPTS_C_ROOT, FDS_OPTS_T_NONE, 1, "root", NULL, FDS_OPTS_P_MULTI},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -139,9 +139,9 @@ TEST_F(Set_args, root_set_flags)
 TEST_F(Set_args, elem_wrong_type)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "name", OPTS_T_CONTEXT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "name", FDS_OPTS_T_CONTEXT, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -151,9 +151,9 @@ TEST_F(Set_args, elem_wrong_type)
 TEST_F(Set_args, elem_negative_id)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(-1, "name", OPTS_T_CONTEXT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(-1, "name", FDS_OPTS_T_CONTEXT, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -163,9 +163,9 @@ TEST_F(Set_args, elem_negative_id)
 TEST_F(Set_args, elem_no_name)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, NULL, OPTS_T_NONE, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, NULL, FDS_OPTS_T_NONE, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -175,12 +175,12 @@ TEST_F(Set_args, elem_no_name)
 TEST_F(Set_args, elem_nested)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_ELEMENT, OPTS_T_UINT, 1, "root", nested, OPTS_P_MULTI},
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_ELEMENT, FDS_OPTS_T_UINT, 1, "root", nested, FDS_OPTS_P_MULTI},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -190,9 +190,9 @@ TEST_F(Set_args, elem_nested)
 TEST_F(Set_args, elem_negative_flags)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_ELEMENT, OPTS_T_UINT, 1, "root", NULL, -1},
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_ELEMENT, FDS_OPTS_T_UINT, 1, "root", NULL, -1},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -202,10 +202,10 @@ TEST_F(Set_args, elem_negative_flags)
 TEST_F(Set_args, elem_same_def)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "elem", OPTS_T_UINT, 0),
-            OPTS_ELEM(2, "elem", OPTS_T_UINT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "elem", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_ELEM(2, "elem", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -215,10 +215,10 @@ TEST_F(Set_args, elem_same_def)
 TEST_F(Set_args, elem_same_ids)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "elem2", OPTS_T_UINT, 0),
-            OPTS_ELEM(1, "elem1", OPTS_T_UINT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "elem2", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_ELEM(1, "elem1", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -228,9 +228,9 @@ TEST_F(Set_args, elem_same_ids)
 TEST_F(Set_args, attr_wrong_type)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ATTR(1, "name", OPTS_T_NONE, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ATTR(1, "name", FDS_OPTS_T_NONE, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -240,9 +240,9 @@ TEST_F(Set_args, attr_wrong_type)
 TEST_F(Set_args, attr_negative_id)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ATTR(-1, "name", OPTS_T_NONE, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ATTR(-1, "name", FDS_OPTS_T_NONE, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -252,9 +252,9 @@ TEST_F(Set_args, attr_negative_id)
 TEST_F(Set_args, attr_no_name)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ATTR(1, NULL, OPTS_T_UINT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ATTR(1, NULL, FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -264,10 +264,10 @@ TEST_F(Set_args, attr_no_name)
 TEST_F(Set_args, attr_same_name)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ATTR(1, "name", OPTS_T_UINT, 0),
-            OPTS_ATTR(2, "name", OPTS_T_UINT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ATTR(1, "name", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_ATTR(2, "name", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -277,9 +277,9 @@ TEST_F(Set_args, attr_same_name)
 TEST_F(Set_args, attr_multi_flag)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ATTR(1, "name", OPTS_T_UINT, OPTS_P_MULTI),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ATTR(1, "name", FDS_OPTS_T_UINT, FDS_OPTS_P_MULTI),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -289,12 +289,12 @@ TEST_F(Set_args, attr_multi_flag)
 TEST_F(Set_args, attr_nested)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_ATTR, OPTS_T_UINT, 1, "name", nested, 0},
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_ATTR, FDS_OPTS_T_UINT, 1, "name", nested, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -304,8 +304,8 @@ TEST_F(Set_args, attr_nested)
 TEST_F(Set_args, end_wrong_type)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_TERMINATOR, OPTS_T_INT, 0, NULL, NULL, 0},
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_TERMINATOR, FDS_OPTS_T_INT, 0, NULL, NULL, 0},
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -315,8 +315,8 @@ TEST_F(Set_args, end_wrong_type)
 TEST_F(Set_args, end_negative_id)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_TERMINATOR, OPTS_T_NONE, -1, NULL, NULL, 0},
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_TERMINATOR, FDS_OPTS_T_NONE, -1, NULL, NULL, 0},
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -326,8 +326,8 @@ TEST_F(Set_args, end_negative_id)
 TEST_F(Set_args, end_with_name)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_TERMINATOR, OPTS_T_NONE, -1, "name", NULL, 0},
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_TERMINATOR, FDS_OPTS_T_NONE, -1, "name", NULL, 0},
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -337,11 +337,11 @@ TEST_F(Set_args, end_with_name)
 TEST_F(Set_args, end_nested)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_TERMINATOR, OPTS_T_UINT, 1, "name", nested, 0},
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_TERMINATOR, FDS_OPTS_T_UINT, 1, "name", nested, 0},
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -351,8 +351,8 @@ TEST_F(Set_args, end_nested)
 TEST_F(Set_args, end_set_flags)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_TERMINATOR, OPTS_T_UINT, 1, NULL, NULL, OPTS_P_MULTI},
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_TERMINATOR, FDS_OPTS_T_UINT, 1, NULL, NULL, FDS_OPTS_P_MULTI},
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -362,7 +362,7 @@ TEST_F(Set_args, end_set_flags)
 TEST_F(Set_args, end_on_first_place)
 {
     const struct fds_xml_args args[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -372,9 +372,9 @@ TEST_F(Set_args, end_on_first_place)
 TEST_F(Set_args, text_wrong_type)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_TEXT(1, OPTS_T_CONTEXT, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_TEXT(1, FDS_OPTS_T_CONTEXT, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -384,9 +384,9 @@ TEST_F(Set_args, text_wrong_type)
 TEST_F(Set_args, text_negative_id)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_TEXT(-1, OPTS_T_STRING, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_TEXT(-1, FDS_OPTS_T_STRING, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -396,9 +396,9 @@ TEST_F(Set_args, text_negative_id)
 TEST_F(Set_args, text_with_name)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_TEXT, OPTS_T_STRING, 1, "name", NULL, 0},
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_TEXT, FDS_OPTS_T_STRING, 1, "name", NULL, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -408,12 +408,12 @@ TEST_F(Set_args, text_with_name)
 TEST_F(Set_args, text_nested)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_TEXT, OPTS_T_STRING, 1, NULL, nested, 0},
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_TEXT, FDS_OPTS_T_STRING, 1, NULL, nested, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -423,10 +423,10 @@ TEST_F(Set_args, text_nested)
 TEST_F(Set_args, text_same_def)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_TEXT(1, OPTS_T_STRING, 0),
-            OPTS_TEXT(2, OPTS_T_STRING, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_TEXT(1, FDS_OPTS_T_STRING, 0),
+            FDS_OPTS_TEXT(2, FDS_OPTS_T_STRING, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -436,12 +436,12 @@ TEST_F(Set_args, text_same_def)
 TEST_F(Set_args, nested_wrong_type)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_NESTED, OPTS_T_UINT, 1, "name", nested, 0},
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_NESTED, FDS_OPTS_T_UINT, 1, "name", nested, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -451,12 +451,12 @@ TEST_F(Set_args, nested_wrong_type)
 TEST_F(Set_args, nested_negative_id)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_NESTED, OPTS_T_CONTEXT, -1, "name", nested, 0},
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_NESTED, FDS_OPTS_T_CONTEXT, -1, "name", nested, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -466,12 +466,12 @@ TEST_F(Set_args, nested_negative_id)
 TEST_F(Set_args, nested_no_name)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_NESTED(1, NULL, nested, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_NESTED(1, NULL, nested, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -481,9 +481,9 @@ TEST_F(Set_args, nested_no_name)
 TEST_F(Set_args, nested_no_next)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_NESTED(1, "name", NULL, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_NESTED(1, "name", NULL, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -493,13 +493,13 @@ TEST_F(Set_args, nested_no_next)
 TEST_F(Set_args, nested_same_name)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_NESTED(1, "name", nested, 0),
-            OPTS_NESTED(2, "name", nested, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_NESTED(1, "name", nested, 0),
+            FDS_OPTS_NESTED(2, "name", nested, 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -511,14 +511,14 @@ TEST_F(Set_args, nested_cyclic)
     struct fds_xml_args main_args[4];
 
     struct fds_xml_args nested[] = {
-            OPTS_NESTED(2, "args", main_args, 0),
-            OPTS_END
+            FDS_OPTS_NESTED(2, "args", main_args, 0),
+            FDS_OPTS_END
     };
 
-    main_args[0] = OPTS_ROOT("root");
-    main_args[1] = OPTS_ELEM(4, "name", OPTS_T_STRING, 0);
-    main_args[2] = OPTS_NESTED(1, "nested", nested, 0);
-    main_args[3] = OPTS_END;
+    main_args[0] = FDS_OPTS_ROOT("root");
+    main_args[1] = FDS_OPTS_ELEM(4, "name", FDS_OPTS_T_STRING, 0);
+    main_args[2] = FDS_OPTS_NESTED(1, "nested", nested, 0);
+    main_args[3] = FDS_OPTS_END;
 
     EXPECT_EQ(fds_xml_set_args(parser, main_args), FDS_OK);
     EXPECT_STREQ(fds_xml_last_err(parser), "No error");
@@ -527,9 +527,9 @@ TEST_F(Set_args, nested_cyclic)
 TEST_F(Set_args, raw_wrong_type)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_RAW, OPTS_T_UINT, 1, "name", NULL, 0},
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_RAW, FDS_OPTS_T_UINT, 1, "name", NULL, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -539,9 +539,9 @@ TEST_F(Set_args, raw_wrong_type)
 TEST_F(Set_args, raw_negative_id)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_RAW, OPTS_T_STRING, -1, "name", NULL, 0},
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_RAW, FDS_OPTS_T_STRING, -1, "name", NULL, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -551,9 +551,9 @@ TEST_F(Set_args, raw_negative_id)
 TEST_F(Set_args, raw_no_name)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_RAW(1, NULL, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_RAW(1, NULL, 0),
+            FDS_OPTS_END
     };
 
 
@@ -564,10 +564,10 @@ TEST_F(Set_args, raw_no_name)
 TEST_F(Set_args, raw_same_name)
 {
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_RAW(1, "name", 0),
-            OPTS_RAW(2, "name", 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_RAW(1, "name", 0),
+            FDS_OPTS_RAW(2, "name", 0),
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);
@@ -577,13 +577,13 @@ TEST_F(Set_args, raw_same_name)
 TEST_F(Set_args, raw_nested)
 {
     const struct fds_xml_args nested[] = {
-            OPTS_END
+            FDS_OPTS_END
     };
 
     const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            {OPTS_C_RAW, OPTS_T_STRING, 1, "name", nested, 0},
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            {FDS_OPTS_C_RAW, FDS_OPTS_T_STRING, 1, "name", nested, 0},
+            FDS_OPTS_END
     };
 
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_ERR_FORMAT);

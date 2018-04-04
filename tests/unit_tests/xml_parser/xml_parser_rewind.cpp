@@ -33,9 +33,9 @@ TEST_F(Rewind, ctx_null)
 
 TEST_F(Rewind, valid) {
     static const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "elem", OPTS_T_STRING, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "elem", FDS_OPTS_T_STRING, 0),
+            FDS_OPTS_END
     };
     const char *mem =
             "<root>"
@@ -62,13 +62,13 @@ TEST_F(Rewind, nested)
     const fds_xml_cont *cont;
 
     static const struct fds_xml_args nested[] = {
-            OPTS_ELEM(2, "name", OPTS_T_UINT, 0),
-            OPTS_END
+            FDS_OPTS_ELEM(2, "name", FDS_OPTS_T_UINT, 0),
+            FDS_OPTS_END
     };
     static const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_NESTED(1, "nested", nested, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_NESTED(1, "nested", nested, 0),
+            FDS_OPTS_END
     };
     EXPECT_EQ(fds_xml_set_args(parser, args), FDS_OK);
 
@@ -90,9 +90,9 @@ TEST_F(Rewind, nested)
 TEST_F(Rewind, over)
 {
     static const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "elem", OPTS_T_STRING, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "elem", FDS_OPTS_T_STRING, 0),
+            FDS_OPTS_END
     };
     const char *mem =
             "<root>"

@@ -84,16 +84,16 @@
  *
  * We have to describe an XML document structure. First, create a unique identification number
  * for all elements and arguments (enum module_xml) and describe the the document root (structure
- * args_main). As you can see the root of the document is called "params" (see OPTS_ROOT)
+ * args_main). As you can see the root of the document is called "params" (see FDS_OPTS_ROOT)
  * and consists of 2 children, "timeout" and "host". The timeout is simple element that should
- * hold unsigned number and it is also optional. To describe this, we use OPTS_ELEM with type
- * OPTS_T_UINT and property OPTS_P_OPT. On the other hand, the host is a nested node
- * (see OPTS_NESTED) with a parameter. Nested structures are described by another document
+ * hold unsigned number and it is also optional. To describe this, we use FDS_OPTS_ELEM with type
+ * FDS_OPTS_T_UINT and property FDS_OPTS_P_OPT. On the other hand, the host is a nested node
+ * (see FDS_OPTS_NESTED) with a parameter. Nested structures are described by another document
  * description structures. In this case, it is called args_host.
  *
- * NOTE: if #OPTS_P_OPT or #OPTS_P_MULTI is not defined as an element/attribute option, the parser
- *   expects that the element must occur exactly once.
- * NOTE: all structure descriptions MUST be ended with #OPTS_END.
+ * NOTE: if #FDS_OPTS_P_OPT or #FDS_OPTS_P_MULTI is not defined as an element/attribute option,
+ *   the parser expects that the element must occur exactly once.
+ * NOTE: all structure descriptions MUST be ended with #FDS_OPTS_END.
  *
  * \code{.c}
  * enum module_xml {
@@ -104,16 +104,16 @@
  *     HOST_PORT
  * };
  * static const struct fds_xml_args args_host[] = {
- *         OPTS_ATTR(HOST_PROTO, "proto", OPTS_T_STRING, 0),
- *         OPTS_ELEM(HOST_IP,    "ip",    OPTS_T_STRING, 0),
- *         OPTS_ELEM(HOST_PORT,  "port",  OPTS_T_UINT,   0),
- *         OPTS_END
+ *         FDS_OPTS_ATTR(HOST_PROTO, "proto", FDS_OPTS_T_STRING, 0),
+ *         FDS_OPTS_ELEM(HOST_IP,    "ip",    FDS_OPTS_T_STRING, 0),
+ *         FDS_OPTS_ELEM(HOST_PORT,  "port",  FDS_OPTS_T_UINT,   0),
+ *         FDS_OPTS_END
  * };
  * static const struct fds_xml_args args_main[] = {
- *         OPTS_ROOT("params"),
- *         OPTS_ELEM(MODULE_TIMEOUT, "timeout", OPTS_T_UINT, OPTS_P_OPT),
- *         OPTS_NESTED(MODULE_HOST,  "host",    args_host, OPTS_P_MULTI),
- *         OPTS_END
+ *         FDS_OPTS_ROOT("params"),
+ *         FDS_OPTS_ELEM(MODULE_TIMEOUT, "timeout", FDS_OPTS_T_UINT, FDS_OPTS_P_OPT),
+ *         FDS_OPTS_NESTED(MODULE_HOST,  "host",    args_host,       FDS_OPTS_P_MULTI),
+ *         FDS_OPTS_END
  * };
  *
  * \endcode
@@ -193,33 +193,33 @@ extern "C" {
 #include <libfds/api.h>
 
 /** XML Documents component                                                   */
-enum FDS_XML_COMP {
-    OPTS_C_ROOT,       /**< Root element identification                     */
-    OPTS_C_ELEMENT,    /**< Simple element (no attributes and no children)  */
-    OPTS_C_ATTR,       /**< Attribute                                       */
-    OPTS_C_TEXT,       /**< Text content                                    */
-    OPTS_C_NESTED,     /**< Nested element (allows attributes + children)   */
-    OPTS_C_TERMINATOR, /**< Input termination (internal type)               */
-    OPTS_C_RAW         /**< Raw content of an element                       */
+enum fds_opts_comp {
+    FDS_OPTS_C_ROOT,       /**< Root element identification                     */
+    FDS_OPTS_C_ELEMENT,    /**< Simple element (no attributes and no children)  */
+    FDS_OPTS_C_ATTR,       /**< Attribute                                       */
+    FDS_OPTS_C_TEXT,       /**< Text content                                    */
+    FDS_OPTS_C_NESTED,     /**< Nested element (allows attributes + children)   */
+    FDS_OPTS_C_TERMINATOR, /**< Input termination (internal type)               */
+    FDS_OPTS_C_RAW         /**< Raw content of an element                       */
 };
 
 /** Data type of an XML element (or attribute)                                */
-enum FDS_XML_TYPE {
-    OPTS_T_NONE,   /**< Invalid type (for internal use only)            */
-    OPTS_T_BOOL,   /**< Boolean (true/false, yes/no, 1/0)               */
-    OPTS_T_INT,    /**< Signed integer                                  */
-    OPTS_T_UINT,   /**< Unsigned integer                                */
-    OPTS_T_DOUBLE, /**< Double                                          */
-    OPTS_T_STRING, /**< String                                          */
-    OPTS_T_CONTEXT /**< Context of a nested element                     */
+enum fds_opts_type {
+    FDS_OPTS_T_NONE,   /**< Invalid type (for internal use only)            */
+    FDS_OPTS_T_BOOL,   /**< Boolean (true/false, yes/no, 1/0)               */
+    FDS_OPTS_T_INT,    /**< Signed integer                                  */
+    FDS_OPTS_T_UINT,   /**< Unsigned integer                                */
+    FDS_OPTS_T_DOUBLE, /**< Double                                          */
+    FDS_OPTS_T_STRING, /**< String                                          */
+    FDS_OPTS_T_CONTEXT /**< Context of a nested element                     */
 };
 
 /**
  * \brief Define a parent element (optional)
  * \param[in] name  Name of the element
  */
-#define OPTS_ROOT(name) \
-    {OPTS_C_ROOT, OPTS_T_NONE, 0, (name), NULL, 0}
+#define FDS_OPTS_ROOT(name) \
+    {FDS_OPTS_C_ROOT, FDS_OPTS_T_NONE, 0, (name), NULL, 0}
 
 /**
  * \brief Define an XML element
@@ -228,8 +228,8 @@ enum FDS_XML_TYPE {
  * \param[in] type  Data type of the element
  * \param[in] flags Properties
  */
-#define OPTS_ELEM(id, name, type, flags) \
-    {OPTS_C_ELEMENT, (type), (id), (name), NULL, (flags)}
+#define FDS_OPTS_ELEM(id, name, type, flags) \
+    {FDS_OPTS_C_ELEMENT, (type), (id), (name), NULL, (flags)}
 
 /**
  * \brief Define a text content
@@ -238,8 +238,8 @@ enum FDS_XML_TYPE {
  * \param[in] flags Properties
  * \warning There cannot be more than one text context inside an element!
  */
-#define OPTS_TEXT(id, type, flags) \
-    {OPTS_C_TEXT, (type), (id), NULL, NULL, (flags)}
+#define FDS_OPTS_TEXT(id, type, flags) \
+    {FDS_OPTS_C_TEXT, (type), (id), NULL, NULL, (flags)}
 
 /**
  * \brief Define an XML attribute
@@ -247,10 +247,10 @@ enum FDS_XML_TYPE {
  * \param[in] name  Name of the attribute
  * \param[in] type  Data type of the attribute
  * \param[in] flags Properties
- * \warning Flag #OPTS_P_MULTI is not allowed.
+ * \warning Flag #FDS_OPTS_P_MULTI is not allowed.
  */
-#define OPTS_ATTR(id, name, type, flags) \
-    {OPTS_C_ATTR, (type), (id), (name), NULL, (flags)}
+#define FDS_OPTS_ATTR(id, name, type, flags) \
+    {FDS_OPTS_C_ATTR, (type), (id), (name), NULL, (flags)}
 
 /**
  * \brief Define a nested XML element
@@ -259,8 +259,8 @@ enum FDS_XML_TYPE {
  * \param[in] ptr   Pointer to the description of nested element
  * \param[in] flags Properties
  */
-#define OPTS_NESTED(id, name, ptr, flags) \
-    {OPTS_C_NESTED, OPTS_T_CONTEXT, (id), (name), (ptr), (flags)}
+#define FDS_OPTS_NESTED(id, name, ptr, flags) \
+    {FDS_OPTS_C_NESTED, FDS_OPTS_T_CONTEXT, (id), (name), (ptr), (flags)}
 
 /**
  * \brief Define a raw XML element
@@ -268,55 +268,56 @@ enum FDS_XML_TYPE {
  * \param[in] name  Name of the element
  * \param[in] flags Properties
  */
-#define OPTS_RAW(id, name, flags) \
-    {OPTS_C_RAW, OPTS_T_STRING, (id), (name), NULL, (flags)}
+#define FDS_OPTS_RAW(id, name, flags) \
+    {FDS_OPTS_C_RAW, FDS_OPTS_T_STRING, (id), (name), NULL, (flags)}
 
 /**
  * \brief Terminator of a description array of XML elements
  * \warning This element always MUST be last field in the array!
  */
-#define OPTS_END \
-    {OPTS_C_TERMINATOR, OPTS_T_NONE, 0, NULL, NULL, 0}
+#define FDS_OPTS_END \
+    {FDS_OPTS_C_TERMINATOR, FDS_OPTS_T_NONE, 0, NULL, NULL, 0}
 
 /**
  * Component properties
  *
- * By default, an XML element is requried exactly once in the context of its
- * occurrence. This can be modified using #OPTS_P_OPT and/or #OPTS_P_MULTI.
- * For example, 0 - N occurrences can be reached using combination of flags
- * (OPTS_P_OPT | OPTS_P_MULTI)
+ * By default, an XML element is required exactly once in the context of its occurrence.
+ * This can be modified using #FDS_OPTS_P_OPT and/or #FDS_OPTS_P_MULTI. For example,
+ * 0 - N occurrences can be reached using combination of flags (FDS_OPTS_P_OPT | FDS_OPTS_P_MULTI)
  */
-enum FDS_XML_FLAG {
-    OPTS_P_OPT = 1,   /**< Optional occurrence (zero or one occurrence)      */
-    OPTS_P_MULTI = 2, /**< Allow multiple occurrences of the same element    */
-    OPTS_P_NOTRIM = 4 /**< Do not trim leading and tailing whitespaces before
-                        *  conversion/processing                             */
+enum fds_opts_properties {
+    /** Optional occurrence (zero or one occurrence)                                  */
+    FDS_OPTS_P_OPT = 1,
+    /** Allow multiple occurrences of the same element (one or more)                  */
+    FDS_OPTS_P_MULTI = 2,
+    /** Do not trim leading and tailing whitespaces before conversion/processing      */
+    FDS_OPTS_P_NOTRIM = 4
 };
 
-/** Internal description of XML elements, attributes, etc.                    */
+/** Internal description of XML elements, attributes, etc.                            */
 struct fds_xml_args {
-    enum FDS_XML_COMP comp;          /**< Type of component                  */
-    enum FDS_XML_TYPE type;          /**< Data type                          */
-    int id;                          /**< User identification of an element  */
-    const char *name;                /**< XML name of the element            */
-    const struct fds_xml_args *next; /**< Pointer to the nested structure    */
-    int flags;                       /**< Properties                         */
+    enum fds_opts_comp comp;         /**< Type of component                           */
+    enum fds_opts_type type;         /**< Data type                                   */
+    int id;                          /**< User identification of an element           */
+    const char *name;                /**< XML name of the element                     */
+    const struct fds_xml_args *next; /**< Pointer to the nested structure             */
+    int flags;                       /**< Properties                                  */
 };
 
-/** Description of a parsed element                                           */
+/** Description of a parsed element                                                    */
 struct fds_xml_cont {
-    /** User identification of the element                                    */
+    /** User identification of the element                                             */
     int id;
-    /** Data type of the value                                                */
-    enum FDS_XML_TYPE type;
-    /** Pointer to the value                                                  */
+    /** Data type of the value                                                         */
+    enum fds_opts_type type;
+    /** Pointer to the value                                                           */
     union {
-        bool val_bool;               /**< Boolean                             */
-        int64_t val_int;             /**< Signed integer                      */
-        uint64_t val_uint;           /**< Unsigned integer                    */
-        double val_double;           /**< Double                              */
-        char *ptr_string;            /**< String                              */
-        struct fds_xml_ctx *ptr_ctx; /**< Context of the nested element       */
+        bool val_bool;               /**< Boolean                                      */
+        int64_t val_int;             /**< Signed integer                               */
+        uint64_t val_uint;           /**< Unsigned integer                             */
+        double val_double;           /**< Double                                       */
+        char *ptr_string;            /**< String                                       */
+        struct fds_xml_ctx *ptr_ctx; /**< Context of the nested element                */
     };
 };
 

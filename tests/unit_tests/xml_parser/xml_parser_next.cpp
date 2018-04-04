@@ -37,10 +37,10 @@ TEST_F(Next, all_null)
 TEST_F(Next, not_same)
 {
     static const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "elem1", OPTS_T_STRING, 0),
-            OPTS_ELEM(2, "elem2", OPTS_T_BOOL, OPTS_P_OPT),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "elem1", FDS_OPTS_T_STRING, 0),
+            FDS_OPTS_ELEM(2, "elem2", FDS_OPTS_T_BOOL, FDS_OPTS_P_OPT),
+            FDS_OPTS_END
     };
 
     const char *mem =
@@ -64,9 +64,9 @@ TEST_F(Next, not_same)
 TEST_F(Next, last)
 {
     static const struct fds_xml_args args[] = {
-            OPTS_ROOT("root"),
-            OPTS_ELEM(1, "elem1", OPTS_T_STRING, 0),
-            OPTS_END
+            FDS_OPTS_ROOT("root"),
+            FDS_OPTS_ELEM(1, "elem1", FDS_OPTS_T_STRING, 0),
+            FDS_OPTS_END
     };
 
     const char *mem =

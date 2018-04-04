@@ -109,9 +109,9 @@ destroy_context(fds_xml_ctx *ctx)
     }
 
     for (auto const &cont : ctx->cont) {
-        if (cont.type == OPTS_T_CONTEXT) {
+        if (cont.type == FDS_OPTS_T_CONTEXT) {
             destroy_context(cont.ptr_ctx);
-        } else if (cont.type == OPTS_T_STRING) {
+        } else if (cont.type == FDS_OPTS_T_STRING) {
             delete[] cont.ptr_string;
         }
     }
@@ -146,24 +146,26 @@ get_type(const fds_xml_args *opt)
     std::string res; // result
 
     switch (opt->comp) {
-    case OPTS_C_ROOT:
-        res = "OPTS_ROOT";
+    case FDS_OPTS_C_ROOT:
+        res = "FDS_OPTS_ROOT";
         break;
-    case OPTS_C_ELEMENT:
-        res = "OPTS_ELEM";
+    case FDS_OPTS_C_ELEMENT:
+        res = "FDS_OPTS_ELEM";
         break;
-    case OPTS_C_ATTR:
-        res = "OPTS_ATTR";
+    case FDS_OPTS_C_ATTR:
+        res = "FDS_OPTS_ATTR";
         break;
-    case OPTS_C_TEXT:
-        res = "OPTS_TEXT";
+    case FDS_OPTS_C_TEXT:
+        res = "FDS_OPTS_TEXT";
         break;
-    case OPTS_C_NESTED:
-        res = "OPTS_NESTED";
+    case FDS_OPTS_C_NESTED:
+        res = "FDS_OPTS_NESTED";
         break;
-    case OPTS_C_TERMINATOR:
-        res = "OPTS_END";
+    case FDS_OPTS_C_TERMINATOR:
+        res = "FDS_OPTS_END";
         break;
+    case FDS_OPTS_C_RAW:
+        res = "FDS_OPTS_RAW";
     default:
         break;
     }
@@ -231,7 +233,7 @@ check_common(const fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
     }
 
     // don't check name in element text and root
-    if (opt.comp == OPTS_C_TEXT || opt.comp == OPTS_C_ROOT) {
+    if (opt.comp == FDS_OPTS_C_TEXT || opt.comp == FDS_OPTS_C_ROOT) {
         return FDS_OK;
     }
 
@@ -256,13 +258,13 @@ int
 check_root(const struct fds_xml_args opt, fds_xml_t *parser, struct attributes &attr)
 {
     // check if it's really root
-    if (opt.comp != OPTS_C_ROOT) {
+    if (opt.comp != FDS_OPTS_C_ROOT) {
         parser->error_msg = "First element must be root, not " + get_type(&opt);
         return FDS_ERR_FORMAT;
     }
 
-    if (opt.type != OPTS_T_NONE) {
-        parser->error_msg = "Root element '" + get_type(&opt) + "' must have type OPTS_T_NONE";
+    if (opt.type != FDS_OPTS_T_NONE) {
+        parser->error_msg = "Root element '" + get_type(&opt) + "' must have type FDS_OPTS_T_NONE";
         return FDS_ERR_FORMAT;
     }
 
@@ -316,15 +318,15 @@ check_element(
         return FDS_ERR_FORMAT;
     }
 
-    if (opt.type != OPTS_T_UINT && opt.type != OPTS_T_STRING && opt.type != OPTS_T_DOUBLE
-        && opt.type != OPTS_T_BOOL && opt.type != OPTS_T_INT) {
+    if (opt.type != FDS_OPTS_T_UINT && opt.type != FDS_OPTS_T_STRING && opt.type != FDS_OPTS_T_DOUBLE
+        && opt.type != FDS_OPTS_T_BOOL && opt.type != FDS_OPTS_T_INT) {
         parser->error_msg = "Element " + get_type(&opt)
             + " must have one of these following types: \n"
-              "OPTS_T_UINT\n"
-              "OPTS_T_STRING\n"
-              "OPTS_T_DOUBLE\n"
-              "OPTS_T_BOOL\n"
-              "OPTS_T_INT";
+              "FDS_OPTS_T_UINT\n"
+              "FDS_OPTS_T_STRING\n"
+              "FDS_OPTS_T_DOUBLE\n"
+              "FDS_OPTS_T_BOOL\n"
+              "FDS_OPTS_T_INT";
         return FDS_ERR_FORMAT;
     }
 
@@ -353,15 +355,15 @@ check_attr(
         return FDS_ERR_FORMAT;
     }
 
-    if (opt.type != OPTS_T_UINT && opt.type != OPTS_T_STRING && opt.type != OPTS_T_DOUBLE
-        && opt.type != OPTS_T_BOOL && opt.type != OPTS_T_INT) {
+    if (opt.type != FDS_OPTS_T_UINT && opt.type != FDS_OPTS_T_STRING && opt.type != FDS_OPTS_T_DOUBLE
+        && opt.type != FDS_OPTS_T_BOOL && opt.type != FDS_OPTS_T_INT) {
         parser->error_msg = "Element " + get_type(&opt)
             + " must have one of these following types: \n"
-              "OPTS_T_UINT\n"
-              "OPTS_T_STRING\n"
-              "OPTS_T_DOUBLE\n"
-              "OPTS_T_BOOL\n"
-              "OPTS_T_INT";
+              "FDS_OPTS_T_UINT\n"
+              "FDS_OPTS_T_STRING\n"
+              "FDS_OPTS_T_DOUBLE\n"
+              "FDS_OPTS_T_BOOL\n"
+              "FDS_OPTS_T_INT";
         return FDS_ERR_FORMAT;
     }
 
@@ -370,7 +372,7 @@ check_attr(
         return FDS_ERR_FORMAT;
     }
 
-    if ((opt.flags & OPTS_P_MULTI) != 0) {
+    if ((opt.flags & FDS_OPTS_P_MULTI) != 0) {
         parser->error_msg = "Attribute '" + get_type(&opt) + "' cannot have MULTI flag";
         return FDS_ERR_FORMAT;
     }
@@ -410,15 +412,15 @@ check_text(const struct fds_xml_args opt, fds_xml_t *parser, struct attributes &
     }
     attr.text = true;
 
-    if (opt.type != OPTS_T_UINT && opt.type != OPTS_T_STRING && opt.type != OPTS_T_DOUBLE
-        && opt.type != OPTS_T_BOOL && opt.type != OPTS_T_INT) {
+    if (opt.type != FDS_OPTS_T_UINT && opt.type != FDS_OPTS_T_STRING && opt.type != FDS_OPTS_T_DOUBLE
+        && opt.type != FDS_OPTS_T_BOOL && opt.type != FDS_OPTS_T_INT) {
         parser->error_msg = "Element " + get_type(&opt)
             + " must have one of these following types: \n"
-              "OPTS_T_UINT\n"
-              "OPTS_T_STRING\n"
-              "OPTS_T_DOUBLE\n"
-              "OPTS_T_BOOL\n"
-              "OPTS_T_INT";
+              "FDS_OPTS_T_UINT\n"
+              "FDS_OPTS_T_STRING\n"
+              "FDS_OPTS_T_DOUBLE\n"
+              "FDS_OPTS_T_BOOL\n"
+              "FDS_OPTS_T_INT";
         return FDS_ERR_FORMAT;
     }
 
@@ -449,8 +451,8 @@ check_nested(
         return FDS_ERR_FORMAT;
     }
 
-    if (opt.type != OPTS_T_CONTEXT) {
-        parser->error_msg = "Element " + get_type(&opt) + " must have type OPTS_T_CONTEXT";
+    if (opt.type != FDS_OPTS_T_CONTEXT) {
+        parser->error_msg = "Element " + get_type(&opt) + " must have type FDS_OPTS_T_CONTEXT";
         return FDS_ERR_FORMAT;
     }
 
@@ -488,8 +490,8 @@ check_end(const struct fds_xml_args opt, fds_xml_t *parser)
         return FDS_ERR_FORMAT;
     }
 
-    if (opt.type != OPTS_T_NONE) {
-        parser->error_msg = "Element " + get_type(&opt) + " must have type OPTS_T_NONE";
+    if (opt.type != FDS_OPTS_T_NONE) {
+        parser->error_msg = "Element " + get_type(&opt) + " must have type FDS_OPTS_T_NONE";
         return FDS_ERR_FORMAT;
     }
 
@@ -497,7 +499,7 @@ check_end(const struct fds_xml_args opt, fds_xml_t *parser)
 }
 
 /**
- * \brief Check all conditions that must be true for OPTS_C_RAW
+ * \brief Check all conditions that must be true for FDS_OPTS_C_RAW
  * \param[in]     opt    One element
  * \param[in,out] parser Parser
  * \param[in,out] names  Saved names of elements, attributes and their IDs
@@ -525,8 +527,8 @@ check_raw(const struct fds_xml_args opt, fds_xml_t *parser, struct names &names,
         return FDS_ERR_FORMAT;
     }
 
-    if (opt.type != OPTS_T_STRING) {
-        parser->error_msg = "Element " + get_type(&opt) + " must have type OPTS_T_STRING";
+    if (opt.type != FDS_OPTS_T_STRING) {
+        parser->error_msg = "Element " + get_type(&opt) + " must have type FDS_OPTS_T_STRING";
         return FDS_ERR_FORMAT;
     }
 
@@ -550,18 +552,18 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
     int ret;            // return values of case
 
     // go through all elements and check them
-    for (i = 0; opts[i].comp != OPTS_C_TERMINATOR; ++i) {
+    for (i = 0; opts[i].comp != FDS_OPTS_C_TERMINATOR; ++i) {
         switch (opts[i].comp) {
-        case OPTS_C_ELEMENT:
+        case FDS_OPTS_C_ELEMENT:
             ret = check_element(opts[i], parser, names, attr);
             break;
-        case OPTS_C_ATTR:
+        case FDS_OPTS_C_ATTR:
             ret = check_attr(opts[i], parser, names, attr);
             break;
-        case OPTS_C_TEXT:
+        case FDS_OPTS_C_TEXT:
             ret = check_text(opts[i], parser, attr);
             break;
-        case OPTS_C_NESTED:
+        case FDS_OPTS_C_NESTED:
             ret = check_nested(opts[i], parser, names, attr);
             if (ret == FDS_XML_NESTED)
                 return FDS_OK;
@@ -572,17 +574,17 @@ check_all(const struct fds_xml_args *opts, fds_xml_t *parser, struct attributes 
             if (rec != FDS_OK)
                 return rec;
             break;
-        case OPTS_C_RAW:
+        case FDS_OPTS_C_RAW:
             ret = check_raw(opts[i], parser, names, attr);
             break;
-        case OPTS_C_ROOT:
+        case FDS_OPTS_C_ROOT:
             parser->error_msg = "'" + get_type(&opts[i]) + "' should be only on beginning of "
                 "arguments";
             return FDS_ERR_FORMAT;
         default:
             parser->error_msg = "Wrong definition of arg component in args with root '"
                 + std::string(opts->name) + "'\n"
-                + "It's possible that OPTS_END is missing after element '"
+                + "It's possible that FDS_OPTS_END is missing after element '"
                 + std::string(opts[i - 1].name) + "'";
             return FDS_ERR_FORMAT;
         }
@@ -649,7 +651,7 @@ find_arg(const fds_xml_args *opts, const xmlChar *name)
         return nullptr;
     }
 
-    for (int i = 0; opts[i].comp != OPTS_C_TERMINATOR; ++i) {
+    for (int i = 0; opts[i].comp != FDS_OPTS_C_TERMINATOR; ++i) {
         // have same name
         if (xmlStrcmp(name, (const xmlChar *) opts[i].name) == 0) {
             return &opts[i];
@@ -672,8 +674,8 @@ find_text(const fds_xml_args *opt)
         return nullptr;
     }
 
-    for (int i = 0; opt[i].comp != OPTS_C_TERMINATOR; ++i) {
-        if (opt[i].comp == OPTS_C_TEXT) {
+    for (int i = 0; opt[i].comp != FDS_OPTS_C_TERMINATOR; ++i) {
+        if (opt[i].comp == FDS_OPTS_C_TEXT) {
             return &opt[i];
         }
     }
@@ -700,7 +702,7 @@ parse_string(
 
     // save node to content
     cont.id = opt->id;
-    cont.type = OPTS_T_STRING;
+    cont.type = FDS_OPTS_T_STRING;
     cont.ptr_string = res;
 
     // save context
@@ -740,7 +742,7 @@ parse_int(
 
     // save node to content
     cont.id = opt->id;
-    cont.type = OPTS_T_INT;
+    cont.type = FDS_OPTS_T_INT;
     cont.val_int = (int64_t) res;
 
     // save context
@@ -774,7 +776,7 @@ parse_double(
 
     // save node to content
     cont.id = opt->id;
-    cont.type = OPTS_T_DOUBLE;
+    cont.type = FDS_OPTS_T_DOUBLE;
     cont.val_double = res;
 
     // save context
@@ -815,7 +817,7 @@ parse_bool(
 
     // save node to content
     cont.id = opt->id;
-    cont.type = OPTS_T_BOOL;
+    cont.type = FDS_OPTS_T_BOOL;
     cont.val_bool = res;
 
     // save context
@@ -854,7 +856,7 @@ parse_uint(
 
     // save node to content
     cont.id = opt->id;
-    cont.type = OPTS_T_UINT;
+    cont.type = FDS_OPTS_T_UINT;
     cont.val_uint = (uint64_t) res;
 
     // save context
@@ -875,7 +877,7 @@ parse_context(fds_xml_ctx *ctx, const fds_xml_args *opt)
     fds_xml_cont cont{};
 
     cont.id = opt->id;
-    cont.type = OPTS_T_CONTEXT;
+    cont.type = FDS_OPTS_T_CONTEXT;
     cont.ptr_ctx = nullptr;
 
     // save context
@@ -921,32 +923,32 @@ parse_content(
     }
 
     // remove WS if TRIM, don't remove if NOTRIM flag is on
-    if ((opt->flags & OPTS_P_NOTRIM) == 0) {
+    if ((opt->flags & FDS_OPTS_P_NOTRIM) == 0) {
         remove_ws(cur_content);
     }
 
     switch (opt->type) {
-    case OPTS_T_CONTEXT:
+    case FDS_OPTS_T_CONTEXT:
         if (parse_context(ctx, opt) != FDS_OK)
             return FDS_ERR_FORMAT;
         break;
-    case OPTS_T_UINT:
+    case FDS_OPTS_T_UINT:
         if (parse_uint(cur_content, ctx, opt, error_msg) != FDS_OK)
             return FDS_ERR_FORMAT;
         break;
-    case OPTS_T_BOOL:
+    case FDS_OPTS_T_BOOL:
         if (parse_bool(cur_content, ctx, opt, error_msg) != FDS_OK)
             return FDS_ERR_FORMAT;
         break;
-    case OPTS_T_DOUBLE:
+    case FDS_OPTS_T_DOUBLE:
         if (parse_double(cur_content, ctx, opt, error_msg) != FDS_OK)
             return FDS_ERR_FORMAT;
         break;
-    case OPTS_T_INT:
+    case FDS_OPTS_T_INT:
         if (parse_int(cur_content, ctx, opt, error_msg) != FDS_OK)
             return FDS_ERR_FORMAT;
         break;
-    case OPTS_T_STRING:
+    case FDS_OPTS_T_STRING:
         if (parse_string(cur_content, ctx, opt) != FDS_OK)
             return FDS_ERR_FORMAT;
         break;
@@ -992,13 +994,13 @@ parse_raw(xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *opt, std::strin
 int
 parse_all_check(const fds_xml_args *opt, const std::set<int> &ids, std::string &error_msg)
 {
-    for (int i = 0; opt[i].comp != OPTS_C_TERMINATOR; ++i) {
+    for (int i = 0; opt[i].comp != FDS_OPTS_C_TERMINATOR; ++i) {
         if (ids.find(opt[i].id) != ids.end()) {
             continue; // founded
         }
 
         // optional element
-        if ((opt[i].flags & OPTS_P_OPT) != 0) {
+        if ((opt[i].flags & FDS_OPTS_P_OPT) != 0) {
             continue;
         }
 
@@ -1032,7 +1034,7 @@ is_empty(const char *str)
 }
 
 /**
- * \brief Check if element have OPTS_TEXT even when it shouldn't have
+ * \brief Check if element have FDS_OPTS_C_TEXT even when it shouldn't have
  * \param[in]  node      Node
  * \param[in]  opts      Args
  * \param[out] error_msg Error message
@@ -1050,7 +1052,7 @@ have_text(const xmlNodePtr node, const fds_xml_args *opts, std::string& error_ms
         std::string str = std::string((char *) node->content);
         remove_ws(str);
         error_msg = "Line: " +std::to_string(node->line)+
-                    " Element has not defined OPTS_TEXT, text '" +str+ "' is invalid";
+                    " Element has not defined FDS_OPTS_TEXT, text '" +str+ "' is invalid";
         return false;
     }
     return true;
@@ -1122,7 +1124,7 @@ parse_all_contents(const xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *
         }
 
         // only one occurrence
-        if ((opt->flags & OPTS_P_MULTI) == 0) {
+        if ((opt->flags & FDS_OPTS_P_MULTI) == 0) {
             if (ids.find(opt->id) != ids.end()) {
                 error_msg = "Line: " + std::to_string(cur_node->line)
                     + " More than one occurrence of element '"
@@ -1132,7 +1134,7 @@ parse_all_contents(const xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *
         }
 
         // parse element
-        if (opt->comp == OPTS_C_RAW) {
+        if (opt->comp == FDS_OPTS_C_RAW) {
             ret = parse_raw(cur_node, ctx, opt, error_msg);
         } else if (cur_node->children == nullptr) {
             ret = parse_content((xmlChar *) "", ctx, opt, error_msg);
@@ -1145,7 +1147,7 @@ parse_all_contents(const xmlNodePtr node, fds_xml_ctx *ctx, const fds_xml_args *
         ids.insert(opt->id); // save element ID
 
         // NESTED
-        if (opt->comp == OPTS_C_NESTED) {
+        if (opt->comp == FDS_OPTS_C_NESTED) {
             ctx->cont.back().ptr_ctx = parse_all(opt->next, cur_node, pedantic, error_msg);
             if (ctx->cont.back().ptr_ctx == nullptr) {
                 return FDS_ERR_FORMAT;
@@ -1410,7 +1412,7 @@ fds_xml_rewind(fds_xml_ctx_t *ctx)
 
     // rewind nested context
     for (const auto &cont : ctx->cont) {
-        if (cont.type == OPTS_T_CONTEXT) {
+        if (cont.type == FDS_OPTS_T_CONTEXT) {
             fds_xml_rewind(cont.ptr_ctx);
         }
     }

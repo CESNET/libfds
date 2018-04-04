@@ -276,31 +276,31 @@ parser_create(fds_iemgr_t* mgr)
     }
 
     static const struct fds_xml_args args_elem[] = {
-        OPTS_ELEM(ELEM_ID,         "id",            OPTS_T_INT,   0),
-        OPTS_ELEM(ELEM_NAME,       "name",          OPTS_T_STRING, OPTS_P_OPT),
-        OPTS_ELEM(ELEM_DATA_TYPE,  "dataType",      OPTS_T_STRING, OPTS_P_OPT),
-        OPTS_ELEM(ELEM_DATA_SEMAN, "dataSemantics", OPTS_T_STRING, OPTS_P_OPT),
-        OPTS_ELEM(ELEM_DATA_UNIT,  "units",         OPTS_T_STRING, OPTS_P_OPT),
-        OPTS_ELEM(ELEM_STATUS,     "status",        OPTS_T_STRING, OPTS_P_OPT),
-        OPTS_ELEM(ELEM_BIFLOW,     "biflowId",      OPTS_T_INT,   OPTS_P_OPT),
-        OPTS_END
+        FDS_OPTS_ELEM(ELEM_ID,         "id",            FDS_OPTS_T_INT,   0),
+        FDS_OPTS_ELEM(ELEM_NAME,       "name",          FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
+        FDS_OPTS_ELEM(ELEM_DATA_TYPE,  "dataType",      FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
+        FDS_OPTS_ELEM(ELEM_DATA_SEMAN, "dataSemantics", FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
+        FDS_OPTS_ELEM(ELEM_DATA_UNIT,  "units",         FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
+        FDS_OPTS_ELEM(ELEM_STATUS,     "status",        FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
+        FDS_OPTS_ELEM(ELEM_BIFLOW,     "biflowId",      FDS_OPTS_T_INT,   FDS_OPTS_P_OPT),
+        FDS_OPTS_END
     };
     static const struct fds_xml_args args_biflow[] = {
-        OPTS_ATTR(BIFLOW_MODE, "mode", OPTS_T_STRING, 0         ),
-        OPTS_TEXT(BIFLOW_TEXT,         OPTS_T_INT,   OPTS_P_OPT),
-        OPTS_END
+        FDS_OPTS_ATTR(BIFLOW_MODE, "mode", FDS_OPTS_T_STRING, 0         ),
+        FDS_OPTS_TEXT(BIFLOW_TEXT,         FDS_OPTS_T_INT,   FDS_OPTS_P_OPT),
+        FDS_OPTS_END
     };
     static const struct fds_xml_args args_scope[] = {
-        OPTS_ELEM(  SCOPE_PEN,    "pen",    OPTS_T_INT,   0),
-        OPTS_ELEM(  SCOPE_NAME,   "name",   OPTS_T_STRING, OPTS_P_OPT),
-        OPTS_NESTED(SCOPE_BIFLOW, "biflow", args_biflow,   OPTS_P_OPT),
-        OPTS_END
+        FDS_OPTS_ELEM(  SCOPE_PEN,    "pen",    FDS_OPTS_T_INT,   0),
+        FDS_OPTS_ELEM(  SCOPE_NAME,   "name",   FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
+        FDS_OPTS_NESTED(SCOPE_BIFLOW, "biflow", args_biflow,   FDS_OPTS_P_OPT),
+        FDS_OPTS_END
     };
     static const struct fds_xml_args args_main[] = {
-        OPTS_ROOT(         "ipfix-elements"                                      ),
-        OPTS_NESTED(SCOPE, "scope",         args_scope, 0                        ),
-        OPTS_NESTED(ELEM,  "element",       args_elem,  OPTS_P_OPT | OPTS_P_MULTI),
-        OPTS_END
+        FDS_OPTS_ROOT(         "ipfix-elements"                                      ),
+        FDS_OPTS_NESTED(SCOPE, "scope",         args_scope, 0                        ),
+        FDS_OPTS_NESTED(ELEM,  "element",       args_elem,  FDS_OPTS_P_OPT | FDS_OPTS_P_MULTI),
+        FDS_OPTS_END
     };
 
     if (fds_xml_set_args(parser, args_main) != FDS_OK) {

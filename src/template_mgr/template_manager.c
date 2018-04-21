@@ -1208,6 +1208,10 @@ mgr_cleanup(struct fds_tmgr *mgr)
             ptr->link.mgr = NULL;
         }
 
+        // Remove all links from the newest
+        mgr->list.newest->link.older = NULL;
+        assert(mgr->list.newest->link.newer == NULL);
+
         // Modify global pointers
         mgr->list.oldest = mgr->list.newest;
         mgr->list.current = NULL;

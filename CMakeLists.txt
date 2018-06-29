@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 2.8.8)
 project(libfds)
 
 # Description of the project
-set(PROJECT_DESCRIPTION "\
-Flow Data Storage library is set of tools for processing flow records.\
-")
+set(PROJECT_DESCRIPTION
+	"Flow Data Storage library is set of tools for processing flow records."
+)
 
 # Check the platform
 if (NOT UNIX)

@@ -13,10 +13,11 @@ set(CPACK_PACKAGE_VENDOR   "CESNET z.s.p.o.")
 # Short package description
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY  "Flow Data Storage library")
 # Long package description
-set(CPACK_PACKAGE_DESCRIPTION "\
-libfds is library for processing IPFIX and NetFlow v5/v9 flow data. It provides tools \
-for processing records and management of templates and Information Elements.\
-")
+set(CPACK_PACKAGE_DESCRIPTION
+	"libfds is library for processing IPFIX and NetFlow v5/v9 flow data. "
+	"It provides tools for processing records and management of templates "
+	"and Information Elements."
+)
 
 # Create a top level directory in an archive with the same name as the archive
 set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY 1)

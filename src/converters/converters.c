@@ -88,15 +88,36 @@ fds_float2str_be(const void *field, size_t size, char *str, size_t str_size)
         return FDS_ERR_ARG;
     }
 
-    const char *fmt = (size == sizeof(float))
-        ? ("%." FDS_CONVERT_STRX(FLT_DIG) "g")  // float precision
-        : ("%." FDS_CONVERT_STRX(DBL_DIG) "g"); // double precision
-    int str_real_len = snprintf(str, str_size, fmt, result);
-    if (str_real_len < 0 || (size_t) str_real_len >= str_size) {
-        return FDS_ERR_BUFFER;
+    if (isfinite(result)) {
+        const char *fmt = (size == sizeof(float))
+            ? ("%." FDS_CONVERT_STRX(FLT_DIG) "g")  // float precision
+            : ("%." FDS_CONVERT_STRX(DBL_DIG) "g"); // double precision
+        int str_real_len = snprintf(str, str_size, fmt, result);
+        if (str_real_len < 0 || (size_t) str_real_len >= str_size) {
+            return FDS_ERR_BUFFER;
+        }
+
+        return str_real_len;
     }
 
-    return str_real_len;
+    // Only NaN or infinite (strings based on RFC 7373, section 4.4)
+    const char *output;
+    if (isnan(result)) { // Negative not a number doesn't make sense
+        output = "NaN";
+    } else if (isinf(result) == 1) {
+        output = "inf";
+    } else if (isinf(result) == -1) {
+        output = "-inf";
+    } else { // Something went horribly wrong!
+        return FDS_ERR_ARG;
+    }
+
+    const size_t output_len = strlen(output);
+    if (output_len + 1 > str_size) { // +1 == '\0'
+        return FDS_ERR_BUFFER;
+    }
+    strcpy(str, output);
+    return (int) output_len;
 }
 
 int

@@ -1199,7 +1199,7 @@ fds_int2str_be(const void *field, size_t size, char *str, size_t str_size);
  * The \p value is read from a data \p field, converted from
  * the appropriate byte order to host byte order and converted to string.
  * \note Keep in mind that a valid output is also positive and negative
- *   infinity and NaN i.e. "inf", "nan".
+ *   infinity (i.e. "inf"/"-inf") and non a number  (i.e. "NaN")
  *
  * \param[in]  field     Pointer to the data field (in "network byte order")
  * \param[in]  size      Size of the data field (4 or 8 bytes)

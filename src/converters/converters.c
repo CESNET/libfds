@@ -45,6 +45,159 @@
 #include <inttypes.h>   // PRIi64, PRIu32,...
 #include "branchlut2.h"
 
+/**
+ * \brief Datetime wrapper function (from seconds to UTC string)
+ * \param[in]  field     Pointer to the data field (in "network byte order")
+ * \param[in]  size      Size of the data field (in bytes)
+ * \param[out] str       Pointer to an output character buffer
+ * \param[in]  str_size  Size of the output buffer (in bytes)
+ * \return See fds_datetime2str_be()
+ */
+static int
+wrapper_ts_sec_be(const void *field, size_t size, char *str, size_t str_size)
+{
+    return fds_datetime2str_be(field, size, FDS_ET_DATE_TIME_SECONDS, str,
+        str_size, FDS_CONVERT_TF_SEC_UTC);
+}
+
+/**
+ * \brief Datetime wrapper function (from milliseconds to UTC string)
+ * \param[in]  field     Pointer to the data field (in "network byte order")
+ * \param[in]  size      Size of the data field (in bytes)
+ * \param[out] str       Pointer to an output character buffer
+ * \param[in]  str_size  Size of the output buffer (in bytes)
+ * \return See fds_datetime2str_be()
+ */
+static int
+wrapper_ts_msec_be(const void *field, size_t size, char *str, size_t str_size)
+{
+    return fds_datetime2str_be(field, size, FDS_ET_DATE_TIME_MILLISECONDS,
+        str, str_size, FDS_CONVERT_TF_MSEC_UTC);
+}
+
+/**
+ * \brief Datetime wrapper function (from microseconds to UTC string)
+ * \param[in]  field     Pointer to the data field (in "network byte order")
+ * \param[in]  size      Size of the data field (in bytes)
+ * \param[out] str       Pointer to an output character buffer
+ * \param[in]  str_size  Size of the output buffer (in bytes)
+ * \return See fds_datetime2str_be()
+ */
+static int
+wrapper_ts_usec_be(const void *field, size_t size, char *str, size_t str_size)
+{
+    return fds_datetime2str_be(field, size, FDS_ET_DATE_TIME_MICROSECONDS,
+        str, str_size, FDS_CONVERT_TF_USEC_UTC);
+}
+
+/**
+ * \brief Datetime wrapper function (from nanoseconds to UTC string)
+ * \param[in]  field     Pointer to the data field (in "network byte order")
+ * \param[in]  size      Size of the data field (in bytes)
+ * \param[out] str       Pointer to an output character buffer
+ * \param[in]  str_size  Size of the output buffer (in bytes)
+ * \return See fds_datetime2str_be()
+ */
+static int
+wrapper_ts_nsec_be(const void *field, size_t size, char *str, size_t str_size)
+{
+    return fds_datetime2str_be(field, size, FDS_ET_DATE_TIME_NANOSECONDS,
+        str, str_size, FDS_CONVERT_TF_NSEC_UTC);
+}
+
+/**
+ * \brief Boolean wrapper function (from boolean to string)
+ * \param[in]  field     Pointer to the data field
+ * \param[in]  size      Size of the data field (in bytes)
+ * \param[out] str       Pointer to an output character buffer
+ * \param[in]  str_size  Size of the output buffer (in bytes)
+ * \return See fds_bool2str()
+ */
+static int
+wrapper_bool(const void *field, size_t size, char *str, size_t str_size)
+{
+    if (size != 1) {
+        return FDS_ERR_ARG;
+    }
+
+    return fds_bool2str(field, str, str_size);
+}
+
+/**
+ * \brief IPv4 wrapper function (from IPv4 address to string)
+ * \param[in]  field     Pointer to the data field
+ * \param[in]  size      Size of the data field (in bytes)
+ * \param[out] str       Pointer to an output character buffer
+ * \param[in]  str_size  Size of the output buffer (in bytes)
+ * \return See fds_ip2str()
+ */
+static int
+wrapper_ip4(const void *field, size_t size, char *str, size_t str_size)
+{
+    if (size != 4U) {
+        return FDS_ERR_ARG;
+    }
+
+    return fds_ip2str(field, size, str, str_size);
+}
+
+/**
+ * \brief IPv6 wrapper function (from IPv6 address to string)
+ * \param[in]  field     Pointer to the data field
+ * \param[in]  size      Size of the data field (in bytes)
+ * \param[out] str       Pointer to an output character buffer
+ * \param[in]  str_size  Size of the output buffer (in bytes)
+ * \return See fds_ip2str()
+ */
+static int
+wrapper_ip6(const void *field, size_t size, char *str, size_t str_size)
+{
+    if (size != 16U) {
+        return FDS_ERR_ARG;
+    }
+
+    return fds_ip2str(field, size, str, str_size);
+}
+
+int
+fds_field2str_be(const void *field, size_t size,
+    enum fds_iemgr_element_type type, char *str, size_t str_size)
+{
+    typedef int (*converter_fn)(const void *, size_t, char *, size_t);
+
+    // Conversion table, based on types defined by enum fds_iemgr_element_type
+    static const converter_fn table[] = {
+        &fds_octet_array2str,    // FDS_ET_OCTET_ARRAY
+        &fds_uint2str_be,        // FDS_ET_UNSIGNED_8
+        &fds_uint2str_be,        // FDS_ET_UNSIGNED_16
+        &fds_uint2str_be,        // FDS_ET_UNSIGNED_32
+        &fds_uint2str_be,        // FDS_ET_UNSIGNED_64
+        &fds_int2str_be,         // FDS_ET_SIGNED_8
+        &fds_int2str_be,         // FDS_ET_SIGNED_16
+        &fds_int2str_be,         // FDS_ET_SIGNED_32
+        &fds_int2str_be,         // FDS_ET_SIGNED_64
+        &fds_float2str_be,       // FDS_ET_FLOAT_32
+        &fds_float2str_be,       // FDS_ET_FLOAT_64
+        &wrapper_bool,           // FDS_ET_BOOLEAN
+        &fds_mac2str,            // FDS_ET_MAC_ADDRESS
+        &fds_string2str,         // FDS_ET_STRING
+        &wrapper_ts_sec_be,      // FDS_ET_DATE_TIME_SECONDS
+        &wrapper_ts_msec_be,     // FDS_ET_DATE_TIME_MILLISECONDS
+        &wrapper_ts_usec_be,     // FDS_ET_DATE_TIME_MICROSECONDS
+        &wrapper_ts_nsec_be,     // FDS_ET_DATE_TIME_NANOSECONDS
+        &wrapper_ip4,            // FDS_ET_IPV4_ADDRESS
+        &wrapper_ip6             // FDS_ET_IPV6_ADDRESS
+        // Other types (basicList, subTemplateList, etc.) are not supported yet
+    };
+
+    const size_t table_size = sizeof(table) / sizeof(table[0]);
+    if (type >= table_size) {
+        return FDS_ERR_ARG; // Unsupported conversion type
+    }
+
+    return table[type](field, size, str, str_size);
+}
+
 int
 fds_uint2str_be(const void *field, size_t size, char *str, size_t str_size)
 {

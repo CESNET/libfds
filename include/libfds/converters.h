@@ -1150,6 +1150,42 @@ enum fds_convert_time_fmt {
 };
 
 /**
+ * \brief Universal conversion function (from an IPFIX field to a character
+ *   string)
+ *
+ * Convert a value of a user defined data type (in big endian order a.k.a.
+ * network byte order) to a character string. The \p value is read from
+ * a data \p field and converted from the appropriate byte order and converted
+ * to string. Terminating null byte ('\0') is always added to the string.
+ *
+ * Output format of all data types corresponds to RFC 7373. However, timestamps
+ * always end with "Z" to represent UTC timezone and UTF-8 string are escaped
+ * as described in fds_string2str().
+ *
+ * \note Structured data types (::FDS_ET_BASIC_LIST, ::FDS_ET_SUB_TEMPLATE_LIST,
+ *   ::FDS_ET_SUB_TEMPLATE_MULTILIST) cannot be directly converted to string.
+ *   These abstract data types, defined for IPFIX Structured Data (RFC 6313),
+ *   do not represent actual data types. In case of these types, the function
+ *   returns #FDS_ERR_ARG.
+ *
+ * \param[in]  field    Pointer to a data field (in "network byte order")
+ * \param[in]  size     Size of the data field (in bytes)
+ * \param[in]  type     Data type of the \p field
+ * \param[out] str      Pointer to an output character buffer
+ * \param[in]  str_size Size of the output buffer (in bytes)
+ * \return On success returns a number of characters (excluding the termination
+ *   null byte) placed into the buffer \p str. Therefore, if the result is
+ *   greater that or equal to zero, conversion was successful.
+ * \return #FDS_ERR_BUFFER if the length of the result string (including the
+ *   termination null byte) would exceed \p str_size. The context written to
+ *   the output buffer \p str is undefined.
+ * \return #FDS_ERR_ARG otherwise (typically invalid data format).
+ */
+FDS_API int
+fds_field2str_be(const void *field, size_t size,
+    enum fds_iemgr_element_type type, char *str, size_t str_size);
+
+/**
  * \brief Convert a value of an unsigned integer (in big endian order a.k.a.
  *   network byte order) to a character string
  *
@@ -1163,12 +1199,7 @@ enum fds_convert_time_fmt {
  * \param[in]  size      Size of the data field (in bytes)
  * \param[out] str       Pointer to an output character buffer
  * \param[in]  str_size  Size of the output buffer (in bytes)
- * \return On success returns a number of characters (excluding the termination
- *   null byte) placed into the buffer \p str. Therefore, if the result is
- *   greater than zero, conversion was successful. If the length of the result
- *   string (including the termination null byte) would exceed \p str_size,
- *   then returns #FDS_ERR_BUFFER and the content written to
- *   the buffer \p str is undefined. Otherwise returns #FDS_ERR_ARG.
+ * \return Same as a return value of fds_field2str_be().
  */
 FDS_API int
 fds_uint2str_be(const void *field, size_t size, char *str, size_t str_size);
@@ -1187,7 +1218,7 @@ fds_uint2str_be(const void *field, size_t size, char *str, size_t str_size);
  * \param[in]  size      Size of the data field (in bytes)
  * \param[out] str       Pointer to an output character buffer
  * \param[in]  str_size  Size of the output buffer (in bytes)
- * \return Same as a return value of fds_uint2str_be().
+ * \return Same as a return value of fds_field2str_be().
  */
 FDS_API int
 fds_int2str_be(const void *field, size_t size, char *str, size_t str_size);
@@ -1205,7 +1236,7 @@ fds_int2str_be(const void *field, size_t size, char *str, size_t str_size);
  * \param[in]  size      Size of the data field (4 or 8 bytes)
  * \param[out] str       Pointer to an output character buffer
  * \param[in]  str_size  Size of the output buffer (in bytes)
- * \return Same as a return value of fds_uint2str_be().
+ * \return Same as a return value of fds_field2str_be().
  */
 FDS_API int
 fds_float2str_be(const void *field, size_t size, char *str, size_t str_size);
@@ -1231,7 +1262,7 @@ fds_float2str_be(const void *field, size_t size, char *str, size_t str_size);
  *   #FDS_CONVERT_STRLEN_DATE bytes to guarantee enough size for all conversion
  *   types.
  * \warning Wraparound for dates after 8 February 2036 is not implemented.
- * \return Same as a return value of fds_uint2str_be().
+ * \return Same as a return value of fds_field2str_be().
  */
 FDS_API int
 fds_datetime2str_be(const void *field, size_t size, enum fds_iemgr_element_type type,
@@ -1249,7 +1280,7 @@ fds_datetime2str_be(const void *field, size_t size, enum fds_iemgr_element_type 
  * \remark A size of the \p field is always consider as 1 byte.
  * \remark If the content of the \p field is invalid value, the function
  *   will also return #FDS_ERR_ARG.
- * \return Same as a return value of fds_uint2str_be().
+ * \return Same as a return value of fds_field2str_be().
  */
 FDS_API int
 fds_bool2str(const void *field, char *str, size_t str_size);
@@ -1267,7 +1298,7 @@ fds_bool2str(const void *field, char *str, size_t str_size);
  * \param[in]  size      Size of the data field (4 or 16 bytes)
  * \param[out] str       Pointer to an output character buffer
  * \param[in]  str_size  Size of the output buffer (in bytes)
- * \return Same as a return value of fds_uint2str_be().
+ * \return Same as a return value of fds_field2str_be().
  */
 FDS_API int
 fds_ip2str(const void *field, size_t size, char *str, size_t str_size);
@@ -1288,7 +1319,7 @@ fds_ip2str(const void *field, size_t size, char *str, size_t str_size);
  *   symbols (:), for example: "00:0a:bc:e0:12:34" (without quotation marks)
  * \remark The size of the output buffer (\p str_size) must be at least
  *   #FDS_CONVERT_STRLEN_MAC bytes to guarantee enough size for conversion.
- * \return Same as a return value of fds_uint2str_be().
+ * \return Same as a return value of fds_field2str_be().
  */
 FDS_API int
 fds_mac2str(const void *field, size_t size, char *str, size_t str_size);
@@ -1310,8 +1341,7 @@ fds_mac2str(const void *field, size_t size, char *str, size_t str_size);
  *   hexadecimal representation of one byte.
  * \remark Minimum size of the output buffer (\p str_size) must be at least
  *   (2 * \p size) + 1 bytes.
- * \return Same as a return value of fds_uint2str_be(), but value 0 is also
- *   valid because the original array could be also empty.
+ * \return Same as a return value of fds_field2str_be().
  */
 FDS_API int
 fds_octet_array2str(const void *field, size_t size, char *str, size_t str_size);
@@ -1335,11 +1365,9 @@ fds_octet_array2str(const void *field, size_t size, char *str, size_t str_size);
  *   value).
  * \remark Malformed characters are replaced with UTF-8 "REPLACEMENT CHARACTER"
  * \note Backslash, single and double quotation mark characters and NOT escaped.
- * \return Same as a return value of fds_uint2str_be(), but value 0 is also
- *   valid because the original string could be also empty. In other words,
- *   a positive value represents number of bytes (excluding the termination
- *   null byte) written to the output buffer. It does NOT represents number
- *   of UTF-8 characters!
+ * \return Same as a return value of fds_field2str_be(). A positive number
+ *   represents number of written bytes. It does NOT represent number of UTF-8
+ *   characters!
  */
 FDS_API int
 fds_string2str(const void *field, size_t size, char *str, size_t str_size);

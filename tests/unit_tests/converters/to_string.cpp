@@ -89,6 +89,25 @@ uint2strNormal_check(size_t data_size, uint64_t value)
     ASSERT_EQ(fds_uint2str_be(data_ptr.get(), data_size, res_ptr.get(), FDS_CONVERT_STRLEN_INT),
         static_cast<int>(res_size - 1));
     EXPECT_EQ(res_str, res_ptr.get());
+
+    // Universal converter
+    res_ptr.get()[0] = '\0';
+    enum fds_iemgr_element_type data_type;
+
+    switch (data_size) {
+    case 1:  data_type = FDS_ET_UNSIGNED_8;  break;
+    case 2:  data_type = FDS_ET_UNSIGNED_16; break;
+    case 3:
+    case 4:  data_type = FDS_ET_UNSIGNED_32; break;
+    case 5:
+    case 6:
+    case 7:
+    case 8:  data_type = FDS_ET_UNSIGNED_64; break;
+    default: data_type = FDS_ET_UNSIGNED_64; break;
+    }
+    ASSERT_EQ(fds_field2str_be(data_ptr.get(), data_size, data_type, res_ptr.get(),
+        FDS_CONVERT_STRLEN_INT), static_cast<int>(res_size - 1));
+    EXPECT_EQ(res_str, res_ptr.get());
 }
 
 TEST(ConverterToStrings, uint2strNormal)
@@ -115,6 +134,24 @@ uint2strSmallBuffer_check(size_t data_size, uint64_t value)
     ASSERT_EQ(fds_set_uint_be(data_ptr.get(), data_size, value), FDS_OK);
     EXPECT_EQ(fds_uint2str_be(data_ptr.get(), data_size, str_ptr.get(), res_size),
         FDS_ERR_BUFFER);
+
+    // Universal converter
+    str_ptr.get()[0] = '\0';
+    enum fds_iemgr_element_type data_type;
+
+    switch (data_size) {
+    case 1:  data_type = FDS_ET_UNSIGNED_8;  break;
+    case 2:  data_type = FDS_ET_UNSIGNED_16; break;
+    case 3:
+    case 4:  data_type = FDS_ET_UNSIGNED_32; break;
+    case 5:
+    case 6:
+    case 7:
+    case 8:  data_type = FDS_ET_UNSIGNED_64; break;
+    default: data_type = FDS_ET_UNSIGNED_64; break;
+    }
+    ASSERT_EQ(fds_field2str_be(data_ptr.get(), data_size, data_type, str_ptr.get(),
+        res_size), FDS_ERR_BUFFER);
 }
 
 TEST(ConverterToStrings, uint2strSmallBuffer)
@@ -136,10 +173,15 @@ TEST(ConverterToStrings, uint2strFormatErr)
     EXPECT_EQ(fds_uint2str_be(data_ptr.get(), 9, str_ptr.get(), size), FDS_ERR_ARG);
 
     // Test that memory is not accessed if invalid size is defined.
-    EXPECT_EQ(fds_uint2str_be(NULL, 0, str_ptr.get(), size),
-            FDS_ERR_ARG);
-    EXPECT_EQ(fds_uint2str_be(NULL, 9, str_ptr.get(), size),
-            FDS_ERR_ARG);
+    EXPECT_EQ(fds_uint2str_be(NULL, 0, str_ptr.get(), size), FDS_ERR_ARG);
+    EXPECT_EQ(fds_uint2str_be(NULL, 9, str_ptr.get(), size), FDS_ERR_ARG);
+
+    // Universal converter
+    EXPECT_EQ(fds_field2str_be(data_ptr.get(), 0, FDS_ET_UNSIGNED_8,  str_ptr.get(), size), FDS_ERR_ARG);
+    EXPECT_EQ(fds_field2str_be(data_ptr.get(), 9, FDS_ET_UNSIGNED_64, str_ptr.get(), size), FDS_ERR_ARG);
+    // Test that memory is not accessed if invalid size is defined.
+    EXPECT_EQ(fds_field2str_be(NULL, 0, FDS_ET_UNSIGNED_8,  str_ptr.get(), size), FDS_ERR_ARG);
+    EXPECT_EQ(fds_field2str_be(NULL, 9, FDS_ET_UNSIGNED_64, str_ptr.get(), size), FDS_ERR_ARG);
 }
 
 // -----------------------------------------------------------------------------
@@ -161,6 +203,25 @@ int2strNormal_check(size_t data_size, int64_t value)
     ASSERT_EQ(fds_set_int_be(data_ptr.get(), data_size, value), FDS_OK);
     ASSERT_EQ(fds_int2str_be(data_ptr.get(), data_size, res_ptr.get(), FDS_CONVERT_STRLEN_INT),
         static_cast<int>(res_size - 1));
+    EXPECT_EQ(res_str, res_ptr.get());
+
+    // Universal converter
+    res_ptr.get()[0] = '\0';
+    enum fds_iemgr_element_type data_type;
+
+    switch (data_size) {
+    case 1:  data_type = FDS_ET_SIGNED_8;  break;
+    case 2:  data_type = FDS_ET_SIGNED_16; break;
+    case 3:
+    case 4:  data_type = FDS_ET_SIGNED_32; break;
+    case 5:
+    case 6:
+    case 7:
+    case 8:  data_type = FDS_ET_SIGNED_64; break;
+    default: data_type = FDS_ET_SIGNED_64; break;
+    }
+    ASSERT_EQ(fds_field2str_be(data_ptr.get(), data_size, data_type, res_ptr.get(),
+        FDS_CONVERT_STRLEN_INT), static_cast<int>(res_size - 1));
     EXPECT_EQ(res_str, res_ptr.get());
 }
 
@@ -189,6 +250,22 @@ int2strSmallBuffer_check(size_t data_size, int64_t value)
     ASSERT_EQ(fds_set_int_be(data_ptr.get(), data_size, value), FDS_OK);
     EXPECT_EQ(fds_int2str_be(data_ptr.get(), data_size, str_ptr.get(), res_size),
         FDS_ERR_BUFFER);
+
+    // Universal converter
+    enum fds_iemgr_element_type data_type;
+    switch (data_size) {
+    case 1:  data_type = FDS_ET_SIGNED_8;  break;
+    case 2:  data_type = FDS_ET_SIGNED_16; break;
+    case 3:
+    case 4:  data_type = FDS_ET_SIGNED_32; break;
+    case 5:
+    case 6:
+    case 7:
+    case 8:  data_type = FDS_ET_SIGNED_64; break;
+    default: data_type = FDS_ET_SIGNED_64; break;
+    }
+    ASSERT_EQ(fds_field2str_be(data_ptr.get(), data_size, data_type, str_ptr.get(),
+        res_size), FDS_ERR_BUFFER);
 }
 
 TEST(ConverterToStrings, int2strSmallBuffer)
@@ -209,10 +286,16 @@ TEST(ConverterToStrings, int2strFormatErr)
     // Test invalid size of the field
     EXPECT_EQ(fds_int2str_be(data_ptr.get(), 0, str_ptr.get(), size), FDS_ERR_ARG);
     EXPECT_EQ(fds_int2str_be(data_ptr.get(), 9, str_ptr.get(), size), FDS_ERR_ARG);
-
     // Test that memory is not accessed if invalid size is defined.
     EXPECT_EQ(fds_int2str_be(NULL, 0, str_ptr.get(), size), FDS_ERR_ARG);
     EXPECT_EQ(fds_int2str_be(NULL, 9, str_ptr.get(), size), FDS_ERR_ARG);
+
+    // Universal converter
+    EXPECT_EQ(fds_field2str_be(data_ptr.get(), 0, FDS_ET_SIGNED_8,  str_ptr.get(), size), FDS_ERR_ARG);
+    EXPECT_EQ(fds_field2str_be(data_ptr.get(), 9, FDS_ET_SIGNED_64, str_ptr.get(), size), FDS_ERR_ARG);
+    // Test that memory is not accessed if invalid size is defined.
+    EXPECT_EQ(fds_field2str_be(NULL, 0, FDS_ET_SIGNED_8,  str_ptr.get(), size), FDS_ERR_ARG);
+    EXPECT_EQ(fds_field2str_be(NULL, 9, FDS_ET_SIGNED_64, str_ptr.get(), size), FDS_ERR_ARG);
 }
 
 // -----------------------------------------------------------------------------
@@ -232,37 +315,47 @@ float2strNormal_32check(float value)
     std::unique_ptr<uint8_t[]> data_ptr{new uint8_t[data_size]};
     std::unique_ptr<char[]> res_ptr{new char[res_size]};
 
-    // Store and convert data using converters
+    // Store and convert data using specific converters
     ASSERT_EQ(fds_set_float_be(data_ptr.get(), data_size, value), FDS_OK);
     ret_code = fds_float2str_be(data_ptr.get(), data_size, res_ptr.get(), res_size);
     ASSERT_GT(ret_code, 0);
     EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
-
     // Try to convert the string back to the float number
-    std::string res_str {res_ptr.get()};
     size_t idx = 0;
-    float new_result = std::stof(res_str, &idx);
-    EXPECT_EQ(idx, res_str.size());
+    float res_specific = std::stof(std::string(res_ptr.get()), &idx);
+    EXPECT_EQ(idx, strlen(res_ptr.get()));
 
-    if (isnan(value)) {
-        /*
-         * Special case: expected result is not a number
-         * Because (NaN == NaN) is always false, we have to check it separately
-         */
-        EXPECT_TRUE(isnan(new_result));
-    } else if (isinf(value)) {
-        /*
-         * Special case: expected result is infinity
-         */
-        EXPECT_EQ(isinf(value), isinf(new_result));
-    } else {
-        /*
-         * When the converter converts float to string only 6 valid digits are
-         * printed. This also causes truncation and, therefore, the  epsilon is
-         * only 10e-6.
-         */
-        const float eps = 1.1e-6;
-        EXPECT_NEAR(value, new_result, fabsf(eps * value));
+    // Convert data using _universal_ converter
+    res_ptr.get()[0] = '\0';
+    ret_code = fds_field2str_be(data_ptr.get(), data_size, FDS_ET_FLOAT_32, res_ptr.get(), res_size);
+    ASSERT_GT(ret_code, 0);
+    EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
+    // Try to convert the string back to the float number
+    idx = 0;
+    float res_universal = std::stof(std::string(res_ptr.get()), &idx);
+    EXPECT_EQ(idx, strlen(res_ptr.get()));
+
+    for (const auto &result : {res_specific, res_universal}) {
+        if (isnan(value)) {
+            /*
+             * Special case: expected result is not a number
+             * Because (NaN == NaN) is always false, we have to check it separately
+             */
+            EXPECT_TRUE(isnan(result));
+        } else if (isinf(value)) {
+            /*
+             * Special case: expected result is infinity
+             */
+            EXPECT_EQ(isinf(value), isinf(result));
+        } else {
+            /*
+             * When the converter converts float to string only 6 valid digits are
+             * printed. This also causes truncation and, therefore, the  epsilon is
+             * only 10e-6.
+             */
+            const float eps = 1.1e-6;
+            EXPECT_NEAR(value, result, fabsf(eps * value));
+        }
     }
 }
 
@@ -305,37 +398,47 @@ float2strNormal_64check(double value)
     std::unique_ptr<uint8_t[]> data_ptr{new uint8_t[data_size]};
     std::unique_ptr<char[]> res_ptr{new char[res_size]};
 
-    // Store and convert data using converters
+    // Store and convert data using specific converters
     ASSERT_EQ(fds_set_float_be(data_ptr.get(), data_size, value), FDS_OK);
     ret_code = fds_float2str_be(data_ptr.get(), data_size, res_ptr.get(), res_size);
     ASSERT_GT(ret_code, 0);
     EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
-
     // Try to convert the string back to the float number
-    std::string res_str {res_ptr.get()};
     size_t idx = 0;
-    double new_result = std::stod(res_str, &idx);
-    EXPECT_EQ(idx, res_str.size());
+    double res_specific = std::stod(std::string(res_ptr.get()), &idx);
+    EXPECT_EQ(idx, strlen(res_ptr.get()));
 
-    if (isnan(value)) {
-        /*
-         * Special case: expected result is not a number
-         * Because (NaN == NaN) is always false, we have to check it separately
-         */
-        EXPECT_TRUE(isnan(new_result));
-    } else if (isinf(value)) {
-        /*
-         * Special case: expected result is infinity
-         */
-        EXPECT_EQ(isinf(value), isinf(new_result));
-    } else {
-        /*
-         * When the converter converts float to string only 15 valid digits are
-         * printed. This also causes truncation and, therefore, the  epsilon is
-         * only 10e-15.
-         */
-        const double eps = 1.1e-15;
-        EXPECT_NEAR(value, new_result, fabs(eps * value));
+    // Convert data using _universal_ converter
+    res_ptr.get()[0] = '\0';
+    ret_code = fds_field2str_be(data_ptr.get(), data_size, FDS_ET_FLOAT_64, res_ptr.get(), res_size);
+    ASSERT_GT(ret_code, 0);
+    EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
+    // Try to convert the string back to the float number
+    idx = 0;
+    double res_universal = std::stod(std::string(res_ptr.get()), &idx);
+    EXPECT_EQ(idx, strlen(res_ptr.get()));
+
+    for (const auto &result : {res_specific, res_universal}) {
+        if (isnan(value)) {
+            /*
+             * Special case: expected result is not a number
+             * Because (NaN == NaN) is always false, we have to check it separately
+             */
+            EXPECT_TRUE(isnan(result));
+        } else if (isinf(value)) {
+            /*
+             * Special case: expected result is infinity
+             */
+            EXPECT_EQ(isinf(value), isinf(result));
+        } else {
+            /*
+             * When the converter converts float to string only 15 valid digits are
+             * printed. This also causes truncation and, therefore, the  epsilon is
+             * only 10e-15.
+             */
+            const double eps = 1.1e-15;
+            EXPECT_NEAR(value, result, fabs(eps * value));
+        }
     }
 }
 
@@ -390,6 +493,10 @@ TEST(ConverterToStrings, float2strInvalidInput)
 
         EXPECT_EQ(fds_float2str_be(data_ptr.get(), i, res_ptr.get(), res_size),
             FDS_ERR_ARG);
+        EXPECT_EQ(fds_field2str_be(data_ptr.get(), i, FDS_ET_FLOAT_32, res_ptr.get(),
+            res_size), FDS_ERR_ARG);
+        EXPECT_EQ(fds_field2str_be(data_ptr.get(), i, FDS_ET_FLOAT_64, res_ptr.get(),
+            res_size), FDS_ERR_ARG);
     }
 }
 
@@ -416,6 +523,8 @@ float2strSmallBuffer_32check(float value)
     EXPECT_EQ(fds_set_float_be(data_ptr.get(), data_size, value), FDS_OK);
     EXPECT_EQ(fds_float2str_be(data_ptr.get(), data_size, out_ptr.get(), out_len),
         FDS_ERR_BUFFER);
+    EXPECT_EQ(fds_field2str_be(data_ptr.get(), data_size, FDS_ET_FLOAT_32,
+        out_ptr.get(), out_len), FDS_ERR_BUFFER);
 }
 
 void
@@ -437,7 +546,11 @@ float2strSmallBuffer_64check(double value)
 
     EXPECT_EQ(fds_set_float_be(data_ptr.get(), data_size, value), FDS_OK);
     EXPECT_EQ(fds_float2str_be(data_ptr.get(), data_size, out_ptr.get(), out_len),
-            FDS_ERR_BUFFER);
+        FDS_ERR_BUFFER);
+    EXPECT_EQ(fds_field2str_be(data_ptr.get(), data_size, FDS_ET_FLOAT_32,
+        out_ptr.get(), out_len), FDS_ERR_BUFFER);
+    EXPECT_EQ(fds_field2str_be(data_ptr.get(), data_size, FDS_ET_FLOAT_64,
+        out_ptr.get(), out_len), FDS_ERR_BUFFER);
 }
 
 TEST(ConverterToStrings, float2strSmallBuffer)
@@ -474,6 +587,12 @@ TEST(ConverterToStrings, bool2strNormal)
     ASSERT_GT(ret_code, 0);
     EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
     EXPECT_EQ(true_str, res_ptr.get());
+    // Universal converter
+    res_ptr.get()[0] = '\0';
+    ret_code = fds_field2str_be(data_ptr.get(), data_size, FDS_ET_BOOLEAN, res_ptr.get(), res_size);
+    ASSERT_GT(ret_code, 0);
+    EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
+    EXPECT_EQ(true_str, res_ptr.get());
 
     // Test "False"
     std::string false_str{"false"};
@@ -482,6 +601,12 @@ TEST(ConverterToStrings, bool2strNormal)
 
     ASSERT_EQ(fds_set_bool(data_ptr.get(), data_size, false), FDS_OK);
     ret_code = fds_bool2str(data_ptr.get(), res_ptr.get(), res_size);
+    ASSERT_GT(ret_code, 0);
+    EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
+    EXPECT_EQ(false_str, res_ptr.get());
+    // Universal converter
+    res_ptr.get()[0] = '\0';
+    ret_code = fds_field2str_be(data_ptr.get(), data_size, FDS_ET_BOOLEAN, res_ptr.get(), res_size);
     ASSERT_GT(ret_code, 0);
     EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
     EXPECT_EQ(false_str, res_ptr.get());
@@ -503,6 +628,23 @@ TEST(ConverterToStrings, bool2strInvalidInput)
 
         data = i;
         EXPECT_EQ(fds_bool2str(&data, res_ptr.get(), res_size), FDS_ERR_ARG);
+        EXPECT_EQ(fds_field2str_be(&data, 1, FDS_ET_BOOLEAN, res_ptr.get(), res_size), FDS_ERR_ARG);
+    }
+}
+
+TEST(ConverterToStrings, bool2strInvalidSize)
+{
+    const size_t res_size = 32;
+    std::unique_ptr<char[]> res_ptr{new char[res_size]};
+
+    for (size_t i = 0; i < 16; ++i) {
+        if (i == 1) {
+            continue; // Skip valid size
+        }
+
+        std::unique_ptr<uint8_t[]> data{new uint8_t[i]};
+        EXPECT_EQ(fds_field2str_be(data.get(), i, FDS_ET_BOOLEAN, res_ptr.get(), res_size),
+            FDS_ERR_ARG);
     }
 }
 
@@ -521,6 +663,8 @@ TEST(ConverterToStrings, bool2strSmallBuffer)
 
     EXPECT_EQ(fds_set_bool(data_ptr.get(), data_size, true), FDS_OK);
     EXPECT_EQ(fds_bool2str(data_ptr.get(), res_ptr.get(), res_size), FDS_ERR_BUFFER);
+    EXPECT_EQ(fds_field2str_be(data_ptr.get(), data_size, FDS_ET_BOOLEAN, res_ptr.get(),
+        res_size), FDS_ERR_BUFFER);
 
     // Test "False"
     std::string false_str{"false"};
@@ -529,6 +673,8 @@ TEST(ConverterToStrings, bool2strSmallBuffer)
 
     EXPECT_EQ(fds_set_bool(data_ptr.get(), data_size, false), FDS_OK);
     EXPECT_EQ(fds_bool2str(data_ptr.get(), res_ptr.get(), res_size), FDS_ERR_BUFFER);
+    EXPECT_EQ(fds_field2str_be(data_ptr.get(), data_size, FDS_ET_BOOLEAN, res_ptr.get(),
+        res_size), FDS_ERR_BUFFER);
 }
 
 // -----------------------------------------------------------------------------
@@ -743,6 +889,48 @@ datetime2str_check(struct timespec ts, size_t data_size, enum fds_iemgr_element_
     test_func_fail(FDS_CONVERT_TF_USEC_LOCAL);
     test_func_fail(FDS_CONVERT_TF_MSEC_LOCAL);
     test_func_fail(FDS_CONVERT_TF_SEC_LOCAL);
+
+    // Universal converter: one timestamp type -> one specific output format in UTC only
+    enum fds_convert_time_fmt fmt;
+    switch (type) {
+    case FDS_ET_DATE_TIME_SECONDS:      fmt = FDS_CONVERT_TF_SEC_UTC; break;
+    case FDS_ET_DATE_TIME_MILLISECONDS: fmt = FDS_CONVERT_TF_MSEC_UTC; break;
+    case FDS_ET_DATE_TIME_MICROSECONDS: fmt = FDS_CONVERT_TF_USEC_UTC; break;
+    case FDS_ET_DATE_TIME_NANOSECONDS:  fmt = FDS_CONVERT_TF_NSEC_UTC; break;
+    default: FAIL() << "We shouldn't get here!";
+    }
+
+    // Test universal converter (success test)
+    {
+        // Prepare the expected result and an output buffer
+        std::string exp_value;
+        datetime2str_get_expectation(ts, type, fmt, exp_value);
+
+        size_t res_size = exp_value.length() + 1; // +1 for '\0'
+        std::unique_ptr<char[]> res_ptr{new char[res_size]};
+
+        // Conversion function
+        int ret_code;
+        ret_code = fds_field2str_be(data_ptr.get(), data_size, type, res_ptr.get(), res_size);
+        ASSERT_GT(ret_code, 0);
+        EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
+        datetime2str_compare(exp_value, std::string(res_ptr.get()));
+    };
+
+    // Test universal converter (failure test)
+    {
+        // Prepare the expected result
+        std::string exp_value;
+        datetime2str_get_expectation(ts, type, fmt, exp_value);
+
+        // Test all cases when the output buffer is always smaller than the required size
+        size_t res_size = exp_value.length() + 1; // +1 for '\0'
+        for (size_t i = 0; i < res_size; ++i) {
+            std::unique_ptr<char[]> res_ptr{new char[i]};
+            EXPECT_EQ(fds_field2str_be(data_ptr.get(), data_size, type, res_ptr.get(), i),
+                FDS_ERR_BUFFER);
+        }
+    };
 }
 
 TEST(ConverterToStrings, datetime2strNormalAndSmallBuffer)
@@ -846,7 +1034,7 @@ datetime2str_invalid_type(enum fds_iemgr_element_type type)
 
 TEST(ConverterToStrings, datetime2strInvalidInput)
 {
-    // Invalid size of input field test
+    // Invalid size of input field test (specific converter)
     std::vector<enum fds_convert_time_fmt> fmt_vec = {
         FDS_CONVERT_TF_SEC_UTC, FDS_CONVERT_TF_MSEC_UTC, FDS_CONVERT_TF_USEC_UTC,
         FDS_CONVERT_TF_NSEC_UTC, FDS_CONVERT_TF_SEC_LOCAL, FDS_CONVERT_TF_MSEC_LOCAL,
@@ -870,6 +1058,29 @@ TEST(ConverterToStrings, datetime2strInvalidInput)
     for (fds_iemgr_element_type type : type_vec) {
         SCOPED_TRACE("Test type: " + std::to_string(type));
         datetime2str_invalid_type(type);
+    }
+
+    // Invalid size of input field test (universal converter)
+    const size_t res_size = FDS_CONVERT_STRLEN_DATE;
+    std::unique_ptr<char[]> res_ptr{new char[res_size]};
+
+    for (size_t i = 0; i <= 16; ++i) {
+        // Prepare an array
+        std::unique_ptr<uint8_t[]> data_ptr{new uint8_t[i]()};
+
+        if (i != BYTES_4) {
+            EXPECT_EQ(fds_field2str_be(data_ptr.get(), i, FDS_ET_DATE_TIME_SECONDS,
+                res_ptr.get(), res_size), FDS_ERR_ARG);
+        }
+
+        if (i != BYTES_8) {
+            EXPECT_EQ(fds_field2str_be(data_ptr.get(), i, FDS_ET_DATE_TIME_MILLISECONDS,
+                res_ptr.get(), res_size), FDS_ERR_ARG);
+            EXPECT_EQ(fds_field2str_be(data_ptr.get(), i, FDS_ET_DATE_TIME_MICROSECONDS,
+                res_ptr.get(), res_size), FDS_ERR_ARG);
+            EXPECT_EQ(fds_field2str_be(data_ptr.get(), i, FDS_ET_DATE_TIME_NANOSECONDS,
+                res_ptr.get(), res_size), FDS_ERR_ARG);
+        }
     }
 }
 
@@ -906,14 +1117,19 @@ mac2strNormal_check(const std::string &mac)
     std::unique_ptr<uint8_t[]> data_ptr{new uint8_t[data_size]};
     ASSERT_EQ(fds_set_mac(data_ptr.get(), data_size, input_arr), FDS_OK);
 
-    // Get the array as a formatted string
+    // Get the array as a formatted string (specific converter)
     const size_t res_size = FDS_CONVERT_STRLEN_MAC;
     std::unique_ptr<char[]> res_ptr{new char[res_size]};
     ret_code = fds_mac2str(data_ptr.get(), data_size, res_ptr.get(), res_size);
     ASSERT_GT(ret_code, 0);
     EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
+    EXPECT_EQ(strcasecmp(mac.c_str(), res_ptr.get()), 0);
 
-    // Compare strings
+    // Get the array as a formatted string (universal converter)
+    res_ptr.get()[0] = '\0';
+    ret_code = fds_field2str_be(data_ptr.get(), data_size, FDS_ET_MAC_ADDRESS, res_ptr.get(), res_size);
+    ASSERT_GT(ret_code, 0);
+    EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
     EXPECT_EQ(strcasecmp(mac.c_str(), res_ptr.get()), 0);
 }
 
@@ -941,6 +1157,8 @@ TEST(ConverterToStrings, mac2strInvalidInput)
         SCOPED_TRACE("i = " + std::to_string(i));
         std::unique_ptr<char[]> res_ptr{new char[i]};
         EXPECT_EQ(fds_mac2str(mac_data, mac_size, res_ptr.get(), i), FDS_ERR_BUFFER);
+        EXPECT_EQ(fds_field2str_be(mac_data, mac_size, FDS_ET_MAC_ADDRESS, res_ptr.get(), i),
+            FDS_ERR_BUFFER);
     }
 
     // Invalid size of the field
@@ -956,6 +1174,8 @@ TEST(ConverterToStrings, mac2strInvalidInput)
         SCOPED_TRACE("i = " + std::to_string(i));
         std::unique_ptr<uint8_t[]> data_ptr{new uint8_t[i]};
         EXPECT_EQ(fds_mac2str(data_ptr.get(), i, res_ptr.get(), res_size), FDS_ERR_ARG);
+        EXPECT_EQ(fds_field2str_be(data_ptr.get(), i, FDS_ET_MAC_ADDRESS, res_ptr.get(), res_size),
+            FDS_ERR_ARG);
     }
 }
 
@@ -989,20 +1209,28 @@ ip2strNormal_check(std::string addr_str)
     std::unique_ptr<uint8_t[]> data_ptr{new uint8_t[data_size]};
     ASSERT_EQ(fds_set_ip(data_ptr.get(), data_size, &addr_bin), FDS_OK);
 
-    // Convert it back into string
     size_t res_size = FDS_CONVERT_STRLEN_IP;
     std::unique_ptr<char[]> res_ptr{new char[res_size]};
 
+    // Convert it back into string (specific converter)
     int ret_code;
     ret_code = fds_ip2str(data_ptr.get(), data_size, res_ptr.get(), res_size);
     ASSERT_GT(ret_code, 0);
     EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
-
-    // Try to convert it back into binary form
+    // Try to convert it back into binary form and compare
     struct in6_addr addr_new;
     ASSERT_EQ(inet_pton(af_family, res_ptr.get(), &addr_new), 1);
+    EXPECT_EQ(memcmp(&addr_bin, &addr_new, addr_size), 0);
 
-    // Compare binary forms
+    // Convert it back into string (universal converter)
+    enum fds_iemgr_element_type type = (af_family == AF_INET)
+        ? FDS_ET_IPV4_ADDRESS : FDS_ET_IPV6_ADDRESS;
+    res_ptr.get()[0] = '\0';
+    ret_code = fds_field2str_be(data_ptr.get(), data_size, type, res_ptr.get(), res_size);
+    ASSERT_GT(ret_code, 0);
+    EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
+    // Try to convert it back into binary form and compare
+    ASSERT_EQ(inet_pton(af_family, res_ptr.get(), &addr_new), 1);
     EXPECT_EQ(memcmp(&addr_bin, &addr_new, addr_size), 0);
 }
 
@@ -1048,11 +1276,14 @@ ip2strInvalid_small_buffer(std::string addr_str)
     // Try to convert IP address into binary form
     struct in6_addr addr_bin;
     size_t addr_size;
+    enum fds_iemgr_element_type type;
 
     if (inet_pton(AF_INET, addr_str.c_str(), &addr_bin) == 1) {
         addr_size = 4;  // IPv4
+        type = FDS_ET_IPV4_ADDRESS;
     } else if (inet_pton(AF_INET6, addr_str.c_str(), &addr_bin) == 1) {
         addr_size = 16; // IPv6
+        type = FDS_ET_IPV6_ADDRESS;
     } else {
         FAIL() << "Failed to convert '" + addr_str + "' into binary form";
     }
@@ -1074,6 +1305,8 @@ ip2strInvalid_small_buffer(std::string addr_str)
     for (size_t i = 0; i < max_len; ++i) {
         std::unique_ptr<char[]> tmp_ptr{new char[i]};
         EXPECT_EQ(fds_ip2str(data_ptr.get(), data_size, tmp_ptr.get(), i), FDS_ERR_BUFFER);
+        EXPECT_EQ(fds_field2str_be(data_ptr.get(), data_size, type, tmp_ptr.get(), i),
+            FDS_ERR_BUFFER);
     }
 }
 
@@ -1087,14 +1320,22 @@ TEST(ConverterToStrings, ip2strInvalid)
     std::unique_ptr<char[]> res_ptr{new char[res_size]};
 
     for (size_t i = 0; i < 32U; ++i) {
-        if (i == 4U || i == 16U) {
-            // Skip valid field sizes
-            continue;
-        }
-
         SCOPED_TRACE("Size: " + std::to_string(i));
         std::unique_ptr<uint8_t[]> data_ptr{new uint8_t[i]};
-        EXPECT_EQ(fds_ip2str(data_ptr.get(), i, res_ptr.get(), res_size), FDS_ERR_ARG);
+
+        if (i != 4U && i != 16U) { // Only invalid values!
+            EXPECT_EQ(fds_ip2str(data_ptr.get(), i, res_ptr.get(), res_size), FDS_ERR_ARG);
+        }
+
+        if (i != 4U) {
+            EXPECT_EQ(fds_field2str_be(data_ptr.get(), i, FDS_ET_IPV4_ADDRESS,
+                res_ptr.get(), res_size), FDS_ERR_ARG);
+        }
+
+        if (i != 16U) {
+            EXPECT_EQ(fds_field2str_be(data_ptr.get(), i, FDS_ET_IPV6_ADDRESS,
+                res_ptr.get(), res_size), FDS_ERR_ARG);
+        }
     }
 
     // Try insufficient size of output buffer
@@ -1125,15 +1366,19 @@ octet_array2strNormal_check(const uint8_t octet_data[], size_t octet_size)
     }
     std::string exp_str{ss.str()};
 
-    // Convert to string
+    // Convert to string and compare with the expected result (specific converter)
     size_t res_size = (2 * octet_size) + 1; // Based on documentation of conversion function
     std::unique_ptr<char[]> res_ptr{new char[res_size]};
 
     int ret_code = fds_octet_array2str(octet_data, octet_size, res_ptr.get(), res_size);
     ASSERT_GE(ret_code, 0);
     EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
+    EXPECT_STRCASEEQ(exp_str.c_str(), res_ptr.get());
 
-    // Compare
+    res_ptr.get()[0] = '\0';
+    ret_code = fds_field2str_be(octet_data, octet_size, FDS_ET_OCTET_ARRAY, res_ptr.get(), res_size);
+    ASSERT_GE(ret_code, 0);
+    EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
     EXPECT_STRCASEEQ(exp_str.c_str(), res_ptr.get());
 }
 
@@ -1168,6 +1413,8 @@ TEST(ConverterToStrings, octet_array2strInvalid)
     for (size_t i = 0; i < required_size; ++i) {
         std::unique_ptr<char[]> res_ptr{new char[i]};
         EXPECT_EQ(fds_octet_array2str(oa_data, oa_size, res_ptr.get(), i), FDS_ERR_BUFFER);
+        EXPECT_EQ(fds_field2str_be(oa_data, oa_size, FDS_ET_OCTET_ARRAY, res_ptr.get(), i),
+            FDS_ERR_BUFFER);
     }
 }
 
@@ -1239,14 +1486,20 @@ TEST(ConverterToStrings, fds_string2strNormal)
         // Store string to the buffer (without '\0')
         ASSERT_EQ(fds_set_string(data_ptr.get(), data_size, str.c_str()), FDS_OK);
 
-        // Try to read the value
         const size_t res_size = (4 * data_size) + 1; // Max. size based on the documentation
         std::unique_ptr<char[]> res_ptr{new char[res_size]};
+
+        // Try to convert and compare the value (specific converter)
         int ret_code = fds_string2str(data_ptr.get(), data_size, res_ptr.get(), res_size);
         ASSERT_GE(ret_code, 0);
         EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
+        EXPECT_EQ(str, res_ptr.get());
 
-        // Compare
+        // Try to convert and compare the value (universal converter)
+        res_ptr.get()[0] = '\0';
+        ret_code = fds_field2str_be(data_ptr.get(), data_size, FDS_ET_STRING, res_ptr.get(), res_size);
+        ASSERT_GE(ret_code, 0);
+        EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
         EXPECT_EQ(str, res_ptr.get());
     }
 }
@@ -1299,13 +1552,20 @@ TEST(ConverterToStrings, fds_string2strEscapeChar)
         const char *input = reinterpret_cast<const char *>(arr_in.data());
         ASSERT_EQ(fds_set_string(data_ptr.get(), data_size, input), FDS_OK);
 
-        // Try to convert the value
         const size_t res_size = (4 * data_size) + 1; // Max. size based on the documentation
         std::unique_ptr<char[]> res_ptr{new char[res_size]};
+
+        // Try to convert and compare the value (specific converter)
         int ret_code = fds_string2str(data_ptr.get(), data_size, res_ptr.get(), res_size);
         ASSERT_GE(ret_code, 0);
         EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
+        EXPECT_STREQ(str_out.c_str(), res_ptr.get());
 
+        // Try to convert and compare the value (universal converter)
+        res_ptr.get()[0] = '\0';
+        ret_code = fds_field2str_be(data_ptr.get(), data_size, FDS_ET_STRING, res_ptr.get(), res_size);
+        ASSERT_GE(ret_code, 0);
+        EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
         EXPECT_STREQ(str_out.c_str(), res_ptr.get());
     }
 }
@@ -1385,13 +1645,20 @@ TEST(ConverterToStrings, fds_string2strInvalidChar)
         const char *input_data = reinterpret_cast<const char *>(input_struct.buffer_data);
         ASSERT_EQ(fds_set_string(data_ptr.get(), data_size, input_data), FDS_OK);
 
-        // Try to convert the value
         const size_t res_size = (4 * data_size) + 1; // Max. size based on the documentation
         std::unique_ptr<char[]> res_ptr{new char[res_size]};
+
+        // Try to convert the value and compare (specific converter)
         int ret_code = fds_string2str(data_ptr.get(), data_size, res_ptr.get(), res_size);
         ASSERT_GE(ret_code, 0);
         EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
+        EXPECT_STREQ(input_struct.expectation, res_ptr.get());
 
+        // Try to convert the value and compare (universal converter)
+        res_ptr.get()[0] = '\0';
+        ret_code = fds_field2str_be(data_ptr.get(), data_size, FDS_ET_STRING, res_ptr.get(), res_size);
+        ASSERT_GE(ret_code, 0);
+        EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
         EXPECT_STREQ(input_struct.expectation, res_ptr.get());
     }
 }

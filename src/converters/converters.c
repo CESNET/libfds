@@ -192,7 +192,7 @@ fds_field2str_be(const void *field, size_t size,
 
     const size_t table_size = sizeof(table) / sizeof(table[0]);
     if (type >= table_size) {
-        return FDS_ERR_ARG; // Unsupported conversion type
+        return FDS_ERR_FORMAT; // Unsupported conversion type
     }
 
     return table[type](field, size, str, str_size);

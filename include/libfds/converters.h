@@ -1165,8 +1165,7 @@ enum fds_convert_time_fmt {
  * \note Structured data types (::FDS_ET_BASIC_LIST, ::FDS_ET_SUB_TEMPLATE_LIST,
  *   ::FDS_ET_SUB_TEMPLATE_MULTILIST) cannot be directly converted to string.
  *   These abstract data types, defined for IPFIX Structured Data (RFC 6313),
- *   do not represent actual data types. In case of these types, the function
- *   returns #FDS_ERR_ARG.
+ *   do not represent actual data types.
  *
  * \param[in]  field    Pointer to a data field (in "network byte order")
  * \param[in]  size     Size of the data field (in bytes)
@@ -1179,6 +1178,7 @@ enum fds_convert_time_fmt {
  * \return #FDS_ERR_BUFFER if the length of the result string (including the
  *   termination null byte) would exceed \p str_size. The context written to
  *   the output buffer \p str is undefined.
+ * \return #FDS_ERR_FORMAT if the \p type is not supported (or structured).
  * \return #FDS_ERR_ARG otherwise (typically invalid data format).
  */
 FDS_API int

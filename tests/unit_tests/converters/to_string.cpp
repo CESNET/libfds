@@ -1663,6 +1663,23 @@ TEST(ConverterToStrings, fds_string2strInvalidChar)
     }
 }
 
+/*
+ * Test data types not supported by universal conversion function
+ */
+TEST(ConverterToStrings, field2str_unsupported)
+{
+    constexpr size_t size = 8;
+    uint8_t array_data[size];
+    char str_data[size];
+
+    EXPECT_EQ(fds_field2str_be(&array_data, size, FDS_ET_BASIC_LIST, str_data, size),
+        FDS_ERR_FORMAT);
+    EXPECT_EQ(fds_field2str_be(&array_data, size, FDS_ET_SUB_TEMPLATE_LIST, str_data, size),
+        FDS_ERR_FORMAT);
+    EXPECT_EQ(fds_field2str_be(&array_data, size, FDS_ET_SUB_TEMPLATE_MULTILIST, str_data, size),
+        FDS_ERR_FORMAT);
+}
+
 /**
  * @}
  */

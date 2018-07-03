@@ -1495,12 +1495,29 @@ TEST(ConverterToStrings, fds_string2strNormal)
         EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
         EXPECT_EQ(str, res_ptr.get());
 
+        // Try to converter it with insufficient buffer size
+        size_t output_len = strlen(res_ptr.get()) + 1; // +1 == '\0'
+        for (size_t i = 0; i < output_len; ++i) {
+            SCOPED_TRACE("Buffer size: " + std::to_string(i));
+            std::unique_ptr<char[]> small_buffer{new char[i]};
+            EXPECT_EQ(fds_string2str(data_ptr.get(), data_size, small_buffer.get(), i), FDS_ERR_BUFFER);
+        }
+
         // Try to convert and compare the value (universal converter)
         res_ptr.get()[0] = '\0';
         ret_code = fds_field2str_be(data_ptr.get(), data_size, FDS_ET_STRING, res_ptr.get(), res_size);
         ASSERT_GE(ret_code, 0);
         EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
         EXPECT_EQ(str, res_ptr.get());
+
+        // Try to converter it with insufficient buffer size
+        output_len = strlen(res_ptr.get()) + 1; // +1 == '\0'
+        for (size_t i = 0; i < output_len; ++i) {
+            SCOPED_TRACE("Buffer size: " + std::to_string(i));
+            std::unique_ptr<char[]> small_buffer{new char[i]};
+            EXPECT_EQ(fds_field2str_be(data_ptr.get(), data_size, FDS_ET_STRING, small_buffer.get(),
+                i), FDS_ERR_BUFFER);
+        }
     }
 }
 
@@ -1561,12 +1578,29 @@ TEST(ConverterToStrings, fds_string2strEscapeChar)
         EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
         EXPECT_STREQ(str_out.c_str(), res_ptr.get());
 
+        // Try to converter it with insufficient buffer size
+        size_t output_len = strlen(res_ptr.get()) + 1; // +1 == '\0'
+        for (size_t i = 0; i < output_len; ++i) {
+            SCOPED_TRACE("Buffer size: " + std::to_string(i));
+            std::unique_ptr<char[]> small_buffer{new char[i]};
+            EXPECT_EQ(fds_string2str(data_ptr.get(), data_size, small_buffer.get(), i), FDS_ERR_BUFFER);
+        }
+
         // Try to convert and compare the value (universal converter)
         res_ptr.get()[0] = '\0';
         ret_code = fds_field2str_be(data_ptr.get(), data_size, FDS_ET_STRING, res_ptr.get(), res_size);
         ASSERT_GE(ret_code, 0);
         EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
         EXPECT_STREQ(str_out.c_str(), res_ptr.get());
+
+        // Try to converter it with insufficient buffer size
+        output_len = strlen(res_ptr.get()) + 1; // +1 == '\0'
+        for (size_t i = 0; i < output_len; ++i) {
+            SCOPED_TRACE("Buffer size: " + std::to_string(i));
+            std::unique_ptr<char[]> small_buffer{new char[i]};
+            EXPECT_EQ(fds_field2str_be(data_ptr.get(), data_size, FDS_ET_STRING, small_buffer.get(),
+                i), FDS_ERR_BUFFER);
+        }
     }
 }
 
@@ -1623,16 +1657,10 @@ TEST(ConverterToStrings, fds_string2strInvalidChar)
         {MY_INPUT("\xFE"), "\uFFFD"},
         {MY_INPUT("\xFF"), "\uFFFD"},
         // Sequences with last invalid continuation byte
-        /*
-
-         // TODO: solve
         {MY_INPUT("\xC0\x00"), "\uFFFD\\x00"},
         {MY_INPUT("\xC0\xEF"), "\uFFFD\uFFFD"},
-        {MY_INPUT("\xE0\x80\xC0"), "\uFFFD\uFFFD\uFFFD"},
+        {MY_INPUT("\xE0\x80\xC0"), "\uFFFD\\x80\uFFFD"}, // (0x80 is C1 control character)
         {MY_INPUT("\xEF\xBF\xCF"), "\uFFFD\uFFFD\uFFFD"},
-
-         */
-
     };
     #undef MY_INPUT
 
@@ -1654,12 +1682,30 @@ TEST(ConverterToStrings, fds_string2strInvalidChar)
         EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
         EXPECT_STREQ(input_struct.expectation, res_ptr.get());
 
+        // Try to converter it with insufficient buffer size
+        size_t output_len = strlen(res_ptr.get()) + 1; // +1 == '\0'
+        for (size_t i = 0; i < output_len; ++i) {
+            SCOPED_TRACE("Buffer size: " + std::to_string(i));
+            std::unique_ptr<char[]> small_buffer{new char[i]};
+            EXPECT_EQ(fds_string2str(data_ptr.get(), data_size, small_buffer.get(), i),
+                FDS_ERR_BUFFER);
+        }
+
         // Try to convert the value and compare (universal converter)
         res_ptr.get()[0] = '\0';
         ret_code = fds_field2str_be(data_ptr.get(), data_size, FDS_ET_STRING, res_ptr.get(), res_size);
         ASSERT_GE(ret_code, 0);
         EXPECT_EQ(strlen(res_ptr.get()), static_cast<size_t>(ret_code));
         EXPECT_STREQ(input_struct.expectation, res_ptr.get());
+
+        // Try to converter it with insufficient buffer size
+        output_len = strlen(res_ptr.get()) + 1; // +1 == '\0'
+        for (size_t i = 0; i < output_len; ++i) {
+            SCOPED_TRACE("Buffer size: " + std::to_string(i));
+            std::unique_ptr<char[]> small_buffer{new char[i]};
+            EXPECT_EQ(fds_field2str_be(data_ptr.get(), data_size, FDS_ET_STRING, small_buffer.get(),
+                i), FDS_ERR_BUFFER);
+        }
     }
 }
 

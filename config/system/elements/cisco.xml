@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ipfix-elements>
+    <scope>
+        <pen>9</pen>
+        <name>cisco</name>
+        <biflow mode="none"></biflow>
+    </scope>
+
+    <!-- Application Response Time (ART) metrics -->
+    <!-- Source: https://www.cisco.com/c/en/us/td/docs/routers/access/ISRG2/AVC/api/guide/AVC_Metric_Definition_Guide.pdf -->
+    <element>
+        <id>4315</id>
+        <name>tcpWindowSizeMin</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <units>octets</units>
+    </element>
+    <element>
+        <id>4316</id>
+        <name>tcpWindowSizeMax</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <units>octets</units>
+    </element>
+    <element>
+        <id>4318</id>
+        <name>tcpMaximumSegmentSize</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <units>octets</units>
+    </element>
+    <element>
+        <id>4324</id>
+        <name>tcpWindowSizeSum</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <units>octets</units>
+    </element>
+    <element>
+        <id>9268</id>
+        <name>clientRetransPackets</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>packets</units>
+    </element>
+    <element>
+        <id>9272</id>
+        <name>transactionCountDelta</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+    </element>
+    <element>
+        <id>9273</id>
+        <name>sumTransactionTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>duration</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9274</id>
+        <name>maxTransactionTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>duration</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9275</id>
+        <name>minTransactionTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>duration</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9292</id>
+        <name>numRespsCountDelta</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <!-- <units>responses</units> -->
+    </element>
+    <element>
+        <id>9293</id>
+        <name>numResps1CountDelta</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <!-- <units>responses</units> -->
+    </element>
+    <element>
+        <id>9294</id>
+        <name>numResps2CountDelta</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <!-- <units>responses</units> -->
+    </element>
+    <element>
+        <id>9295</id>
+        <name>numResps3CountDelta</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <!-- <units>responses</units> -->
+    </element>
+    <element>
+        <id>9296</id>
+        <name>numResps4CountDelta</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <!-- <units>responses</units> -->
+    </element>
+    <element>
+        <id>9297</id>
+        <name>numResps5CountDelta</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <!-- <units>responses</units> -->
+    </element>
+    <element>
+        <id>9298</id>
+        <name>numResps6CountDelta</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <!-- <units>responses</units> -->
+    </element>
+    <element>
+        <id>9299</id>
+        <name>numResps7CountDelta</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <!-- <units>responses</units> -->
+    </element>
+    <element>
+        <id>9300</id>
+        <name>numLateRespsCountDelta</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics> deltaCounter</dataSemantics>
+        <!-- <units>responses</units> -->
+    </element>
+    <element>
+        <id>9303</id>
+        <name>sumRespTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9304</id>
+        <name>maxRespTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9305</id>
+        <name>minRespTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9306</id>
+        <name>sumServerRespTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9307</id>
+        <name>maxServerRespTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9308</id>
+        <name>minServerRespTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9309</id>
+        <name>sumTotalRespTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9310</id>
+        <name>maxTotalRespTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9311</id>
+        <name>minTotalRespTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9313</id>
+        <name>sumNwkTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9314</id>
+        <name>maxNwkTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9315</id>
+        <name>minNwkTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9316</id>
+        <name>sumClientNwkTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9317</id>
+        <name>maxClientNwkTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9318</id>
+        <name>minClientNwkTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9319</id>
+        <name>sumServerNwkTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9320</id>
+        <name>maxServerNwkTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>9321</id>
+        <name>minServerNwkTime</name>
+        <dataType>unsigned32</dataType>
+        <!-- <dataSemantics>delay</dataSemantics> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>12236</id>
+        <name>clientIPv4Address</name>
+        <dataType>ipv4Address</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <!-- <units>address</units> -->
+    </element>
+    <element>
+        <id>12237</id>
+        <name>serverIPv4Address</name>
+        <dataType>ipv4Address</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <!-- <units>address</units> -->
+    </element>
+    <element>
+        <id>12238</id>
+        <name>clientIPv6Address</name>
+        <dataType>ipv6Address</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <!-- <units>address</units> -->
+    </element>
+    <element>
+        <id>12239</id>
+        <name>serverIPv6Address</name>
+        <dataType>ipv6address</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <!-- <units>address</units> -->
+    </element>
+    <element>
+        <id>12240</id>
+        <name>clientTransportPort</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <!-- <units>number</units> -->
+    </element>
+    <element>
+        <id>12241</id>
+        <name>serverTransportPort</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <!-- <units>number</units> -->
+    </element>
+    <element>
+        <id>8232</id>
+        <name>classHierarchy</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <!-- <units>number</units> -->
+    </element>
+    <element>
+        <id>9252</id>
+        <name>servicesWaasSegment</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <!-- <units>number</units> -->
+    </element>
+    <element>
+        <id>9253</id>
+        <name>servicesWaasPassThroughReason</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <!-- <units>number</units> -->
+    </element>
+    <element>
+        <id>9360</id>
+        <name>policyQosQueueID</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <!-- <units>number</units> -->
+    </element>
+    <element>
+        <id>9361</id>
+        <name>policyQosQueueDrop</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <!-- <units>number</units> -->
+    </element>
+    <element>
+        <id>12242</id>
+        <name>connectionId</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <!-- <units>number</units> -->
+    </element>
+
+    <!-- Extracted from documentation -->
+    <element>
+        <id>8337</id>
+        <name>serverBytesNetwork</name>
+        <dataType>unsigned64</dataType>
+        <units>octets</units>
+    </element>
+    <element>
+        <id>8338</id>
+        <name>clientBytesNetwork</name>
+        <dataType>unsigned64</dataType>
+        <units>octets</units>
+    </element>
+   <element>
+        <id>9267</id>
+        <name>clientRetransBytes</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+    </element>
+   <element>
+        <id>9269</id>
+        <name>serverRetransBytes</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>octets</units>
+    </element>
+    <element>
+        <id>9270</id>
+        <name>serverRetransPackets</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <units>packets</units>
+    </element>
+
+    <!-- Application name -->
+    <element>
+        <id>12232</id>
+        <name>appCategoryName</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>12233</id>
+        <name>appSubCategoryName</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>12234</id>
+        <name>appGroupName</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>12235</id>
+        <name>appHTTPHost</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>12244</id>
+        <name>appBusiness</name>
+        <dataType>string</dataType>
+    </element>
+    <!-- URI and URI hit count are collected and exported using the following format:
+         uri <delimiter> count <delimiter> uri <delimiter> count <delimiter>...
+         NULL (\0) is the delimiter. Count is a 2-byte value and is encoded as
+         an integer, while URI is encoded as a string. -->
+    <element>
+        <id>9357</id>
+        <name>appHTTPUriStatistics</name>
+        <dataType>string</dataType>
+    </element>
+</ipfix-elements>

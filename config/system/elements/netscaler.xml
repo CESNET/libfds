@@ -1,0 +1,1243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ipfix-elements>
+    <scope>
+        <pen>5951</pen>
+        <name>netscaler</name>
+        <biflow mode="none"></biflow>
+    </scope>
+
+    <!--
+    Source: https://raw.githubusercontent.com/splunk/ipfix/master/app/Splunk_TA_IPFIX/bin/IPFIX/information-elements/5951.xml
+        or: https://github.com/splunk/ipfix/tree/master/app/Splunk_TA_IPFIX/bin/IPFIX/information-elements
+     -->
+    <element>
+        <name>roundTripTime</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>128</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The TCP RTT of the flow in milliseconds since the time last record was sent</paragraph>
+        </description> -->
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <name>transactionId</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>129</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>At Layer-7, the four flows of a transaction between client and server (client-to-NS, NS-to-Server, Server-to-NS, NS-to-Client) are tied together using the transaction ID.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpReqUrl</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>130</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>HTTP request URL</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpReqCookie</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>131</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Value of Cookie header present in HTTP request</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>flowFlags</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>flags</dataSemantics>
+        <id>132</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>application layer flags, for use between the exporter and collector to indicate various Layer-7 events and types like the direction of the flow (client-in, svc-out, etc.), http version, NetScaler cache served responses, SSL, compression, TCP buffering, and many more.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>connectionId</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>133</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The two flows of a TCP connection are tied together with a connection ID</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>syslogPriority</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>134</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Priority of the syslog message being logged</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>syslogMessage</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>135</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The syslog message generated on Netscaler</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>syslogTimestamp</name>
+        <dataType>dateTimeMilliseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>136</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Timestamp when the syslog (contained in the syslog record) was generated</paragraph>
+        </description> -->
+    </element>
+
+    <element>
+        <name>httpReqReferer</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>140</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Value of Referer header present in HTTP request</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpReqMethod</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>141</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The request method in HTTP request</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpReqHost</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>142</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Value of Host header in HTTP request</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpReqUserAgent</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>143</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The User Agent string as seen in HTTP request header</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpRspStatus</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>144</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Status of HTTP response</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpRspLen</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>145</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The total size of HTTP response</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>serverTTFB</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>146</id>
+        <status>current</status>
+        <units>microseconds</units>
+        <!-- <description>
+            <paragraph>Time elapsed in microseconds between receiving of request from the client and receiving the first byte of response from server</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>serverTTLB</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>147</id>
+        <status>current</status>
+        <units>microseconds</units>
+        <!-- <description>
+            <paragraph>Time elapsed in microseconds between receiving of request from the client and receiving the last byte of response from server</paragraph>
+        </description> -->
+    </element>
+
+    <element>
+        <name>appNameIncarnationNumber</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>150</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Each named entity in the NetScaler is associated with an id. The name to id mapping is sent in the appname mapping template to the collector. Other records only contain the id of the entity and the corresponding name is stored by the collector and used when required. If a new entity gets added or an entity gets removed or modified, the incarnation number changes which indicates the collector to use the appname mapping record to update its database</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>appNameAppId</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>151</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The id of a named entity</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>appName</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>152</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Name of the entity configured on Netscaler for which the name-to-id mapping is being sent in the current record</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpReqRcvFB</name>
+        <dataType>dateTimeMicroseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>153</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Timestamp when the first byte of request was received from client at the NetScaler</paragraph>
+        </description> -->
+    </element>
+
+    <element>
+        <name>httpReqForwFB</name>
+        <dataType>dateTimeMicroseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>156</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Timestamp when the first byte of request was forwarded to server from the NetScaler</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpResRcvFB</name>
+        <dataType>dateTimeMicroseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>157</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Timestamp when the first byte of response was received from server at the NetScaler</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpResForwFB</name>
+        <dataType>dateTimeMicroseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>158</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Timestamp when the first byte of response was forwarded to client from the NetScaler</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpReqRcvLB</name>
+        <dataType>dateTimeMicroseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>159</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Timestamp when the last byte of request was received from client at the NetScaler</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpReqForwLB</name>
+        <dataType>dateTimeMicroseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>160</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Timestamp when the last byte of request was forwarded to server from the NetScaler</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>mainPageId</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>161</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>In a html page, the main page transaction is associated with all its embedded object transactions. Each such embedded object transaction record contains the transaction Id of the main page so that a parent link to the main transaction can be created. This is used in generating a waterfall chart model depicting the various timing information of the entire page loading.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>mainPageCoreId</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>162</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The above transaction ID is unique within the process. Hence the exporting process ID of the main page is also required.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpClientInteractionStartTime</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>163</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The timestamp when the page starts loading</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpClientRenderEndTime</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>164</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The timestamp when the page completely renders</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpClientRenderStartTime</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>165</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The timestamp when page rendering begins</paragraph>
+        </description> -->
+    </element>
+
+    <element>
+        <name>appTemplateName</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>167</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Name of the template to which the current entity belongs (see netscalerAppTemplateID)</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpClientInteractionEndTime</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>168</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The NTP timestamp when the HTML page becomes interactive to the user</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpResRcvLB</name>
+        <dataType>dateTimeMicroseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>169</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Timestamp when the last byte of response was received from server at the NetScaler</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpResForwLB</name>
+        <dataType>dateTimeMicroseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>170</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Timestamp when the last byte of response was forwarded to client from the NetScaler</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>appUnitNameAppId</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>171</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Netscaler uses application templates that groups a set of entities which can be exported and imported when needed. This Information Element exportes the ID of the application template to which the entity belongs.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>dbLoginFlags</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>flags</dataSemantics>
+        <id>172</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>SQL login flags</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>dbReqType</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>173</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The type of database request</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>dbProtocolName</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>174</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The database protocol being used</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>dbUserName</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>175</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Database username</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>dbDatabaseName</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>176</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>DB database name</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>dbCltHostName</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>177</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>DB client host name</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>dbReqString</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>178</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>DB request string</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>dbRespStatusString</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>179</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Status of the response as indicated in the Database response</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>dbRespStatus</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>180</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>SQL response status</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>dbRespLength</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>181</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>SQL response length</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>clientRTT</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>182</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The RTT of the client is exported in the server side records</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpContentType</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>183</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The Content Type string as seen in the HTTP header</paragraph>
+        </description> -->
+    </element>
+
+    <element>
+        <name>httpReqAuthorization</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>185</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Value of the Authorization HTTP header</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpReqVia</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>186</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Value of the Via HTTP header</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpResLocation</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>187</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Value of the Location HTTP response header</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpResSetCookie</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>188</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>value of the Set-Cookie HTTP response header</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpResSetCookie2</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>189</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>value of the Set-Cookie2 HTTP response header</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpReqXForwardedFor</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>190</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>value of the X-Forwarded-For HTTP header</paragraph>
+        </description> -->
+    </element>
+
+    <element>
+        <name>connectionChainID</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>192</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>This is a 16-byte ID that ties together all the TCP connections of ICA protocol, from client to the server that are terminated and established on layer-4 devices in the path. Since all these TCP connections belong to one logical connection from client to server, they will have the same connection chain ID.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>connectionChainHopCount</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>193</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The hop count of the current device in the connection chain from client to server (see connection chain id for more details)</paragraph>
+        </description> -->
+    </element>
+
+    <element>
+        <name>icaSessionGuid</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>200</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>This is a 16-byte ID that identifies an ICA session. This value is present in the ICA protocol header. With Excalibur actual session GUID will be present, which indicates a unique session established by a user. Pre-Excalibur, this is a random Value generated by Netscaler.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientVersion</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>201</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Version of the ICA client</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientType</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>202</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Identifies the type of ICA client</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientIP</name>
+        <dataType>ipv4Address</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>203</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The ICA client IP as sent by the Citrix Receiver</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientHostName</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>204</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>name of the ICA client host</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>aaaUsername</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>205</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>If the connection is over VPN, the AAA username for the session</paragraph>
+        </description> -->
+    </element>
+
+    <element>
+        <name>icaDomainName</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>207</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Domain of the ICA client</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientLauncher</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>208</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Identifies the ICA launcher</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaSessionSetupTime</name>
+        <dataType>dateTimeSeconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>209</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The time when the session was setup</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaServerName</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>210</id>
+
+        <status>current</status>
+        <!-- <description>
+            <paragraph>name of the ICA server</paragraph>
+        </description> -->
+    </element>
+
+    <element>
+        <name>icaSessionReconnects</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <id>214</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Number of times session reconnects happened</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaRTT</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>215</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The ICA client sends a probe packet to the server, which sends back a response. Using this, the ICA process calculates the round trip time between the client and server which is exported to the appflow collector as ICA RTT.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientsideRXBytes</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <id>216</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Number of bytes received on client ICA connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientsideTXBytes</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <id>217</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Number of bytes transmitted on client ICA connection</paragraph>
+        </description> -->
+    </element>
+
+    <element>
+        <name>icaClientsidePacketsRetransmit</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <id>219</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Number of packets retransmitted on clientside connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaServersidePacketsRetransmit</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <id>220</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Number of packets retransmitted on serverside connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientsideRTT</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>221</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The TCP rtt on the client ICA connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaServersideRTT</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>222</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The TCP rtt on the server ICA connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaSessionUpdateBeginSec</name>
+        <dataType>dateTimeSeconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>223</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Absolute timestamp of end of ICA session update</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaSessionUpdateEndSec</name>
+        <dataType>dateTimeSeconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>224</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Absolute timestamp of beginning of ICA session update</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaChannelId1</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>225</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The IDs of the ICA channels opened</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaChannelId1Bytes</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>226</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The IDs of the ICA channels opened</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaChannelId2</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>227</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The IDs of the ICA channels opened</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaChannelId2Bytes</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>228</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The IDs of the ICA channels opened</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaChannelId3</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>229</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The IDs of the ICA channels opened</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaChannelId3Bytes</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>230</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The IDs of the ICA channels opened</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaChannelId4</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>231</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The IDs of the ICA channels opened</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaChannelId4Bytes</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>232</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The IDs of the ICA channels opened</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaChannelId5</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>233</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The IDs of the ICA channels opened</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaChannelId5Bytes</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>234</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The IDs of the ICA channels opened</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaConnectionPriority</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>235</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Identifies the priority of ICA connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>applicationStartupDuration</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>236</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The time elapsed between the launch of an application and when it started running</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaLaunchMechanism</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>237</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The mechanism used to launch ICA application</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaApplicationName</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>238</id>
+
+        <status>current</status>
+        <!-- <description>
+            <paragraph>ICA application name</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>applicationStartupTime</name>
+        <dataType>dateTimeSeconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>239</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The time when an application started on the server</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaApplicationTerminationType</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>240</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Indicates how the application termination happened, eg: User closed the app, session termination, abort etc</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaApplicationTerminationTime</name>
+        <dataType>dateTimeSeconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>241</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The time when the application was terminated</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaSessionEndTime</name>
+        <dataType>dateTimeSeconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>242</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The time when the ICA session ended</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientsideJitter</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>243</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The variance of client side RTT w.r.t the calculated RTT</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaServersideJitter</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>244</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The variance of server side RTT w.r.t the calculated RTT</paragraph>
+        </description> -->
+    </element>
+
+    <element>
+        <name>icaAppProcessID</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>245</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The process ID of the application launched on the server</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaAppModulePath</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>246</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>path of the ICA application being launched</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaDeviceSerialNo</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>247</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Used in conjunction with clientcookie to identify primary connection and tie up streams of a MSI connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>msiClientCookie</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>248</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>An identifier that helps to tie up multiple connections of the same session when Multi stream ICA is used. Should be same across all MSI connections</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaFlags</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>flags</dataSemantics>
+        <id>249</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>ICA specific flags:  0x0004 - MSI Enabled on Session  0x0008 - Secondary Connection	 0x0010 - Seamless session	 0x0020 - Compression disabled explicitly	 0x0040 - Global ICA GUID enabled	 0x0080 - EUEM channel supported </paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaUsername</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>250</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Username for the ICA session</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>licenseType</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>251</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>
+            </paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>maxLicenseCount</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>252</id>
+
+        <status>current</status>
+        <!-- <description>
+            <paragraph>
+            </paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>currentLicenseConsumed</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>253</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>
+            </paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaNetworkUpdateStartTime</name>
+        <dataType>dateTimeSeconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>254</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>A network update record is sent at a defined interval that contains the ICA connection statistics for that interval. This Information Element contains the timestamp when the collection stats in this record began</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaNetworkUpdateEndTime</name>
+        <dataType>dateTimeSeconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>255</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>A network update record is sent at a defined interval that contains the ICA connection statistics for that interval. This Information Element contains the timestamp when the collection stats in this record ended</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientsideSRTT</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>256</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>RTT smoothed over the client side connection by considering one eighth of current RTT and seven eighth of the smoothed RTT since the beginning of the connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaServersideSRTT</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>257</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>RTT smoothed over the server side connection by considering one eighth of current RTT and seven eighth of the smoothed RTT since the beginning of the connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientsideDelay</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>258</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Indicates time taken by Netscaler to process this client side packet (NS introduced processing delay)</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaServersideDelay</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>259</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Indicates time taken by Netscaler to process this server side packet (NS introduced processing delay)</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaHostDelay</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>260</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Indicates a portion of the ICA RTT measurement - time delay introduced at the Host while processing the packet</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientSideWindowSize</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>261</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>TCP window size on the client connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaServerSideWindowSize</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>262</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>TCP window size on the server connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaClientSideRTOCount</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <id>263</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Number of times retransmission timeout occurred on client connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaServerSideRTOCount</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>deltaCounter</dataSemantics>
+        <id>264</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>Number of times retransmission timeout occurred on server connection</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaL7ClientLatency</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>265</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>L7 layer latency measured using ICA probes and responses sent between Receiver and the Host, on client side pcb.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>icaL7ServerLatency</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>quantity</dataSemantics>
+        <id>266</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>L7 layer latency measured using ICA probes and responses sent between Receiver and the Host, on server side pcb.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>httpDomainName</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <id>267</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>HTTP domain name</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>cacheRedirClientConnectionCoreID</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>268</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>The client connection id is unique within a process. Hence the process id of the client connection is also passed to make the complete set unique.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <name>cacheRedirClientConnectionTransactionID</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <id>269</id>
+        <status>current</status>
+        <!-- <description>
+            <paragraph>When a request hits CR vserver and is redirected to the cache server and a cache miss happens, the cache sends a the request to the origin server. This request mostly comes back to the NS. This ID is used to link the cache request with the actual client request on the collector.</paragraph>
+        </description> -->
+    </element>
+</ipfix-elements>

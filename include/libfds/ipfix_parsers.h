@@ -366,6 +366,41 @@ fds_tset_iter_next(struct fds_tset_iter *it);
 FDS_API const char *
 fds_tset_iter_err(const struct fds_tset_iter *it);
 
+
+/**
+ * @}
+ *
+ * \defgroup fds_blist_iter IPFIX (Options) Basic list iterator
+ * \ingroup fds_parsers
+ * \brief
+ *
+ *
+ * @{
+ */
+
+/** Iterator over basic list fields in an IPFIX Basic list data type  */
+struct fds_blist_iter {
+    /** Current field     */
+    struct fds_drec_field field;
+
+    struct {
+        /** Start of the basic list                 */
+        struct fds_blist *rec;
+        /** Info about the field used in the list   */
+        const struct fds_tfield field;
+        /** Offset of the next field                */
+        uint16_t next_offset;
+        /** Pointer to the start of the next record */
+        uint8_t *field_next;
+        /** End of the basic list                   */
+        uint8_t *blist_end;
+        /** Error buffer                            */
+        const char *err_msg;
+
+    } _private; /**< Internal structure (dO NOT use directly!)  */
+};
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -452,6 +452,19 @@ struct __attribute__((__packed__)) fds_ipfix_dset {
     uint8_t records[1];
 };
 
+
+struct __attribute__((__packed__)) fds_ipfix_blist {
+
+    uint8_t semantic;
+
+    uint16_t fieldId;
+
+    uint16_t element_length;
+
+    uint32_t enterprise_number;
+};
+
+
 /**@}*/
 
 #endif /* FDS_IPFIX_STRUCTS_H */

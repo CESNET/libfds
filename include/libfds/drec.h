@@ -121,7 +121,7 @@ struct fds_drec_iter {
         uint16_t next_offset;               /**< Offset of the next field                */
         uint16_t next_idx;                  /**< Index of the next field                 */
         uint16_t flags;                     /**< Iterator flags                          */
-    } internal; /**< Internal field (implementation can be changed!)                     */
+    } _private; /**< Internal field (implementation can be changed!)                     */
 };
 
 /** \brief Configuration flags of Data Record Iterator.                                  */

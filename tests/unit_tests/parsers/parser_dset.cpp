@@ -78,7 +78,7 @@ TEST(dsetIter, staticFields)
             EXPECT_EQ(rec_value, 11);
 
             // End has been reached
-            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_dset_iter_err(&iter), NO_ERR_STRING);
         }
 
@@ -119,7 +119,7 @@ TEST(dsetIter, staticFields)
             EXPECT_EQ(rec_value, 13);
 
             // End has been reached
-            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_dset_iter_err(&iter), NO_ERR_STRING);
         }
 
@@ -152,7 +152,7 @@ TEST(dsetIter, staticFields)
             EXPECT_EQ(rec_value, 12);
 
             // End has been reached
-            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_dset_iter_err(&iter), NO_ERR_STRING);
         }
 
@@ -204,7 +204,7 @@ TEST(dsetIter, singleVarField)
             EXPECT_EQ(iter.rec, reinterpret_cast<uint8_t *>(hdr_set.get() + 1));
 
             // End has been reached
-            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_dset_iter_err(&iter), NO_ERR_STRING);
         }
 
@@ -239,7 +239,7 @@ TEST(dsetIter, singleVarField)
             EXPECT_EQ(iter.rec, next_pos);
 
             // End has been reached
-            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_dset_iter_err(&iter), NO_ERR_STRING);
         }
 
@@ -305,7 +305,7 @@ TEST(dsetIter, mixVarAndFixed)
             EXPECT_EQ(rec_value, 11);
 
             // End has been reached
-            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_dset_iter_err(&iter), NO_ERR_STRING);
         }
 
@@ -346,7 +346,7 @@ TEST(dsetIter, mixVarAndFixed)
             EXPECT_EQ(rec_value, 13);
 
             // End has been reached
-            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_dset_iter_err(&iter), NO_ERR_STRING);
         }
 
@@ -380,7 +380,7 @@ TEST(dsetIter, mixVarAndFixed)
             EXPECT_EQ(rec_value, 12);
 
             // End has been reached
-            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_dset_iter_err(&iter), NO_ERR_STRING);
         }
 
@@ -443,7 +443,7 @@ TEST(dsetIter, multipeVarFields)
             EXPECT_EQ(iter.size, rec1.size());
 
             // End has been reached
-            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_dset_iter_err(&iter), NO_ERR_STRING);
         }
 
@@ -478,7 +478,7 @@ TEST(dsetIter, multipeVarFields)
             EXPECT_EQ(iter.rec, next_pos);
 
             // End has been reached
-            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_dset_iter_err(&iter), NO_ERR_STRING);
         }
 
@@ -510,7 +510,7 @@ TEST(dsetIter, multipeVarFields)
             next_pos = iter.rec + iter.size;
 
             // End has been reached
-            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_dset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_dset_iter_err(&iter), NO_ERR_STRING);
         }
 

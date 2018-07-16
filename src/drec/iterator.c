@@ -43,9 +43,6 @@
 #include <assert.h>
 #include <arpa/inet.h> // ntohs
 
-/** Variable-length constant */  // TODO: replace
-#define VAR_IE_LENGTH 65535
-
 /** Information Element ID ("paddingOctets") for data padding */
 #define IPFIX_PADDING_IE 210
 /** IANA Private Enterprise Number for common forward fields */
@@ -70,7 +67,7 @@ fds_drec_find(struct fds_drec *rec, uint32_t pen, uint16_t id, struct fds_drec_f
         field_def = &rec->tmplt->fields[idx];
         field_size = field_def->length;
 
-        if (field_size == VAR_IE_LENGTH) {
+        if (field_size == FDS_IPFIX_VAR_IE_LEN) {
             // This is field with variable length encoding -> read size from data
             field_size = rec_start[offset];
             offset++;
@@ -92,8 +89,8 @@ fds_drec_find(struct fds_drec *rec, uint32_t pen, uint16_t id, struct fds_drec_f
 
     if (idx >= fields_cnt) {
         // No more fields
-        static_assert(FDS_ERR_NOTFOUND < 0, "Error codes must be always negative!");
-        return FDS_ERR_NOTFOUND;
+        static_assert(FDS_EOC < 0, "Error codes must be always negative!");
+        return FDS_EOC;
     }
 
     // We found required field
@@ -118,45 +115,45 @@ fds_drec_iter_init(struct fds_drec_iter *iter, struct fds_drec *record, uint16_t
     // Both direction flags (forward + reverse) cannot be set together
     assert((flags & mask) != mask);
 
-    iter->internal.rec = record;
-    iter->internal.next_offset = 0;
-    iter->internal.next_idx = 0;
-    iter->internal.flags = flags;
+    iter->_private.rec = record;
+    iter->_private.next_offset = 0;
+    iter->_private.next_idx = 0;
+    iter->_private.flags = flags;
     if ((flags & FDS_DREC_BIFLOW_REV) == 0) {
         // Use forward fields
-        iter->internal.fields = record->tmplt->fields;
+        iter->_private.fields = record->tmplt->fields;
     } else {
         // Use reverse fields
-        iter->internal.fields = record->tmplt->fields_rev;
-        assert(iter->internal.fields != NULL);
+        iter->_private.fields = record->tmplt->fields_rev;
+        assert(iter->_private.fields != NULL);
     }
 }
 
 void
 fds_drec_iter_rewind(struct fds_drec_iter *iter)
 {
-    iter->internal.next_offset = 0;
-    iter->internal.next_idx = 0;
+    iter->_private.next_offset = 0;
+    iter->_private.next_idx = 0;
 }
 
 int
 fds_drec_iter_next(struct fds_drec_iter *iter)
 {
-    const uint16_t fields_cnt = iter->internal.rec->tmplt->fields_cnt_total;
-    uint8_t *rec_start = iter->internal.rec->data;
+    const uint16_t fields_cnt = iter->_private.rec->tmplt->fields_cnt_total;
+    uint8_t *rec_start = iter->_private.rec->data;
 
     uint32_t offset;
     uint16_t field_size;
     const struct fds_tfield *field_def;
 
     uint16_t idx;
-    for (idx = iter->internal.next_idx; idx < fields_cnt; ++idx) {
+    for (idx = iter->_private.next_idx; idx < fields_cnt; ++idx) {
         // Determine the start of the field and its real length
-        offset = iter->internal.next_offset;
-        field_def = &iter->internal.fields[idx];
+        offset = iter->_private.next_offset;
+        field_def = &iter->_private.fields[idx];
         field_size = field_def->length;
 
-        if (field_size == VAR_IE_LENGTH) {
+        if (field_size == FDS_IPFIX_VAR_IE_LEN) {
             // This is field with variable length encoding -> read size from data
             field_size = rec_start[offset];
             offset++;
@@ -169,7 +166,7 @@ fds_drec_iter_next(struct fds_drec_iter *iter)
         }
 
         // Update info about the next record
-        iter->internal.next_offset = offset + field_size;
+        iter->_private.next_offset = offset + field_size;
         // Check padding field
         if (field_def->id == IPFIX_PADDING_IE
                 && (field_def->en == IANA_PEN_FWD || field_def->en == IANA_PEN_REV)) {
@@ -178,7 +175,7 @@ fds_drec_iter_next(struct fds_drec_iter *iter)
         }
 
         // Check flags
-        const uint16_t flags = iter->internal.flags;
+        const uint16_t flags = iter->_private.flags;
         if (flags == 0) {
             break;
         }
@@ -198,13 +195,13 @@ fds_drec_iter_next(struct fds_drec_iter *iter)
 
     if (idx >= fields_cnt) {
         // No more fields
-        static_assert(FDS_ERR_NOTFOUND < 0, "Error codes must be always negative!");
-        iter->internal.next_idx = idx;
-        return FDS_ERR_NOTFOUND;
+        static_assert(FDS_EOC < 0, "Error codes must be always negative!");
+        iter->_private.next_idx = idx;
+        return FDS_EOC;
     }
 
     // We found required field
-    iter->internal.next_idx = idx + 1U;
+    iter->_private.next_idx = idx + 1U;
     iter->field.data = &rec_start[offset];
     iter->field.size = field_size;
     iter->field.info = field_def;
@@ -214,21 +211,21 @@ fds_drec_iter_next(struct fds_drec_iter *iter)
 int
 fds_drec_iter_find(struct fds_drec_iter *iter, uint32_t pen, uint16_t id)
 {
-    const uint16_t fields_cnt = iter->internal.rec->tmplt->fields_cnt_total;
-    uint8_t *rec_start = iter->internal.rec->data;
+    const uint16_t fields_cnt = iter->_private.rec->tmplt->fields_cnt_total;
+    uint8_t *rec_start = iter->_private.rec->data;
 
     uint16_t offset;
     uint16_t field_size;
     const struct fds_tfield *field_def;
 
     uint16_t idx;
-    for (idx = iter->internal.next_idx; idx < fields_cnt; ++idx) {
+    for (idx = iter->_private.next_idx; idx < fields_cnt; ++idx) {
         // Determine the start of the field and its real length
-        offset = iter->internal.next_offset;
-        field_def = &iter->internal.fields[idx];
+        offset = iter->_private.next_offset;
+        field_def = &iter->_private.fields[idx];
         field_size = field_def->length;
 
-        if (field_size == VAR_IE_LENGTH) {
+        if (field_size == FDS_IPFIX_VAR_IE_LEN) {
             // This is field with variable length encoding -> read size from data
             field_size = rec_start[offset];
             offset++;
@@ -240,7 +237,7 @@ fds_drec_iter_find(struct fds_drec_iter *iter, uint32_t pen, uint16_t id)
             }
         }
 
-        iter->internal.next_offset = offset + field_size;
+        iter->_private.next_offset = offset + field_size;
         if (field_def->id == id && field_def->en == pen) {
             // Field found
             break;
@@ -249,13 +246,13 @@ fds_drec_iter_find(struct fds_drec_iter *iter, uint32_t pen, uint16_t id)
 
     if (idx >= fields_cnt) {
         // No more fields
-        static_assert(FDS_ERR_NOTFOUND < 0, "Error codes must be always negative!");
-        iter->internal.next_idx = idx;
-        return FDS_ERR_NOTFOUND;
+        static_assert(FDS_EOC < 0, "Error codes must be always negative!");
+        iter->_private.next_idx = idx;
+        return FDS_EOC;
     }
 
     // We found required field
-    iter->internal.next_idx = idx + 1U;
+    iter->_private.next_idx = idx + 1U;
     iter->field.data = &rec_start[offset];
     iter->field.size = field_size;
     iter->field.info = field_def;

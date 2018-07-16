@@ -47,7 +47,7 @@ TEST(tsetIter, oneTemplate)
     EXPECT_EQ(iter.ptr.trec, tmplt_pos);
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -81,7 +81,7 @@ TEST(tsetIter, oneOptionsTemplate)
     EXPECT_EQ(iter.ptr.opts_trec, tmplt_pos);
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -107,7 +107,7 @@ TEST(tsetIter, oneWithdrawal)
     EXPECT_EQ(iter.ptr.wdrl_trec, tmplt_pos);
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -190,7 +190,7 @@ TEST(tsetIter, multipleTemplates)
     EXPECT_EQ(iter.ptr.trec, tmplt_pos);
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -273,7 +273,7 @@ TEST(tsetIter, multipleOptionsTemplates)
     EXPECT_EQ(iter.ptr.trec, tmplt_pos);
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -307,7 +307,7 @@ TEST(tsetIter, multipleWithdrawals)
     }
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -331,7 +331,7 @@ TEST(tsetIter, allTemplatesWithdrawal)
     EXPECT_EQ(iter.ptr.wdrl_trec, tmplt_pos);
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -354,7 +354,7 @@ TEST(tsetIter, allOptionsTemplatesWithdrawal)
     EXPECT_EQ(iter.ptr.wdrl_trec, tmplt_pos);
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -401,7 +401,7 @@ TEST(tsetIter, maxTemplate)
     EXPECT_EQ(iter.ptr.trec, reinterpret_cast<fds_ipfix_trec *>(hdr_set.get() + 1));
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -433,7 +433,7 @@ TEST(tsetIter, maxOptionsTemplate)
     EXPECT_EQ(iter.ptr.opts_trec, reinterpret_cast<fds_ipfix_opts_trec *>(hdr_set.get() + 1));
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -469,7 +469,7 @@ TEST(tsetIter, maxTemplatesInSet)
     }
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -505,7 +505,7 @@ TEST(tsetIter, maxOptionsTemplatesInSet)
     }
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -541,7 +541,7 @@ TEST(tsetIter, maxWithdrawalsInSet)
     }
 
     // The end of the Set
-    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -578,7 +578,7 @@ TEST(tsetIter, templateSetPadding)
         EXPECT_EQ(iter.ptr.trec, tmplt_pos);
 
         // The end of the Set
-        EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
         EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
     }
 }
@@ -616,7 +616,7 @@ TEST(tsetIter, optionsTemplateSetPadding)
         EXPECT_EQ(iter.ptr.opts_trec, tmplt_pos);
 
         // The end of the Set
-        EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
         EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
     }
 }
@@ -658,7 +658,7 @@ TEST(tsetIter, withdrawalSetPadding)
             EXPECT_EQ(iter.ptr.wdrl_trec, tmplt_pos);
 
             // The end of the Set
-            EXPECT_EQ(fds_tset_iter_next(&iter), FDS_ERR_NOTFOUND);
+            EXPECT_EQ(fds_tset_iter_next(&iter), FDS_EOC);
             EXPECT_EQ(fds_tset_iter_err(&iter), NO_ERR_STRING);
         }
     }

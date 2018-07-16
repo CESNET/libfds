@@ -125,14 +125,15 @@ fds_sets_iter_init(struct fds_sets_iter *it, struct fds_ipfix_msg_hdr *msg);
  *      // Add your code here...
  *   }
  *
- *   if (rc != FDS_ERR_NOTFOUND) {
+ *   if (rc != FDS_EOC) {
  *      fprintf(stderr, "Error: %s\n", fds_sets_iter_err(&it));
  *   }
  * \endcode
  * \param[in] it Pointer to the iterator
- * \return If the next Set is prepared, returns #FDS_OK. If no more Sets are available, returns
- *   #FDS_ERR_NOTFOUND. Otherwise (invalid Message format) returns #FDS_ERR_FORMAT and fills
- *   an error message (see fds_sets_iter_err()).
+ * \return #FDS_OK on success an the next Set is ready to use.
+ * \return #FDS_EOC if no more Sets are available.
+ * \return #FDS_ERR_FORMAT if the format of the message is invalid (an appropriate error message
+ *   is set - see fds_sets_iter_err()).
  */
 FDS_API int
 fds_sets_iter_next(struct fds_sets_iter *it);
@@ -223,14 +224,15 @@ fds_dset_iter_init(struct fds_dset_iter *it, struct fds_ipfix_set_hdr *set,
  *      // Add your code here...
  *   }
  *
- *   if (rc != FDS_ERR_NOTFOUND) {
+ *   if (rc != FDS_EOC) {
  *      fprintf(stderr, "Error: %s\n", fds_dset_iter_err(&it));
  *   }
  * \endcode
  * \param[in] it Pointer to the iterator
- * \return If the next Record is prepared, returns #FDS_OK. If no more Records are available,
- *   returns #FDS_ERR_NOTFOUND. Otherwise (invalid Data Set format) returns #FDS_ERR_FORMAT and
- *   fills an error message (see fds_dset_iter_err()).
+ * \return #FDS_OK on success and the next Record is ready to use.
+ * \return #FDS_EOC if no more Records are available (the end of the Set has been reached).
+ * \return #FDS_ERR_FORMAT if the format of the Data Set is invalid (an appropriate error message
+ *   is set - see fds_dset_iter_err()).
  */
 FDS_API int
 fds_dset_iter_next(struct fds_dset_iter *it);
@@ -344,14 +346,15 @@ fds_tset_iter_init(struct fds_tset_iter *it, struct fds_ipfix_set_hdr *set);
  *      // Add your code here...
  *   }
  *
- *   if (rc != FDS_ERR_NOTFOUND) {
+ *   if (rc != FDS_EOC) {
  *      fprintf(stderr, "Error: %s\n", fds_tset_iter_err(&it));
  *   }
  * \endcode
  * \param[in] it Pointer to the iterator
- * \return If the next Record is prepared, returns #FDS_OK. If no more Records are available,
- *   returns #FDS_ERR_NOTFOUND. Otherwise (invalid (Options) Template Set format) returns
- *   #FDS_ERR_FORMAT and fills an error message (see fds_tset_iter_err()).
+ * \return #FDS_OK on success and the Template Record is ready to use.
+ * \return #FDS_EOC if no more Template Records are available (the end of the Set has been reached).
+ * \return #FDS_ERR_FORMAT if the format of the Template Set is invalid (an appropriate error
+ *   message is set - see fds_tset_iter_err()).
  */
 FDS_API int
 fds_tset_iter_next(struct fds_tset_iter *it);

@@ -98,13 +98,13 @@ struct fds_drec_field {
  *
  * Try to find the first occurrence of the field defined by an Enterprise Number
  * and an Information Element ID in a data record.
- * \param[in]  rec     Pointer to the data record
- * \param[in]  pen     Private Enterprise Number
- * \param[in]  id      Information Element ID
- * \param[out] field  Pointer to a variable where the result will be stored
+ * \param[in]  rec   Pointer to the data record
+ * \param[in]  pen   Private Enterprise Number
+ * \param[in]  id    Information Element ID
+ * \param[out] field Pointer to a variable where the result will be stored
  * \return If the field is present in the record, this function will fill \p field and return
  *   an index of the field in the record (the index starts from 0). Otherwise (the field is not
- *   present in the record) returns #FDS_ERR_NOTFOUND and \p field is not filled.
+ *   present in the record) returns #FDS_EOC and the \p field is not filled.
  */
 FDS_API int
 fds_drec_find(struct fds_drec *rec, uint32_t pen, uint16_t id, struct fds_drec_field *field);
@@ -179,7 +179,7 @@ fds_drec_iter_init(struct fds_drec_iter *iter, struct fds_drec *record, uint16_t
  *  struct fds_drec_iter it;
  *  fds_drec_iter_init(&it, record, 0);
  *
- *  while (fds_drec_iter_next(&it) != FDS_ERR_NOTFOUND) {
+ *  while (fds_drec_iter_next(&it) != FDS_EOC) {
  *      // Add your code here, for example:
  *      const struct fds_tfield *field = it.field.info;
  *      printf("en: %" PRIu32 " & id: %" PRIu16 "\n", field->en, field->id);
@@ -189,7 +189,7 @@ fds_drec_iter_init(struct fds_drec_iter *iter, struct fds_drec *record, uint16_t
  * \note Padding fields (PEN: 0, IE: 210, "paddingOctets") are automatically skipped.
  * \param[in,out] iter Pointer to the iterator
  * \return If the next field is prepared, returns an index of the field in the record (starts
- *   from 0). Otherwise (no more field in the record) returns #FDS_ERR_NOTFOUND.
+ *   from 0). Otherwise (no more field in the record) returns #FDS_EOC.
  */
 FDS_API int
 fds_drec_iter_next(struct fds_drec_iter *iter);
@@ -210,7 +210,7 @@ fds_drec_iter_next(struct fds_drec_iter *iter);
  *  struct fds_drec_iter it;
  *  fds_drec_iter_init(&it, record, 0);
  *
- *  while (fds_drec_iter_find(&it, pen, id) != FDS_ERR_NOTFOUND) {
+ *  while (fds_drec_iter_find(&it, pen, id) != FDS_EOC) {
  *      // Add your code here...
  *  }
  * \endcode
@@ -228,7 +228,7 @@ fds_drec_iter_next(struct fds_drec_iter *iter);
  * \param[in]     pen  Private Enterprise Number
  * \param[in]     id   Information Element ID
  * \return On success returns an index of the field in the record (the index starts from 0).
- *   Otherwise returns #FDS_ERR_NOTFOUND.
+ *   Otherwise returns #FDS_EOC.
  */
 FDS_API int
 fds_drec_iter_find(struct fds_drec_iter *iter, uint32_t pen, uint16_t id);

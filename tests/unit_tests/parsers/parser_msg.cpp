@@ -25,7 +25,7 @@ TEST(setIter, msgHeaderOnly)
 
     fds_sets_iter iter;
     fds_sets_iter_init(&iter, hdr_msg.get());
-    EXPECT_EQ(fds_sets_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_sets_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_sets_iter_err(&iter), NO_ERR_STRING);
 }
 
@@ -49,7 +49,7 @@ TEST(setIter, singleSet)
         uint16_t flowset_id = ntohs(iter.set->flowset_id);
         EXPECT_EQ(flowset_id, set_id);
         // End
-        EXPECT_EQ(fds_sets_iter_next(&iter), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_sets_iter_next(&iter), FDS_EOC);
         EXPECT_EQ(fds_sets_iter_err(&iter), NO_ERR_STRING);
     }
 }
@@ -101,7 +101,7 @@ TEST(setIter, multipleSets)
     EXPECT_EQ(set4_len, set_data2.size());
     EXPECT_EQ(set4_id, FDS_IPFIX_SET_MIN_DSET + 1);
     // End
-    EXPECT_EQ(fds_sets_iter_next(&iter), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(fds_sets_iter_next(&iter), FDS_EOC);
     EXPECT_EQ(fds_sets_iter_err(&iter), NO_ERR_STRING);
 }
 

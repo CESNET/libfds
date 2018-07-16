@@ -43,9 +43,6 @@
 #include <assert.h>
 #include <arpa/inet.h> // ntohs
 
-/** Variable-length constant */  // TODO: replace
-#define VAR_IE_LENGTH 65535
-
 /** Information Element ID ("paddingOctets") for data padding */
 #define IPFIX_PADDING_IE 210
 /** IANA Private Enterprise Number for common forward fields */
@@ -70,7 +67,7 @@ fds_drec_find(struct fds_drec *rec, uint32_t pen, uint16_t id, struct fds_drec_f
         field_def = &rec->tmplt->fields[idx];
         field_size = field_def->length;
 
-        if (field_size == VAR_IE_LENGTH) {
+        if (field_size == FDS_IPFIX_VAR_IE_LEN) {
             // This is field with variable length encoding -> read size from data
             field_size = rec_start[offset];
             offset++;
@@ -92,8 +89,8 @@ fds_drec_find(struct fds_drec *rec, uint32_t pen, uint16_t id, struct fds_drec_f
 
     if (idx >= fields_cnt) {
         // No more fields
-        static_assert(FDS_ERR_NOTFOUND < 0, "Error codes must be always negative!");
-        return FDS_ERR_NOTFOUND;
+        static_assert(FDS_EOC < 0, "Error codes must be always negative!");
+        return FDS_EOC;
     }
 
     // We found required field
@@ -156,7 +153,7 @@ fds_drec_iter_next(struct fds_drec_iter *iter)
         field_def = &iter->internal.fields[idx];
         field_size = field_def->length;
 
-        if (field_size == VAR_IE_LENGTH) {
+        if (field_size == FDS_IPFIX_VAR_IE_LEN) {
             // This is field with variable length encoding -> read size from data
             field_size = rec_start[offset];
             offset++;
@@ -198,9 +195,9 @@ fds_drec_iter_next(struct fds_drec_iter *iter)
 
     if (idx >= fields_cnt) {
         // No more fields
-        static_assert(FDS_ERR_NOTFOUND < 0, "Error codes must be always negative!");
+        static_assert(FDS_EOC < 0, "Error codes must be always negative!");
         iter->internal.next_idx = idx;
-        return FDS_ERR_NOTFOUND;
+        return FDS_EOC;
     }
 
     // We found required field
@@ -228,7 +225,7 @@ fds_drec_iter_find(struct fds_drec_iter *iter, uint32_t pen, uint16_t id)
         field_def = &iter->internal.fields[idx];
         field_size = field_def->length;
 
-        if (field_size == VAR_IE_LENGTH) {
+        if (field_size == FDS_IPFIX_VAR_IE_LEN) {
             // This is field with variable length encoding -> read size from data
             field_size = rec_start[offset];
             offset++;
@@ -249,9 +246,9 @@ fds_drec_iter_find(struct fds_drec_iter *iter, uint32_t pen, uint16_t id)
 
     if (idx >= fields_cnt) {
         // No more fields
-        static_assert(FDS_ERR_NOTFOUND < 0, "Error codes must be always negative!");
+        static_assert(FDS_EOC < 0, "Error codes must be always negative!");
         iter->internal.next_idx = idx;
-        return FDS_ERR_NOTFOUND;
+        return FDS_EOC;
     }
 
     // We found required field

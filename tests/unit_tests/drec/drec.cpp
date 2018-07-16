@@ -130,9 +130,9 @@ TEST_F(drecFind, missing)
 {
     struct fds_drec_field field;
     // Some random fields...
-    ASSERT_EQ(fds_drec_find(&rec, 0, 1000, &field), FDS_ERR_NOTFOUND);
-    ASSERT_EQ(fds_drec_find(&rec, 0, 0, &field), FDS_ERR_NOTFOUND);
-    ASSERT_EQ(fds_drec_find(&rec, 8888, 100, &field), FDS_ERR_NOTFOUND);
+    ASSERT_EQ(fds_drec_find(&rec, 0, 1000, &field), FDS_EOC);
+    ASSERT_EQ(fds_drec_find(&rec, 0, 0, &field), FDS_EOC);
+    ASSERT_EQ(fds_drec_find(&rec, 8888, 100, &field), FDS_EOC);
 }
 
 // Find fixed field before variable fields
@@ -451,7 +451,7 @@ TEST_F(drecIter, overWholeRec) // Automatically skip padding
         delete[] buffer;
 
         // End reached
-        EXPECT_EQ(fds_drec_iter_next(&iter), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_next(&iter), FDS_EOC);
     }
 }
 
@@ -668,7 +668,7 @@ TEST_F(drecIter, overForwardDirection)
         delete[] buffer;
 
         // End reached
-        EXPECT_EQ(fds_drec_iter_next(&iter), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_next(&iter), FDS_EOC);
     }
 }
 
@@ -886,7 +886,7 @@ TEST_F(drecIter, overReverseDirection)
         delete[] buffer;
 
         // End reached
-        EXPECT_EQ(fds_drec_iter_next(&iter), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_next(&iter), FDS_EOC);
     }
 }
 
@@ -911,11 +911,11 @@ TEST_F(drecIter, findMissing)
         fds_drec_iter_init(&iter, &rec, iter_flags);
 
         // Some random fields...
-        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 0), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 0), FDS_EOC);
         fds_drec_iter_rewind(&iter);
-        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 1000), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 1000), FDS_EOC);
         fds_drec_iter_rewind(&iter);
-        EXPECT_EQ(fds_drec_iter_find(&iter, 8888, 100), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_find(&iter, 8888, 100), FDS_EOC);
     }
 }
 
@@ -953,7 +953,7 @@ TEST_F(drecIter, findFixedBeforeVar)
             EXPECT_EQ(uint64_result, VALUE_DST_PORT);
         }
 
-        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 7), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 7), FDS_EOC);
         fds_drec_iter_rewind(&iter);
 
         // Try to find flowStartMilliseconds
@@ -972,7 +972,7 @@ TEST_F(drecIter, findFixedBeforeVar)
         } else {
             EXPECT_EQ(uint64_result, VALUE_TS_FST_R);
         }
-        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 152), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 152), FDS_EOC);
     }
 }
 
@@ -1009,7 +1009,7 @@ TEST_F(drecIter, findFixedAfterVar)
         } else {
             EXPECT_EQ(uint64_result, VALUE_BYTES_R);
         }
-        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 1), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 1), FDS_EOC);
         fds_drec_iter_rewind(&iter);
 
         // Try to find packetDeltaCount (reverse)
@@ -1025,7 +1025,7 @@ TEST_F(drecIter, findFixedAfterVar)
         } else {
             EXPECT_EQ(uint64_result, VALUE_PKTS);
         }
-        EXPECT_EQ(fds_drec_iter_find(&iter, 29305, 2), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_find(&iter, 29305, 2), FDS_EOC);
         fds_drec_iter_rewind(&iter);
 
         // Try to find field with unknown definition
@@ -1036,7 +1036,7 @@ TEST_F(drecIter, findFixedAfterVar)
         double double_result;
         ASSERT_EQ(fds_get_float_be(iter.field.data, iter.field.size, &double_result), FDS_OK);
         EXPECT_FLOAT_EQ(double_result, VALUE_UNKNOWN);
-        EXPECT_EQ(fds_drec_iter_find(&iter, 10000, 100), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_find(&iter, 10000, 100), FDS_EOC);
     }
 }
 
@@ -1071,7 +1071,7 @@ TEST_F(drecIter, findVarBeforeVar)
         EXPECT_STREQ(buffer, VALUE_APP_NAME.c_str());
         delete[] buffer;
 
-        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 96), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 96), FDS_EOC);
     }
 }
 
@@ -1107,7 +1107,7 @@ TEST_F(drecIter, findVarAfterVar)
         EXPECT_STREQ(buffer, VALUE_APP_DSC.c_str());
         delete[] buffer;
 
-        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 94), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_find(&iter, 0, 94), FDS_EOC);
     }
 }
 
@@ -1153,6 +1153,6 @@ TEST_F(drecIter, findMultipleOccurrences)
         delete[] buffer;
 
         // End reached
-        EXPECT_EQ(fds_drec_iter_next(&iter), FDS_ERR_NOTFOUND);
+        EXPECT_EQ(fds_drec_iter_next(&iter), FDS_EOC);
     }
 }

@@ -117,7 +117,7 @@ int
 fds_sets_iter_next(struct fds_sets_iter *it)
 {
     if (it->_private.set_next == it->_private.msg_end) {
-        return FDS_ERR_NOTFOUND;
+        return FDS_EOC;
     }
 
     // Make sure that the iterator is not beyond the end of the message
@@ -199,7 +199,7 @@ fds_dset_iter_next(struct fds_dset_iter *it)
 
     if (it->_private.rec_next == it->_private.set_end) {
         // End of the Set
-        return FDS_ERR_NOTFOUND;
+        return FDS_EOC;
     }
 
     // Make sure that the iterator is not beyond the end of the message
@@ -210,7 +210,7 @@ fds_dset_iter_next(struct fds_dset_iter *it)
     uint32_t size = tmplt->data_length;
     if (it->_private.rec_next + size > it->_private.set_end) {
         // The rest of the Data Set is padding
-        return FDS_ERR_NOTFOUND;
+        return FDS_EOC;
     }
 
     if ((tmplt->flags & FDS_TEMPLATE_DYNAMIC) == 0) {
@@ -331,7 +331,7 @@ fds_tset_iter_withdrawals(struct fds_tset_iter *it)
     assert(it->_private.type == 0);
     if (it->_private.rec_next + FDS_IPFIX_WDRL_TREC_LEN > it->_private.set_end) {
         // Skip padding
-        return FDS_ERR_NOTFOUND;
+        return FDS_EOC;
     }
 
     struct fds_ipfix_wdrl_trec *rec = (struct fds_ipfix_wdrl_trec *) it->_private.rec_next;
@@ -391,7 +391,7 @@ fds_tset_iter_definitions(struct fds_tset_iter *it)
     const uint16_t min_size = (type == FDS_IPFIX_SET_TMPLT) ? 8U : 10U;
     if (it->_private.rec_next + min_size > it->_private.set_end) {
         // Skip padding
-        return FDS_ERR_NOTFOUND;
+        return FDS_EOC;
     }
 
     uint16_t tmplt_id;
@@ -470,7 +470,7 @@ fds_tset_iter_definitions(struct fds_tset_iter *it)
     }
 
     if (data_size == 0) {
-        // Template definition that describes zero-length records doesn't make sence
+        // Template definition that describes zero-length records doesn't make sense
         it->_private.err_msg = err_msg[ERR_TSET_DEF_ZERO];
         return FDS_ERR_FORMAT;
     }
@@ -508,7 +508,7 @@ fds_tset_iter_next(struct fds_tset_iter *it)
 
     if (it->_private.rec_next == it->_private.set_end) {
         // End of the Set
-        return FDS_ERR_NOTFOUND;
+        return FDS_EOC;
     }
 
     // Make sure that the iterator is not beyond the end of the message

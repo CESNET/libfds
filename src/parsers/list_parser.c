@@ -45,38 +45,109 @@
 enum error_codes {
     // No error
             ERR_OK,
+            ERR_BLIST_SHORT,
+            ERR_BLIST_UNEXP_END,
 };
 
 /** Corresponding error messages */
 static const char *err_msg[] = {
         [ERR_OK]             = "No error.",
+        [ERR_BLIST_SHORT]    = "Size of the field is smaller than the minimal size of the Basic list.",
+        [ERR_BLIST_UNEXP_END]= "Unexpected end of the list while reading its members",
 };
 
-void
-fds_blist_iter_init(struct fds_blist_iter *it, struct fds_ipfix_msg_hdr *msg)
+int
+fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fds_iemgr_t *ie_mgr)
 {
-    // Initialization of the iterator
-    // set the pointer for the next field in the list to the right place in the memmory (consider EN)
-    // Do not fill the structure already, _next() function is there for that case
+    // Check if the Basic list can fit into the field
+    if (ntohs(field->size) < FDS_IPFIX_BLIST_HDR_SHORT){
+        it->_private.err_msg = err_msg[ERR_BLIST_SHORT];
+        return FDS_ERR_FORMAT;
+    }
+    // Point to the start and end of the basic list
+    it->_private.blist = ((struct fds_ipfix_blist *)field->data);
+    it->_private.blist_end = field->data + ntohs(field->size);
+
+    it->_private.info->def = NULL;
+    it->_private.info->id = ntohs(it->_private.blist->field_id);
+    it->_private.info->length = ntohs(it->_private.blist->element_length);
+    it->_private.info->en = 0;
+    it->_private.info->flags = 0; // Do I need any flags?
+    it->_private.info->offset = 0;
+
+    uint32_t hdr_size;
+    uint32_t en;
+
+    // Enterprise number NOT present
+    if (ntohs(it->_private.info->id) < FDS_IPFIX_BLIST_ENBIT_ON) {
+        hdr_size = FDS_IPFIX_BLIST_HDR_SHORT;
+    //Enterprise number present
+    } else {
+        hdr_size = FDS_IPFIX_BLIST_HDR_LONG;
+        it->_private.info->id -= FDS_IPFIX_BLIST_ENBIT_ON;
+        en = ntohl(it->_private.blist->enterprise_number);
+        //If IEManager present, we will fill the definition of the field
+        if (ie_mgr != NULL){
+            it->_private.info->def = fds_iemgr_elem_find_id(ie_mgr, en, it->_private.blist->field_id);
+        }
+    }
+    //Setting pointer to first record
+    it->_private.field_next = field->data + hdr_size;
+
+    //Error message OK
+    it->_private.err_msg = err_msg[ERR_OK];
+    return FDS_OK;
+
+
 }
 
 int
-fds_blist_iter_next(struct fds_sets_iter *it)
+fds_blist_iter_next(struct fds_blist_iter *it)
 {
     // Check if there is another field in list to read
+    if (it->_private.field_next == it->_private.blist_end){
+        return FDS_EOC;
+    }
+    // resolving the element length
+    uint16_t elem_length;
+    uint8_t *rec_start = it->_private.field_next;
+    uint32_t offset = it->_private.info->offset;
+
+    if (ntohs(it->_private.info->length) == FDS_IPFIX_VAR_IE_LEN) {
+        // This is field with variable length encoding -> read size from data
+        elem_length = rec_start[offset];
+        offset++;
+
+        if (elem_length == 255U) {
+            // Real size is on next 2 bytes
+            elem_length = ntohs(*(uint16_t *) &rec_start[offset]);
+            offset += 2U;
+        }
+    }
+    else{
+        elem_length = ntohs(it->_private.blist->element_length);
+    }
 
     // Check if we are not reading beyond the end of the list
-
-    // Check if we are not reading beyond the message
+    if (it->_private.field_next + elem_length > it->_private.blist_end){
+        it->_private.err_msg = err_msg[ERR_BLIST_UNEXP_END];
+        return FDS_ERR_FORMAT;
+    }
 
     // Filling the structure, setting private properties,
+    it->field.size = elem_length;
+    it->field.data = &rec_start[offset];
+    it->field.info = it->_private.info;
 
+    // Setting the next-pointer to the next record
+    it->_private.next_offset = offset + elem_length;
+    it->_private.field_next = &rec_start[offset+elem_length];
 
     return FDS_OK;
 }
 
 const char *
-fds_blist_iter_err(const struct fds_dset_iter *it)
+fds_blist_iter_err(const struct fds_blist_iter *it)
 {
     return it->_private.err_msg;
 }

@@ -452,18 +452,56 @@ struct __attribute__((__packed__)) fds_ipfix_dset {
     uint8_t records[1];
 };
 
+ /** Size of Basic list header without Enterprise number */
+#define FDS_IPFIX_BLIST_HDR_SHORT 5U
 
+/** Size of Basic list header when the Enterprise number is present */
+#define FDS_IPFIX_BLIST_HDR_LONG 9U
+
+/** If the Enterprise number is greater than this value, Enterprise number is present */
+#define FDS_IPFIX_BLIST_ENBIT_ON 32768
+
+/**
+ * \struct fds_ipfix_blist
+ * \brief  IPFIX Basic list structure
+ *
+ *  Basic list is one of the Information Elements that can be present in
+ *  fields. Basic list contains only one type of information elements.
+ *  Minimal size of Basic list header is 5 bytes
+ *  but if the Enterprise number is present in header,
+ *  the minimal size is 9 bytes.
+ */
 struct __attribute__((__packed__)) fds_ipfix_blist {
-
+    /**
+     * The Semantic field indicates the relationship among the different
+     * Information Element values within this Structured Data Information
+     * Element.  Refer to IANA's "IPFIX Structured Data Types Semantics"
+     * registry.
+     */
     uint8_t semantic;
 
-    uint16_t fieldId;
+    /**
+     * Field ID is the Information Element identifier of the Information
+     * Element(s) contained in the list.
+     */
+    uint16_t field_id;
 
+    /**
+     * Per Section 7 of [RFC5101], the Element Length field indicates the
+     * length, in octets, of each list element specified by Field ID, or
+     * contains the value 0xFFFF if the length is encoded as a variable-
+     * length Information Element at the start of the basicList Content.
+     */
     uint16_t element_length;
 
+    /**
+     * If the Enterprise bit in Field ID (most significant bit in Field ID) is set to 1,
+     * 4-byte enterprise number is present. Otherwise it cannot be used and data present at
+     * this location is not valid.
+     */
     uint32_t enterprise_number;
-};
 
+};
 
 /**@}*/
 

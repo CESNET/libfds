@@ -373,9 +373,15 @@ fds_tset_iter_err(const struct fds_tset_iter *it);
 /**
  * @}
  *
- * \defgroup fds_blist_iter IPFIX (Options) Basic list iterator
+ * \defgroup fds_blist_iter IPFIX Basic list iterator
  * \ingroup fds_parsers
- * \brief
+ * \brief Iterator over Fields in Basic list
+ *
+ * The iterator provides a simple way to go trough all the fields in Basic list data type.
+ * This iterator can be used only on the Basic list data type which represents
+ * a list of zero or more instances of an Information Element.
+ * If Information Element manager is provided during the initialization of the iterator, the definition
+ * of the field is automatically filled.
  *
  *
  * @{
@@ -388,11 +394,9 @@ struct fds_blist_iter {
 
     struct {
         /** Start of the basic list                 */
-        struct fds_blist *rec;
-        /** Info about the field used in the list   */
-        const struct fds_tfield field;
-        /** Offset of the next field                */
-        uint16_t next_offset;
+        struct fds_ipfix_blist *blist;
+
+        struct fds_tfield *info;
         /** Pointer to the start of the next record */
         uint8_t *field_next;
         /** End of the basic list                   */
@@ -402,6 +406,61 @@ struct fds_blist_iter {
 
     } _private; /**< Internal structure (dO NOT use directly!)  */
 };
+
+/**
+ * \brief Initialize Basic list data type iterator
+ *
+ * \warning
+ *   After initialization the iterator has initialized only internal structures but public part
+ *   is still undefined i.e. doesn't point to the first Field in the list. To get the first field
+ *   see fds_blist_iter_next().
+ * \param[in] it Uninitialized structure of iterator
+ * \param[in] field Field with data type of Basic list
+ * \param[in] ie_mgr IE manager for finding field definition (can be NULL)
+ * \return #FDS_OK Successful initialization
+ * \return #FDS_ERR_FORMAT Field is shorter than minimal size of Basic list
+ */
+int
+fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fds_iemgr_t *ie_mgr);
+
+/**
+ * \brief Get the next field in the Basic list
+ *
+ * Move the iterator to the next Field in the order, If this function was not previously called
+ * after initialization by fds_blist_iter_init(), then the iterator will point to the first field
+ * in the Basic list.
+ *
+ * \code{.c}
+ *  struct fds_blist_iter blist_it;
+ *  fds_blist_iter_init(&blist_it, field, ie_manager[or NULL]);
+ *
+ *  int rc;
+ *  while ((rc = fds_blist_iter_next(&blist_it)) == FDS_OK) {
+ *      // Add your code here...
+ *  }
+ *
+ *  if (rc != FDS_EOC) {
+ *      // error message fds_blist_iter_err();
+ *  }
+ * \endcode
+ *
+ * \param[in] it Basic list iterator
+ * \return #FDS_OK if the next Field is prepared.
+ * \return #FDS_EOC if no more Fields are available.
+ * \return #FDS_ERR_FORMAT otherwise and fills an error message (see fds_blist_iter_err()).
+ */
+int
+fds_blist_iter_next(struct fds_blist_iter *it);
+
+/**
+ * \brief Get the last error message
+ * \note The message is statically allocated string that can be passed to other function even
+ *   when the iterator doesn't exist anymore.
+ * \param[in] it Iterator
+ * \return The error message
+ */
+const char *
+fds_blist_iter_err(const struct fds_blist_iter *it);
 
 
 #ifdef __cplusplus

@@ -43,6 +43,9 @@
 #define LIBFDS_CONVERTERS_H
 
 #ifdef __cplusplus
+#include <cmath>
+using std::isnormal;
+
 extern "C" {
 #endif
 

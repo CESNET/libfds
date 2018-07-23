@@ -140,7 +140,7 @@ fds_blist_iter_next(struct fds_blist_iter *it)
     it->field.info = it->_private.info;
 
     // Setting the next-pointer to the next record
-    it->_private.next_offset = offset + elem_length;
+//    it->_private.next_offset = offset + elem_length;
     it->_private.field_next = &rec_start[offset+elem_length];
 
     return FDS_OK;

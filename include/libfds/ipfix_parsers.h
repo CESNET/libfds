@@ -420,7 +420,7 @@ struct fds_blist_iter {
  * \return #FDS_OK Successful initialization
  * \return #FDS_ERR_FORMAT Field is shorter than minimal size of Basic list
  */
-int
+FDS_API int
 fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fds_iemgr_t *ie_mgr);
 
 /**
@@ -449,7 +449,7 @@ fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fd
  * \return #FDS_EOC if no more Fields are available.
  * \return #FDS_ERR_FORMAT otherwise and fills an error message (see fds_blist_iter_err()).
  */
-int
+FDS_API int
 fds_blist_iter_next(struct fds_blist_iter *it);
 
 /**
@@ -459,7 +459,7 @@ fds_blist_iter_next(struct fds_blist_iter *it);
  * \param[in] it Iterator
  * \return The error message
  */
-const char *
+FDS_API const char *
 fds_blist_iter_err(const struct fds_blist_iter *it);
 
 

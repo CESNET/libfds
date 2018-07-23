@@ -13,6 +13,7 @@ add_subdirectory(templates)
 add_subdirectory(converters)
 add_subdirectory(parsers)
 add_subdirectory(drec)
+add_subdirectory(lists)
 
 unit_tests_register_test(api.cpp)
 # >> Add your new tests or test subdirectories HERE <<

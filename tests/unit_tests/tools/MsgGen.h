@@ -15,6 +15,8 @@
 class ipfix_drec;
 class ipfix_trec;
 class ipfix_set;
+class ipfix_blist;
+
 
 class ipfix_buffer {
 private:
@@ -305,6 +307,35 @@ public:
      */
     void
     append_octets(const void *data, uint16_t data_len, bool var_field = true);
+
+    void
+    append_blist(const ipfix_blist &blist);
+};
+
+class ipfix_field : public ipfix_drec {
+    // drec is almost the same structure, but different name
+};
+
+class ipfix_blist : public ipfix_buffer {
+private:
+    uint16_t _field_id;
+public:
+    static const uint16_t BLIST_ID = 291;
+    static const uint16_t SIZE_AUTO = 0;
+    static const uint16_t SIZE_VAR = 65535;
+
+    ipfix_blist() = default;
+    ~ipfix_blist() = default;
+
+    void
+    header_short(uint8_t semantic, uint16_t field_id, uint16_t elem_length);
+
+    void
+    header_long(uint8_t semantic, uint16_t field_id, uint16_t elem_length, uint32_t en);
+
+    void
+    append_field(const ipfix_field field);
+
 };
 
 #endif //IPFIXCOL_MSGGEN_H

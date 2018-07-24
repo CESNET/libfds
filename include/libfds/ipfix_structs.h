@@ -458,8 +458,16 @@ struct __attribute__((__packed__)) fds_ipfix_dset {
 /** Size of Basic list header when the Enterprise number is present */
 #define FDS_IPFIX_BLIST_HDR_LONG 9U
 
-/** If the Enterprise number is greater than this value, Enterprise number is present */
-#define FDS_IPFIX_BLIST_ENBIT_ON 32768
+/** Structured data type semantics */
+enum fds_ipfix_list_semantics {
+    FDS_IPFIX_LIST_NONE_OF          = 0,  /**< "noneOf" structured data type semantic         */
+    FDS_IPFIX_LIST_EXACTLY_ONE_OF   = 1,  /**< "exactlyOneOf" structured data type semantic   */
+    FDS_IPFIX_LIST_ONE_OR_MORE_OF   = 2,  /**< "oneOrMoreOf" structured data type semantic    */
+    FDS_IPFIX_LIST_ALL_OF           = 3,  /**< "allOf" structured data type semantic          */
+    FDS_IPFIX_LIST_ORDERED          = 4,  /**<  "ordered" structured data type semantic       */
+    FDS_IPFIX_LIST_UNDEFINED        = 255,/**< "undefined" structured data type semantic      */
+
+};
 
 /**
  * \struct fds_ipfix_blist
@@ -467,9 +475,9 @@ struct __attribute__((__packed__)) fds_ipfix_dset {
  *
  *  Basic list is one of the Information Elements that can be present in
  *  fields. Basic list contains only one type of information elements.
- *  Minimal size of Basic list header is 5 bytes
+ *  Minimal size of Basic list header is 5 bytes (::FDS_IPFIX_BLIST_HDR_SHORT)
  *  but if the Enterprise number is present in header,
- *  the minimal size is 9 bytes.
+ *  the minimal size is 9 bytes (::FDS_IPFIX_BLIST_HDR_LONG).
  */
 struct __attribute__((__packed__)) fds_ipfix_blist {
     /**

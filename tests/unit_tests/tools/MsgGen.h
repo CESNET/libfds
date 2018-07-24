@@ -334,7 +334,7 @@ public:
     header_long(uint8_t semantic, uint16_t field_id, uint16_t elem_length, uint32_t en);
 
     void
-    append_field(const ipfix_field field);
+    append_field(const ipfix_field &field);
 
 };
 

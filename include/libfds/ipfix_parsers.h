@@ -391,12 +391,14 @@ fds_tset_iter_err(const struct fds_tset_iter *it);
 struct fds_blist_iter {
     /** Current field     */
     struct fds_drec_field field;
+    /** Semantic of the basic list **/
+    enum fds_ipfix_list_semantics semantic;
 
     struct {
         /** Start of the basic list                 */
         struct fds_ipfix_blist *blist;
 
-        struct fds_tfield *info;
+        struct fds_tfield info;
         /** Pointer to the start of the next record */
         uint8_t *field_next;
         /** End of the basic list                   */
@@ -420,7 +422,7 @@ struct fds_blist_iter {
  * \return #FDS_OK Successful initialization
  * \return #FDS_ERR_FORMAT Field is shorter than minimal size of Basic list
  */
-FDS_API int
+FDS_API void
 fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fds_iemgr_t *ie_mgr);
 
 /**

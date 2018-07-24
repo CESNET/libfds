@@ -454,7 +454,7 @@ void ipfix_drec::append_blist(const ipfix_blist &blist) {
     std::memcpy(dst, src, size);
 }
 
-void ipfix_blist::append_field(const ipfix_field field) {
+void ipfix_blist::append_field(const ipfix_field &field) {
     const uint8_t *src = field.front();
     const size_t size = field.size();
 
@@ -474,13 +474,11 @@ void ipfix_blist::header_short(uint8_t semantic, uint16_t field_id, uint16_t ele
     uint16_t *mem_16b = reinterpret_cast<uint16_t *>(&mem[0]);
     mem_16b[0] = htons(field_id);
     mem_16b[1] = htons(elem_length);
-    this->dump();
-
 }
 
 void ipfix_blist::header_long(uint8_t semantic, uint16_t field_id, uint16_t elem_length, uint32_t en) {
     // Set the enterprise bit on
-    field_id = static_cast<uint16_t>(field_id | (1 << 15));
+    field_id = static_cast<uint16_t>(field_id | (1U << 15));
     // Add the short header
     this->header_short(semantic,field_id,elem_length);
     // Add the Enterprise number

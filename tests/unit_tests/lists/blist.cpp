@@ -22,17 +22,25 @@ protected:
     fds_iemgr_t *ie_mgr = nullptr;
 
     // Prepared Data record
-    struct fds_drec_field field_short;
-    struct fds_drec_field field_long;
+    struct fds_drec_field field_empty;
+    struct fds_drec_field field_short_hdr;
+    struct fds_drec_field field_long_hdr;
+    struct fds_drec_field field_varlen_elems_short;
+    struct fds_drec_field field_varlen_elems_long;
+//    struct fds_drec_field field_varlen_malformed;
 
-    struct fds_blist_iter it_short;
-    struct fds_blist_iter it_long;
+    struct fds_blist_iter it;
 
     // Different values and types for testing
-//    uint16_t    VALUE_SRC_PORT = 65000;
     std::string VALUE_SRC_IP4_1  = "127.0.0.1";
     std::string VALUE_SRC_IP4_2  = "192.168.10.1";
     std::string VALUE_SRC_IP4_3  = "172.16.0.3";
+    std::string VALUE_APP_NAME1 = "firefox";
+    std::string VALUE_APP_NAME2 = "mozilla_esr";
+    std::string VALUE_APP_NAME3 = ""; //empty string
+    std::string VALUE_LINK_1 = "https://www.novinky.cz/domaci/478596-vystehovat-do-mesice-klienti-h-systemu-definitivne-prohrali.html";
+    std::string VALUE_LINK_2 = "https://www.novinky.cz/domaci/478601-rozrezou-ho-a-odvezou-po-dne-nadrze-tezky-jerab-v-elektrarne-na-sumpersku-lezel-od-lonske-nehody.html";
+//    uint16_t    VALUE_SRC_PORT = 65000;
 //    uint16_t    VALUE_DST_PORT = 80;
 //    std::string VALUE_DST_IP4  = "8.8.8.8";
 //    uint8_t     VALUE_PROTO    = 6; // TCP
@@ -40,11 +48,6 @@ protected:
 //    uint64_t    VALUE_TS_LST   = 1522670372999ULL;
 //    uint64_t    VALUE_TS_FST_R = 1522670363123ULL;
 //    uint64_t    VALUE_TS_LST_R = 1522670369000ULL;
-    std::string VALUE_APP_NAME1 = "firefox";
-    std::string VALUE_APP_NAME2 = "mozilla";
-    std::string VALUE_APP_NAME3 = ""; //empty string
-    std::string VALUE_LINK_1 = "https://www.novinky.cz/domaci/478596-vystehovat-do-mesice-klienti-h-systemu-definitivne-prohrali.html";
-    std::string VALUE_LINK_2 = "https://www.novinky.cz/domaci/478601-rozrezou-ho-a-odvezou-po-dne-nadrze-tezky-jerab-v-elektrarne-na-sumpersku-lezel-od-lonske-nehody.html";
 //    std::string VALUE_APP_DSC  = "linux/web browser";
 //    uint64_t    VALUE_BYTES    = 1234567;
 //    uint64_t    VALUE_PKTS     = 12345;
@@ -76,36 +79,66 @@ protected:
         ipfix_field str_fields;
         str_fields.append_string(VALUE_APP_NAME1);
         str_fields.var_header(VALUE_APP_NAME2.length(), true);
-        str_fields.append_string(VALUE_APP_NAME2,VALUE_APP_NAME2.length());
-        str_fields.var_header(VALUE_APP_NAME3.length(),false);
+        str_fields.append_string(VALUE_APP_NAME2, VALUE_APP_NAME2.length());
+        str_fields.var_header(VALUE_APP_NAME3.length(), false);
+
+        ipfix_blist blist_empty;
+        // Semantic = 255, FieldID = 6 (TcpControlBits), Size of Element = 0
+        blist_empty.header_short((int8_t )fds_ipfix_list_semantics::FDS_IPFIX_LIST_UNDEFINED, 6, 0);
+        // Prepare field with basic list
+        ipfix_field field_blist_empty;
+        field_blist_empty.append_blist(blist_empty);
 
         ipfix_blist blist_short;
-        ipfix_blist blist_long;
-
         // Semantic = 5, FieldID = 8 (SRC IPV4), Size of Element = 4B
         blist_short.header_short(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ORDERED, 8, 4);
         blist_short.append_field(fields);
-
-        // Add field to second list to make it different
-        fields.append_ip(VALUE_SRC_IP4_3);
-
-        // Semantic = 5, FieldID = 8 (SRC IPV4), Size of Element = 4B, Enterprise no. = 74
-        blist_long.header_long(fds_ipfix_list_semantics::FDS_IPFIX_LIST_EXACTLY_ONE_OF, 8, 4, 74);
-        blist_long.append_field(fields);
-
         // Prepare a field with basic list.
         ipfix_field field_short_blist;
         field_short_blist.append_blist(blist_short);
 
+        ipfix_blist blist_long;
+        // Add field to second list to make it different
+        fields.append_ip(VALUE_SRC_IP4_3);
+        // Semantic = 5, FieldID = 8 (SRC IPV4), Size of Element = 4B, Enterprise no. = 74
+        blist_long.header_long(fds_ipfix_list_semantics::FDS_IPFIX_LIST_EXACTLY_ONE_OF, 8, 4, 74);
+        blist_long.append_field(fields);
+        // Prepare fields with basic list
         ipfix_field field_long_blist;
         field_long_blist.append_blist(blist_long);
 
-        // Save additional info in the structure
-        field_short.size = field_short_blist.size();
-        field_short.data = field_short_blist.release();
+        ipfix_blist blist_varlen_short;
+        // Semantic = 5, FieldID = 96 (ApplicationName), Size of Element = variable
+        blist_varlen_short.header_short(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF, 96, FDS_IPFIX_VAR_IE_LEN);
+        blist_varlen_short.append_field(str_fields);
+        //Prepare a field with basic lsit
+        ipfix_field field_varlen_short_blist;
+        field_varlen_short_blist.append_blist(blist_varlen_short);
 
-        field_long.size = field_long_blist.size();
-        field_long.data = field_long_blist.release();
+        ipfix_blist blist_varlen_long;
+        // Add fields to make it different
+        str_fields.append_string(VALUE_LINK_1);
+        str_fields.var_header(VALUE_LINK_2.length(), true);
+        str_fields.append_string(VALUE_LINK_2, VALUE_LINK_2.length());
+        // Semantic = 5, FieldID = 94 (ApplicationDescription), Size of Element = variable
+        blist_varlen_long.header_short(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF, 94, FDS_IPFIX_VAR_IE_LEN);
+        blist_varlen_long.append_field(str_fields);
+        //Prepare a field with basic list
+        ipfix_field field_varlen_long_blist;
+        field_varlen_long_blist.append_blist(blist_varlen_long);
+
+        // Save size and data pointer in the structures
+        field_empty.size = field_blist_empty.size();
+        field_empty.data = field_blist_empty.release();
+
+        field_short_hdr.size = field_short_blist.size();
+        field_short_hdr.data = field_short_blist.release();
+
+        field_long_hdr.size = field_long_blist.size();
+        field_long_hdr.data = field_long_blist.release();
+
+        field_varlen_elems_short.size = field_varlen_short_blist.size();
+        field_varlen_elems_short.data = field_varlen_short_blist.release();
 
 
 
@@ -120,83 +153,129 @@ protected:
 };
 
 // ITERATOR -------------------------------------------------------------------------------------
-// Init iterator of blist with short header
-TEST_F(blistIter, init_short)
+TEST_F(blistIter, init_empty_blist)
 {
-    fds_blist_iter_init(&it_short, &field_short, ie_mgr);
-    ASSERT_EQ(it_short.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ORDERED);
-    ASSERT_EQ(it_short._private.info.id,8);
-    ASSERT_EQ(it_short._private.info.length, 4);
-    ASSERT_EQ((void*)it_short._private.field_next, (void*)it_short._private.blist + FDS_IPFIX_BLIST_HDR_SHORT);
+    fds_blist_iter_init(&it, &field_empty, ie_mgr);
+    ASSERT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_UNDEFINED);
+    ASSERT_EQ(it._private.info.id, 6);
+    ASSERT_EQ(it._private.info.length, 0);
+    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist_end);
+}
+TEST_F(blistIter, init_short_hdr)
+{
+    fds_blist_iter_init(&it, &field_short_hdr, ie_mgr);
+    ASSERT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ORDERED);
+    ASSERT_EQ(it._private.info.id, 8);
+    ASSERT_EQ(it._private.info.length, 4);
+    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_SHORT);
+
 }
 
-TEST_F(blistIter, init_long)
+TEST_F(blistIter, init_long_hdr)
 {
-    fds_blist_iter_init(&it_long, &field_long, ie_mgr);
-    ASSERT_EQ(it_long.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_EXACTLY_ONE_OF);
-    ASSERT_EQ(it_long._private.info.id,8);
-    ASSERT_EQ(it_long._private.info.length, 4);
-    ASSERT_EQ((void*)it_long._private.field_next, (void*)it_long._private.blist + FDS_IPFIX_BLIST_HDR_LONG);
-    ASSERT_EQ(it_long._private.info.en,74);
+    fds_blist_iter_init(&it, &field_long_hdr, ie_mgr);
+    ASSERT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_EXACTLY_ONE_OF);
+    ASSERT_EQ(it._private.info.id, 8);
+    ASSERT_EQ(it._private.info.length, 4);
+    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_LONG);
+    ASSERT_EQ(it._private.info.en, 74);
 }
 
-TEST_F(blistIter, iter_next_short)
+TEST_F(blistIter, next_empty_blist)
+{
+    fds_blist_iter_init(&it, &field_empty, ie_mgr);
+    int ret = fds_blist_iter_next(&it);
+    ASSERT_EQ(ret, FDS_EOC);
+    ASSERT_EQ(it._private.err_code, FDS_EOC);
+    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist_end);
+    ASSERT_EQ(it._private.info.offset, 0);
+    ASSERT_EQ(it._private.info.length, 0);
+}
+
+TEST_F(blistIter, next_short_hdr)
 {
     char out[20];
     int ret;
-    fds_blist_iter_init(&it_short, &field_short, ie_mgr);
+    fds_blist_iter_init(&it, &field_short_hdr, ie_mgr);
     // First field in list
-    ret = fds_blist_iter_next(&it_short);
-    ASSERT_EQ(ret,FDS_OK);
-    ASSERT_EQ(it_short.field.size,4);
-    ASSERT_EQ((void*)it_short.field.data, (void*)it_short._private.blist + FDS_IPFIX_BLIST_HDR_SHORT);
-    fds_ip2str(it_short.field.data,it_short.field.size,&out[0],20);
-    ASSERT_STREQ(out,VALUE_SRC_IP4_1.c_str());
+    ret = fds_blist_iter_next(&it);
+    ASSERT_EQ(ret, FDS_OK);
+    ASSERT_EQ(it.field.size, 4);
+    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_SHORT);
+    fds_ip2str(it.field.data, it.field.size, &out[0], 20);
+    ASSERT_STREQ(out, VALUE_SRC_IP4_1.c_str());
     // Second field in list
-    ret = fds_blist_iter_next(&it_short);
-    ASSERT_EQ(ret,FDS_OK);
-    ASSERT_EQ(it_short.field.size,4);
-    ASSERT_EQ((void*)it_short.field.data, (void*)it_short._private.blist + FDS_IPFIX_BLIST_HDR_SHORT + 4);
-    fds_ip2str(it_short.field.data,it_short.field.size,&out[0],20);
-    ASSERT_STREQ(out,VALUE_SRC_IP4_2.c_str());
+    ret = fds_blist_iter_next(&it);
+    ASSERT_EQ(ret, FDS_OK);
+    ASSERT_EQ(it.field.size, 4);
+    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_SHORT + 4);
+    fds_ip2str(it.field.data, it.field.size, &out[0], 20);
+    ASSERT_STREQ(out, VALUE_SRC_IP4_2.c_str());
     // Testing end pointer and return code
-    ASSERT_EQ(it_short._private.field_next,it_short._private.blist_end);
-    ret = fds_blist_iter_next(&it_short);
-    ASSERT_EQ(ret,FDS_EOC);
+    ASSERT_EQ(it._private.field_next, it._private.blist_end);
+    ret = fds_blist_iter_next(&it);
+    ASSERT_EQ(ret, FDS_EOC);
 }
 
-TEST_F(blistIter, iter_next_long)
+TEST_F(blistIter, next_long_hdr)
 {
     char out[20];
     int ret;
 
-    fds_blist_iter_init(&it_long, &field_long, ie_mgr);
+    fds_blist_iter_init(&it, &field_long_hdr, ie_mgr);
     // First field in list
-    ret = fds_blist_iter_next(&it_long);
-    ASSERT_EQ(ret,FDS_OK);
-    ASSERT_EQ(it_long.field.size,4);
-    ASSERT_EQ((void*)it_long.field.data, (void*)it_long._private.blist + FDS_IPFIX_BLIST_HDR_LONG);
-    fds_ip2str(it_long.field.data,it_long.field.size,&out[0],20);
-    ASSERT_STREQ(out,VALUE_SRC_IP4_1.c_str());
+    ret = fds_blist_iter_next(&it);
+    fds_ip2str(it.field.data, it.field.size, &out[0], 20);
+    ASSERT_EQ(ret, FDS_OK);
+    ASSERT_EQ(it.field.size, 4);
+    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_LONG);
+    ASSERT_STREQ(out, VALUE_SRC_IP4_1.c_str());
     // Second field in list
-    ret = fds_blist_iter_next(&it_long);
-    ASSERT_EQ(ret,FDS_OK);
-    ASSERT_EQ(it_long.field.size,4);
-    ASSERT_EQ((void*)it_long.field.data, (void*)it_long._private.blist + FDS_IPFIX_BLIST_HDR_LONG + 4U);
-    fds_ip2str(it_long.field.data,it_long.field.size,&out[0],20);
-    ASSERT_STREQ(out,VALUE_SRC_IP4_2.c_str());
+    ret = fds_blist_iter_next(&it);
+    fds_ip2str(it.field.data, it.field.size, &out[0], 20);
+    ASSERT_EQ(ret, FDS_OK);
+    ASSERT_EQ(it.field.size, 4);
+    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_LONG + 4U);
+    ASSERT_STREQ(out, VALUE_SRC_IP4_2.c_str());
     // Third field in list
-    ret = fds_blist_iter_next(&it_long);
-    std::cout << fds_blist_iter_err(&it_long)<<std::endl;
-    ASSERT_EQ(ret,FDS_OK);
-    ASSERT_EQ(it_long.field.size,4);
-    ASSERT_EQ((void*)it_long.field.data, (void*)it_long._private.blist + FDS_IPFIX_BLIST_HDR_LONG + 8U);
-    fds_ip2str(it_long.field.data,it_long.field.size,&out[0],20);
-    ASSERT_STREQ(out,VALUE_SRC_IP4_3.c_str());
-    // testing end pointer and return code
-    ASSERT_EQ(it_long._private.field_next,it_long._private.blist_end);
-    ret = fds_blist_iter_next(&it_long);
-    ASSERT_EQ(ret,FDS_EOC);
+    ret = fds_blist_iter_next(&it);
+    fds_ip2str(it.field.data, it.field.size, &out[0], 20);
+    ASSERT_EQ(ret, FDS_OK);
+    ASSERT_EQ(it.field.size, 4);
+    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_LONG + 8U);
+    ASSERT_STREQ(out, VALUE_SRC_IP4_3.c_str());
+    ASSERT_EQ(it._private.field_next, it._private.blist_end); // testing end pointer and return code
+    
+    ret = fds_blist_iter_next(&it);
+    ASSERT_EQ(ret, FDS_EOC);
+}
+
+TEST_F(blistIter, next_varlen_data_short)
+{
+    char out[15];
+    
+    fds_blist_iter_init(&it, &field_varlen_elems_short, ie_mgr);
+    
+    int ret = fds_blist_iter_next(&it);
+    fds_string2str(it.field.data, it.field.size, &out[0], 15);
+    ASSERT_EQ(ret, FDS_OK);
+    ASSERT_EQ(it.field.size, 7U); //First field is 7 Bytes long
+    ASSERT_STREQ(out, VALUE_APP_NAME1.c_str());
+
+    ret = fds_blist_iter_next(&it);
+    fds_string2str(it.field.data, it.field.size, &out[0], 15);
+    ASSERT_EQ(ret, FDS_OK);
+    ASSERT_EQ(it.field.size, 11U); //First field is 7 Bytes long
+    ASSERT_STREQ(out, VALUE_APP_NAME2.c_str());
+
+    ret = fds_blist_iter_next(&it);
+    fds_string2str(it.field.data, it.field.size, &out[0], 15);
+    ASSERT_EQ(ret, FDS_OK);
+    ASSERT_EQ(it.field.size,0); //First field is 7 Bytes long
+    ASSERT_STREQ(out, VALUE_APP_NAME3.c_str());
+
+    ret = fds_blist_iter_next(&it);
+    ASSERT_EQ(ret, FDS_EOC);
 }
 
 

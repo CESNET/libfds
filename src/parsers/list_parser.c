@@ -48,14 +48,16 @@ enum error_codes {
     ERR_BLIST_SHORT,
     ERR_BLIST_UNEXP_END,
     ERR_ITER,
+    ERR_VARSIZE_UNEXP_END,
 };
 
 /** Corresponding error messages */
 static const char *err_msg[] = {
-    [ERR_OK]             = "No error.",
-    [ERR_BLIST_SHORT]    = "Size of the field is smaller than the minimal size of the Basic list.",
-    [ERR_BLIST_UNEXP_END]= "Unexpected end of the list while reading its members",
-    [ERR_ITER]           = "Iterator error",
+    [ERR_OK]                = "No error.",
+    [ERR_BLIST_SHORT]       = "Size of the field is smaller than the minimal size of the Basic list.",
+    [ERR_BLIST_UNEXP_END]   = "Unexpected end of the list while reading its members.",
+    [ERR_VARSIZE_UNEXP_END] = "Unexpected end of the list while reading size of the member.",
+    [ERR_ITER]              = "Iterator error.",
 };
 
 void
@@ -64,13 +66,15 @@ fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fd
     // Check if the Basic list can fit into the field
     if ( field->size < FDS_IPFIX_BLIST_HDR_SHORT){
         it->_private.err_msg = err_msg[ERR_BLIST_SHORT];
+        it->_private.err_code = FDS_ERR_FORMAT;
         return;
     }
     // Point to the start and end of the basic list
     it->_private.blist = ((struct fds_ipfix_blist *)field->data);
     it->_private.blist_end = field->data + field->size;
 
-    it->semantic = it->_private.blist->semantic;
+    it->semantic = (enum fds_ipfix_list_semantics) it->_private.blist->semantic;
+
     // Filling the structure tfield
     it->_private.info.def = NULL;
     it->_private.info.id = ntohs(it->_private.blist->field_id);
@@ -85,10 +89,16 @@ fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fd
     if ((it->_private.info.id & (1u<<15)) == 0 ) {
         hdr_size = FDS_IPFIX_BLIST_HDR_SHORT;
     //Enterprise number present
-    } else {
+    }
+    else if ( field->size >= FDS_IPFIX_BLIST_HDR_LONG) {
         hdr_size = FDS_IPFIX_BLIST_HDR_LONG;
         it->_private.info.id = it->_private.info.id & ~(1u<<15);
         it->_private.info.en = ntohl(it->_private.blist->enterprise_number);
+    }
+    else {
+        it->_private.err_msg = err_msg[ERR_BLIST_SHORT];
+        it->_private.err_code = FDS_ERR_FORMAT;
+        return;
     }
     it->_private.field_next = field->data + hdr_size;
 
@@ -99,36 +109,43 @@ fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fd
 
     //Error message OK
     it->_private.err_msg = err_msg[ERR_OK];
+    it->_private.err_code = FDS_OK;
 }
 
 int
 fds_blist_iter_next(struct fds_blist_iter *it)
 {
     // Check if the iterator is without errors
-    if (strcmp(it->_private.err_msg, err_msg[ERR_OK]) != 0){
-        it->_private.err_msg = err_msg[ERR_ITER];
-        return FDS_ERR_FORMAT;
+    if (it->_private.err_code != FDS_OK){
+        return it->_private.err_code;
     }
 
     // Check if there is another field in list to read
     if (it->_private.field_next == it->_private.blist_end){
+        it->_private.err_code = FDS_EOC;
         return FDS_EOC;
     }
 
     // resolving the element length
     uint16_t elem_length = it->_private.info.length;
     uint8_t *rec_start = it->_private.field_next;
-    uint32_t offset = it->_private.info.offset;
+    uint32_t data_offset = 0;
 
     if (elem_length == FDS_IPFIX_VAR_IE_LEN) {
         // This is field with variable length encoding -> read size from data
-        elem_length = rec_start[offset];
-        offset++;
+        elem_length = rec_start[data_offset];
+        data_offset++;
 
         if (elem_length == 255U) {
+            // Check if we are not reading beyond the end of the list
+            if (it->_private.field_next + 2U > it->_private.blist_end){
+                it->_private.err_msg = err_msg[ERR_VARSIZE_UNEXP_END];
+                it->_private.err_code = FDS_ERR_FORMAT;
+                return FDS_ERR_FORMAT;
+            }
             // Real size is on next 2 bytes
-            elem_length = ntohs(*(uint16_t *) &rec_start[offset]);
-            offset += 2U;
+            elem_length = ntohs(*(uint16_t *) &rec_start[data_offset]);
+            data_offset += 2U;
         }
     }
 
@@ -140,12 +157,12 @@ fds_blist_iter_next(struct fds_blist_iter *it)
 
     // Filling the structure, setting private properties,
     it->field.size = elem_length;
-    it->field.data = &rec_start[offset];
+    it->field.data = &rec_start[data_offset];
     it->field.info = &(it->_private.info);
 
     // Setting the next-pointer to the next record
-//    it->_private.next_offset = offset + elem_length;
-    it->_private.field_next = &rec_start[offset+elem_length];
+    it->_private.info.offset += (uint16_t) (data_offset + elem_length);
+    it->_private.field_next = &rec_start[data_offset + elem_length];
     return FDS_OK;
 }
 

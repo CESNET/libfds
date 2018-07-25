@@ -405,6 +405,8 @@ struct fds_blist_iter {
         uint8_t *blist_end;
         /** Error buffer                            */
         const char *err_msg;
+        /** Error indicator                         */
+        int err_code;
 
     } _private; /**< Internal structure (dO NOT use directly!)  */
 };

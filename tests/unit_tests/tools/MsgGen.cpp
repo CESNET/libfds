@@ -466,7 +466,7 @@ void ipfix_blist::header_short(uint8_t semantic, uint16_t field_id, uint16_t ele
     //adding semantic
     uint16_t size = 1U;
     uint8_t *mem = mem_reserve(size);
-    if (fds_set_int_be(mem, size, semantic) != FDS_OK) {
+    if (fds_set_uint_be(mem, size, semantic) != FDS_OK) {
         throw std::invalid_argument("fds_set_int_be() failed!");
     }
     //adding field_id and element length

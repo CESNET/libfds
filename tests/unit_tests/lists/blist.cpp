@@ -70,22 +70,27 @@ protected:
                                      + std::string(fds_iemgr_last_err(ie_mgr)));
         }
 
-        // Prepare fields with IP adresses - constant size 4B
+        // Prepare fields with data
         ipfix_field fields;
         fields.append_ip(VALUE_SRC_IP4_1);
         fields.append_ip(VALUE_SRC_IP4_2);
 
-        // Prepare fields with variable size
         ipfix_field str_fields;
         str_fields.append_string(VALUE_APP_NAME1);
         str_fields.var_header(VALUE_APP_NAME2.length(), true);
         str_fields.append_string(VALUE_APP_NAME2, VALUE_APP_NAME2.length());
         str_fields.var_header(VALUE_APP_NAME3.length(), false);
 
+        ipfix_field str_fields2;
+        str_fields2.append_string(VALUE_LINK_1);
+        str_fields2.var_header(VALUE_LINK_2.length(), true);
+        str_fields2.append_string(VALUE_LINK_2, VALUE_LINK_2.length());
+
+        //Prepare fields with basic lists, which will contain prepared data
+
         ipfix_blist blist_empty;
         // Semantic = 255, FieldID = 6 (TcpControlBits), Size of Element = 0
         blist_empty.header_short((int8_t )fds_ipfix_list_semantics::FDS_IPFIX_LIST_UNDEFINED, 6, 0);
-        // Prepare field with basic list
         ipfix_field field_blist_empty;
         field_blist_empty.append_blist(blist_empty);
 
@@ -93,7 +98,6 @@ protected:
         // Semantic = 5, FieldID = 8 (SRC IPV4), Size of Element = 4B
         blist_short.header_short(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ORDERED, 8, 4);
         blist_short.append_field(fields);
-        // Prepare a field with basic list.
         ipfix_field field_short_blist;
         field_short_blist.append_blist(blist_short);
 
@@ -103,7 +107,6 @@ protected:
         // Semantic = 5, FieldID = 8 (SRC IPV4), Size of Element = 4B, Enterprise no. = 74
         blist_long.header_long(fds_ipfix_list_semantics::FDS_IPFIX_LIST_EXACTLY_ONE_OF, 8, 4, 74);
         blist_long.append_field(fields);
-        // Prepare fields with basic list
         ipfix_field field_long_blist;
         field_long_blist.append_blist(blist_long);
 
@@ -111,21 +114,16 @@ protected:
         // Semantic = 5, FieldID = 96 (ApplicationName), Size of Element = variable
         blist_varlen_short.header_short(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF, 96, FDS_IPFIX_VAR_IE_LEN);
         blist_varlen_short.append_field(str_fields);
-        //Prepare a field with basic lsit
         ipfix_field field_varlen_short_blist;
         field_varlen_short_blist.append_blist(blist_varlen_short);
 
         ipfix_blist blist_varlen_long;
-        // Add fields to make it different
-        str_fields.append_string(VALUE_LINK_1);
-        str_fields.var_header(VALUE_LINK_2.length(), true);
-        str_fields.append_string(VALUE_LINK_2, VALUE_LINK_2.length());
-        // Semantic = 5, FieldID = 94 (ApplicationDescription), Size of Element = variable
+        // Semantic = 3, FieldID = 94 (ApplicationDescription), Size of Element = variable
         blist_varlen_long.header_short(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF, 94, FDS_IPFIX_VAR_IE_LEN);
-        blist_varlen_long.append_field(str_fields);
-        //Prepare a field with basic list
+        blist_varlen_long.append_field(str_fields2);
         ipfix_field field_varlen_long_blist;
         field_varlen_long_blist.append_blist(blist_varlen_long);
+
 
         // Save size and data pointer in the structures
         field_empty.size = field_blist_empty.size();
@@ -140,14 +138,13 @@ protected:
         field_varlen_elems_short.size = field_varlen_short_blist.size();
         field_varlen_elems_short.data = field_varlen_short_blist.release();
 
-
-
+        field_varlen_elems_long.size = field_varlen_long_blist.size();
+        field_varlen_elems_long.data = field_varlen_long_blist.release();
     }
 
     /** \brief After each test */
     void TearDown() override {
-        //free(field_short.data);
-        //free(field_long.data);
+        // free allocated data here
         fds_iemgr_destroy(ie_mgr);
     }
 };
@@ -255,6 +252,7 @@ TEST_F(blistIter, next_varlen_data_short)
     char out[15];
     
     fds_blist_iter_init(&it, &field_varlen_elems_short, ie_mgr);
+    ASSERT_EQ(it._private.info.length,FDS_IPFIX_VAR_IE_LEN);
     
     int ret = fds_blist_iter_next(&it);
     fds_string2str(it.field.data, it.field.size, &out[0], 15);
@@ -265,17 +263,99 @@ TEST_F(blistIter, next_varlen_data_short)
     ret = fds_blist_iter_next(&it);
     fds_string2str(it.field.data, it.field.size, &out[0], 15);
     ASSERT_EQ(ret, FDS_OK);
-    ASSERT_EQ(it.field.size, 11U); //First field is 7 Bytes long
+    ASSERT_EQ(it.field.size, 11U); //Second field is 11 Bytes long
     ASSERT_STREQ(out, VALUE_APP_NAME2.c_str());
 
     ret = fds_blist_iter_next(&it);
     fds_string2str(it.field.data, it.field.size, &out[0], 15);
     ASSERT_EQ(ret, FDS_OK);
-    ASSERT_EQ(it.field.size,0); //First field is 7 Bytes long
+    ASSERT_EQ(it.field.size,0); //First field is 0 Bytes long
     ASSERT_STREQ(out, VALUE_APP_NAME3.c_str());
 
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_EOC);
 }
 
+TEST_F(blistIter, next_varlen_data_long)
+{
+    char out[200];
+
+    fds_blist_iter_init(&it,&field_varlen_elems_long,ie_mgr);
+
+    int ret = fds_blist_iter_next(&it);
+    fds_string2str(it.field.data, it.field.size, &out[0], 200);
+    ASSERT_EQ(ret,FDS_OK);
+    ASSERT_EQ(it.field.size,VALUE_LINK_1.length());
+    ASSERT_STREQ(out, VALUE_LINK_1.c_str());
+
+    ret = fds_blist_iter_next(&it);
+    fds_string2str(it.field.data, it.field.size, &out[0], 200);
+    ASSERT_EQ(ret,FDS_OK);
+    ASSERT_EQ(it.field.size,VALUE_LINK_2.length());
+    ASSERT_STREQ(out, VALUE_LINK_2.c_str());
+
+    ret = fds_blist_iter_next(&it);
+    ASSERT_EQ(ret, FDS_EOC);
+}
+
+//Header with constant size but data with variable size
+TEST_F(blistIter, malformed_field_short_hdr )
+{
+    field_short_hdr.data = static_cast<uint8_t *>(
+            memcpy(field_short_hdr.data+FDS_IPFIX_BLIST_HDR_SHORT, field_varlen_elems_short.data+FDS_IPFIX_BLIST_HDR_SHORT, field_short_hdr.size - 3));
+    field_short_hdr.size = static_cast<uint16_t>(field_short_hdr.size - 3);
+
+    int ret;
+    fds_blist_iter_init(&it, &field_short_hdr, ie_mgr);
+    ASSERT_EQ(it._private.err_code,FDS_OK);
+
+    ret = fds_blist_iter_next(&it);
+    std::cout<<fds_blist_iter_err(&it)<<std::endl;
+    ASSERT_EQ(ret, FDS_ERR_FORMAT);
+
+    std::cout<<fds_blist_iter_err(&it)<<std::endl;
+    ret = fds_blist_iter_next(&it);
+    ASSERT_EQ(ret, FDS_ERR_FORMAT);
+}
+
+TEST_F(blistIter, malformed_field_varlen)
+{
+    field_varlen_elems_long.size -= 150U;
+
+    fds_blist_iter_init(&it,&field_varlen_elems_long,ie_mgr);
+
+    int ret = fds_blist_iter_next(&it);
+    ASSERT_EQ(ret,FDS_ERR_FORMAT);
+}
+
+TEST_F(blistIter, malformed_sizehdr_no_data)
+{
+    ipfix_field str_fields;
+    str_fields.var_header(VALUE_APP_NAME2.length(), true);
+
+    ipfix_blist blist_varlen_short;
+    // Semantic = 3, FieldID = 96 (ApplicationName), Size of Element = variable
+    blist_varlen_short.header_short(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF, 96, FDS_IPFIX_VAR_IE_LEN);
+    blist_varlen_short.append_field(str_fields);
+    ipfix_field field_varlen_short_blist;
+    field_varlen_short_blist.append_blist(blist_varlen_short);
+
+    field_varlen_elems_short.size = field_varlen_short_blist.size();
+    field_varlen_elems_short.data = field_varlen_short_blist.release();
+
+    fds_blist_iter_init(&it,&field_varlen_elems_short,ie_mgr);
+    int ret = fds_blist_iter_next(&it);
+    std::cout<<fds_blist_iter_err(&it)<<std::endl;
+    ASSERT_EQ(ret, FDS_ERR_FORMAT);
+
+    field_varlen_elems_short.size -=2U;
+
+    fds_blist_iter_init(&it,&field_varlen_elems_short,ie_mgr);
+    ret = fds_blist_iter_next(&it);
+    std::cout<<fds_blist_iter_err(&it)<<std::endl;
+    ASSERT_EQ(ret, FDS_ERR_FORMAT);
+
+
+
+}
 

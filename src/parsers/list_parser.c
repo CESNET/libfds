@@ -86,15 +86,16 @@ fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fd
     uint32_t hdr_size;
 
     // Enterprise number NOT present
-    if ((it->_private.info.id & (1u<<15)) == 0 ) {
+    if ((it->_private.info.id & (1U<<15)) == 0 ) {
         hdr_size = FDS_IPFIX_BLIST_HDR_SHORT;
-    //Enterprise number present
     }
+    //Enterprise number present
     else if ( field->size >= FDS_IPFIX_BLIST_HDR_LONG) {
         hdr_size = FDS_IPFIX_BLIST_HDR_LONG;
-        it->_private.info.id = it->_private.info.id & ~(1u<<15);
+        it->_private.info.id = it->_private.info.id & ~(1U<<15);
         it->_private.info.en = ntohl(it->_private.blist->enterprise_number);
     }
+    // Error handling
     else {
         it->_private.err_msg = err_msg[ERR_BLIST_SHORT];
         it->_private.err_code = FDS_ERR_FORMAT;

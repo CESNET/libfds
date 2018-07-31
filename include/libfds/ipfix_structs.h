@@ -511,6 +511,13 @@ struct __attribute__((__packed__)) fds_ipfix_blist {
 
 };
 
+#define FDS_IPFIX_STLIST_HDR 3U
+
+struct __attribute__((__packed__)) fds_ipfix_stlist {
+    uint8_t semantic;
+    uint16_t template_id;
+};
+
 /**@}*/
 
 #endif /* FDS_IPFIX_STRUCTS_H */

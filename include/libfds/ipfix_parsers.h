@@ -397,7 +397,7 @@ struct fds_blist_iter {
     struct {
         /** Start of the basic list                 */
         struct fds_ipfix_blist *blist;
-
+        /** Info about the single field in the list */
         struct fds_tfield info;
         /** Pointer to the start of the next record */
         uint8_t *field_next;
@@ -405,7 +405,7 @@ struct fds_blist_iter {
         uint8_t *blist_end;
         /** Error buffer                            */
         const char *err_msg;
-        /** Error indicator                         */
+        /** Last error code                         */
         int err_code;
 
     } _private; /**< Internal structure (dO NOT use directly!)  */
@@ -421,8 +421,6 @@ struct fds_blist_iter {
  * \param[in] it Uninitialized structure of iterator
  * \param[in] field Field with data type of Basic list
  * \param[in] ie_mgr IE manager for finding field definition (can be NULL)
- * \return #FDS_OK Successful initialization
- * \return #FDS_ERR_FORMAT Field is shorter than minimal size of Basic list
  */
 FDS_API void
 fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fds_iemgr_t *ie_mgr);
@@ -466,6 +464,89 @@ fds_blist_iter_next(struct fds_blist_iter *it);
 FDS_API const char *
 fds_blist_iter_err(const struct fds_blist_iter *it);
 
+enum fds_stl_flags{
+    FDS_STL_TIGNORE,
+    FDS_STL_REPORT
+};
+
+#define SUB_TMPLT_LIST_ID       292
+#define SUB_TMPLT_MULTI_LIST_ID 293
+
+struct fds_stlist_iter {
+    /** Current record                  */
+    struct fds_drec rec;
+    /** Template ID of current record   */
+    uint16_t tid;
+    /** Semantic of the list            */
+    enum fds_ipfix_list_semantics semantic;
+    struct {
+        struct fds_ipfix_stlist *stlist;
+        uint8_t *stlist_end;
+        uint8_t *next_rec;
+        uint16_t next_offset;
+        const fds_tsnapshot_t *snap;
+        fds_stl_flags flags;
+        uint16_t field_id;
+        const char *err_msg;
+        int err_code;
+    } _private;
+};
+
+/**
+ * \brief Initialize subTemplateList and  subTemplateMultiList iterator
+ *
+ * \warning
+ *   After initialization the iterator has initialized only internal structures but public part
+ *   is still undefined i.e. doesn't point to the first Field in the list. To get the first field
+ *   see fds_stlist_iter_next().
+ * \param it Uninitialized structure of iterator
+ * \param field Field which contains one of the lists (except basicList)
+ * \param snap Snapshot
+ * \param flags Initialization flags
+ *
+ *
+ */
+FDS_API void
+fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, const fds_tsnapshot_t *snap, uint16_t flags);
+
+/**
+ * \brief Get the next record from subTemplateList or subTemplateMultiList
+ *
+ * Move the iterator to the next Record in the order, If this function was not previously called
+ * after initialization by fds_stlist_iter_init(), then the iterator will point to the first field
+ * in the subTemplateList or subTemplateMultiList.
+ *
+ * \code{.c}
+ *  struct fds_stlist_iter stlist_it;
+ *  fds_stlist_iter_init(&stlist_it, field, record->snapshot, FDS_STL_TIGNORE);
+ *
+ *  int rc;
+ *  while ((rc = fds_stlist_iter_next(&stlist_it)) == FDS_OK) {
+ *      // Add your code here...
+ *  }
+ *
+ *  if (rc != FDS_EOC) {
+ *      // error message fds_stlist_iter_err();
+ *  }
+ * \endcode
+ *
+ * \param it Iterator which will be updated with next record
+ * \return #FDS_OK if the iterator was successfully prepared
+ * \return #FDS_EOC if there are no more records to read
+ * \return #FDS_ERR_FORMAT if the message is malformed. You can find more information about errors in fds_stlist_iter_err()
+ */
+FDS_API int
+fds_stlist_iter_next(struct fds_stlist_iter *it);
+
+/**
+ * \brief Get the last error message
+ * \note The message is statically allocated string that can be passed to other function even
+ *   when the iterator doesn't exist anymore.
+ * \param[in] it Iterator
+ * \return The error message
+ */
+FDS_API void
+fds_stlist_iter_err(struct fds_stlist_iter *it);
 
 #ifdef __cplusplus
 }

@@ -465,8 +465,8 @@ FDS_API const char *
 fds_blist_iter_err(const struct fds_blist_iter *it);
 
 enum fds_stl_flags{
-    FDS_STL_TIGNORE,
-    FDS_STL_REPORT
+    FDS_STL_TIGNORE = 0,
+    FDS_STL_REPORT  = 1
 };
 
 #define SUB_TMPLT_LIST_ID       292
@@ -485,6 +485,7 @@ struct fds_stlist_iter {
         uint8_t *next_rec;
         uint16_t next_offset;
         const fds_tsnapshot_t *snap;
+        fds_tmgr_t *tmgr;
         fds_stl_flags flags;
         uint16_t field_id;
         const char *err_msg;
@@ -502,6 +503,7 @@ struct fds_stlist_iter {
  * \param it Uninitialized structure of iterator
  * \param field Field which contains one of the lists (except basicList)
  * \param snap Snapshot
+ * \param tmgr Template manager for template parsing
  * \param flags Initialization flags
  *
  *
@@ -545,7 +547,7 @@ fds_stlist_iter_next(struct fds_stlist_iter *it);
  * \param[in] it Iterator
  * \return The error message
  */
-FDS_API void
+FDS_API const char *
 fds_stlist_iter_err(struct fds_stlist_iter *it);
 
 #ifdef __cplusplus

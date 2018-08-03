@@ -320,9 +320,6 @@ class ipfix_blist : public ipfix_buffer {
 private:
     uint16_t _field_id;
 public:
-    static const uint16_t BLIST_ID = 291;
-    static const uint16_t SIZE_AUTO = 0;
-    static const uint16_t SIZE_VAR = 65535;
 
     ipfix_blist() = default;
     ~ipfix_blist() = default;
@@ -336,6 +333,24 @@ public:
     void
     append_field(const ipfix_field &field);
 
+};
+
+class ipfix_stlist : public ipfix_buffer {
+public:
+    ipfix_stlist() = default;
+    ~ipfix_stlist() = default;
+
+    void
+    subTemp_header(uint8_t semantic, uint16_t template_id);
+
+    void
+    subTempMulti_header(uint8_t semantic);
+
+    void
+    subTempMulti_data_hdr(uint16_t template_id, uint16_t size);
+
+    void
+    append_data_record(const ipfix_drec &drec);
 };
 
 #endif //IPFIXCOL_MSGGEN_H

@@ -212,8 +212,6 @@ fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, c
         it->_private.next_rec = field->data + 1U;
     }
     // Common part for both types
-    it->semantic = (enum fds_ipfix_list_semantics) it->_private.stlist->semantic;
-
     it->_private.field_id = field->info->id;
     it->_private.stlist = (struct fds_ipfix_stlist *) field->data;
     it->_private.snap = snap;
@@ -222,13 +220,15 @@ fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, c
     it->_private.flags = flags;
     it->_private.err_msg = err_msg[ERR_OK];
     it->_private.err_code = FDS_OK;
+
+    it->semantic = (enum fds_ipfix_list_semantics) it->_private.stlist->semantic;
 }
 
 int
 fds_stlist_iter_next(struct fds_stlist_iter *it)
 {
     // Check if iterator is without errors
-    if (it->_private.err_code != FDS_OK || it->_private.err_code != FDS_ERR_NOTFOUND){
+    if (it->_private.err_code != FDS_OK && it->_private.err_code != FDS_ERR_NOTFOUND){
         return it->_private.err_code;
     }
     // Check if we are not reading beyond end of the list
@@ -246,7 +246,7 @@ fds_stlist_iter_next(struct fds_stlist_iter *it)
     // subTemplateList part
     if (it->_private.field_id == SUB_TMPLT_LIST_ID){
         // Template ID is in the header
-        tmplt_id = it->_private.stlist->template_id;
+        tmplt_id = ntohs(it->_private.stlist->template_id);
         // Setting the record size to the size of whole data.
         // If the template will be found, the record size will change to the real size
         rec_size = (uint16_t) (it->_private.stlist_end - it->_private.next_rec);
@@ -261,7 +261,7 @@ fds_stlist_iter_next(struct fds_stlist_iter *it)
             return it->_private.err_code;
         }
         // Get the template ID from data
-        tmplt_id = (uint16_t) it->_private.next_rec;
+        tmplt_id = ntohs((uint16_t) it->_private.next_rec);
         it->_private.next_rec += 2U;
 
         // Record size is also included in data
@@ -272,12 +272,12 @@ fds_stlist_iter_next(struct fds_stlist_iter *it)
 
     // Get the template from the snapshot
     const struct fds_template *tmplt = fds_tsnapshot_template_get(it->_private.snap,tmplt_id);
-    if ((tmplt == NULL) && (it->_private.flags == fds_stl_flags::FDS_STL_REPORT)){
+    if ((tmplt == NULL) && (it->_private.flags == FDS_STL_REPORT)){
         // Not a fatal error
         it->_private.err_code = FDS_ERR_NOTFOUND;
     }
 
-    if (it->_private.field_id == SUB_TMPLT_LIST_ID){
+    if (it->_private.field_id == SUB_TMPLT_LIST_ID && tmplt != NULL){
         // Template was found so we need to skip all the fields to determine the size
         struct fds_drec drec;
         struct fds_drec_iter data_it;
@@ -287,7 +287,7 @@ fds_stlist_iter_next(struct fds_stlist_iter *it)
         fds_drec_iter_init(&data_it, &drec, FDS_DREC_REVERSE_SKIP | FDS_DREC_UNKNOWN_SKIP );
         rec_size =0;
         int rc;
-        while ((rc = fds_drec_iter_next(&data_it)) != FDS_OK){
+        while ((rc = fds_drec_iter_next(&data_it)) == FDS_OK){
             rec_size += data_it.field.size;
         }
         if (rc != FDS_EOC){

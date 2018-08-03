@@ -485,8 +485,7 @@ struct fds_stlist_iter {
         uint8_t *next_rec;
         uint16_t next_offset;
         const fds_tsnapshot_t *snap;
-        fds_tmgr_t *tmgr;
-        fds_stl_flags flags;
+        enum fds_stl_flags flags;
         uint16_t field_id;
         const char *err_msg;
         int err_code;

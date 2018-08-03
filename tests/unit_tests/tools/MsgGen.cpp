@@ -486,3 +486,38 @@ void ipfix_blist::header_long(uint8_t semantic, uint16_t field_id, uint16_t elem
     mem[0] = htonl(en);
 
 }
+
+void ipfix_stlist::subTemp_header(uint8_t semantic, uint16_t template_id) {
+    this->subTempMulti_header(semantic);
+    uint8_t *mem = mem_reserve(2U);
+    if (fds_set_uint_be(mem, 2U, template_id) != FDS_OK) {
+        throw std::invalid_argument("fds_set_int_be() failed!");
+    }
+}
+
+void ipfix_stlist::subTempMulti_header(uint8_t semantic) {
+    uint8_t *mem = mem_reserve(1U);
+    if (fds_set_uint_be(mem, 1U, semantic) != FDS_OK) {
+        throw std::invalid_argument("fds_set_int_be() failed!");
+    }
+}
+
+void ipfix_stlist::subTempMulti_data_hdr(uint16_t template_id, uint16_t size) {
+    uint8_t *mem = mem_reserve(2U);
+    if (fds_set_uint_be(mem, 2U, template_id) != FDS_OK) {
+        throw std::invalid_argument("fds_set_int_be() failed!");
+    }
+    mem = mem_reserve(2U);
+    if (fds_set_uint_be(mem, 2U, size) != FDS_OK) {
+        throw std::invalid_argument("fds_set_int_be() failed!");
+    }
+}
+
+void ipfix_stlist::append_data_record(const ipfix_drec &drec) {
+    const uint8_t *src = drec.front();
+    const size_t size = drec.size();
+
+    uint8_t *dst = mem_reserve(size);
+    std::memcpy(dst, src, size);
+
+}

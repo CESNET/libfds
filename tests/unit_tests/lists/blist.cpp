@@ -40,22 +40,7 @@ protected:
     std::string VALUE_APP_NAME3 = ""; //empty string
     std::string VALUE_LINK_1 = "https://www.novinky.cz/domaci/478596-vystehovat-do-mesice-klienti-h-systemu-definitivne-prohrali.html";
     std::string VALUE_LINK_2 = "https://www.novinky.cz/domaci/478601-rozrezou-ho-a-odvezou-po-dne-nadrze-tezky-jerab-v-elektrarne-na-sumpersku-lezel-od-lonske-nehody.html";
-//    uint16_t    VALUE_SRC_PORT = 65000;
-//    uint16_t    VALUE_DST_PORT = 80;
-//    std::string VALUE_DST_IP4  = "8.8.8.8";
-//    uint8_t     VALUE_PROTO    = 6; // TCP
-//    uint64_t    VALUE_TS_FST   = 1522670362000ULL;
-//    uint64_t    VALUE_TS_LST   = 1522670372999ULL;
-//    uint64_t    VALUE_TS_FST_R = 1522670363123ULL;
-//    uint64_t    VALUE_TS_LST_R = 1522670369000ULL;
-//    std::string VALUE_APP_DSC  = "linux/web browser";
-//    uint64_t    VALUE_BYTES    = 1234567;
-//    uint64_t    VALUE_PKTS     = 12345;
-//    double      VALUE_UNKNOWN  = 3.1416f;
-//    uint64_t    VALUE_BYTES_R  = 7654321;
-//    uint64_t    VALUE_PKTS_R   = 54321;
-//    std::string VALUE_IFC1     = ""; // empty string
-//    std::string VALUE_IFC2     = "eth0";
+
 
     /** \brief Before each test */
     void SetUp() override {

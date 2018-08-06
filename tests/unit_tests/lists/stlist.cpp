@@ -188,13 +188,25 @@ TEST_F(stlistIter, subTemplateList_first_record)
 {
     subTempList.subTemp_header(0,256);
     subTempList.append_data_record(drec);
+    subTempList.dump();
 
     field.size = subTempList.size();
     field.data = subTempList.release();
     field.info = (const fds_tfield *)&subTempLst_info;
 
     fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
+
     int ret = fds_stlist_iter_next(&it);
     ASSERT_EQ(ret,FDS_OK);
     ASSERT_EQ(it.tid,256);
+    uint16_t *src_port = reinterpret_cast<uint16_t *>(it.rec.data);
+    ASSERT_EQ(ntohs(*src_port),VALUE_SRC_PORT);
+    ASSERT_EQ(it._private.next_rec, it.rec.data);
+    ASSERT_EQ(it._private.next_rec, it._private.stlist_end);
+    int size = it.rec.size;
+    uint8_t *first_rec = it.rec.data;
+
+    ret = fds_stlist_iter_next(&it);
+    ASSERT_EQ(it.rec.data, first_rec + size);
+    ASSERT_EQ(ret,FDS_EOC);
 }

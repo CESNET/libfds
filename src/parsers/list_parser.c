@@ -53,7 +53,8 @@ enum error_codes {
     ERR_ST_LIST_SHORT,
     ERR_STM_LIST_SHORT,
     ERR_STM_LIST_HDR_UNEXP_END,
-    ERR_ST_LIST_TMPLT_NOTFOUND
+    ERR_TMPLT_NOTFOUND,
+    ERR_READ_RECORD
 };
 
 /** Corresponding error messages */
@@ -65,9 +66,10 @@ static const char *err_msg[] = {
     [ERR_ITER]                          = "Iterator error.",
     [ERR_INTERNAL]                      = "Internal error.",
     [ERR_ST_LIST_SHORT]                 = "Field is too small for subTemplateList to fit in.",
-    [ERR_ST_LIST_TMPLT_NOTFOUND]        = "Template was not found so the list cannot be interpreted.",
+    [ERR_TMPLT_NOTFOUND]                = "Template ID was not found in a snapshot.",
     [ERR_STM_LIST_SHORT]                = "Field is too small for subTemplateMultiList to fit in.",
     [ERR_STM_LIST_HDR_UNEXP_END]        = "Unexpected end of record while reading header of the data record.",
+    [ERR_READ_RECORD]                   = "Error while reading data record. Data is not in correct format."
 };
 
 void
@@ -132,7 +134,7 @@ fds_blist_iter_next(struct fds_blist_iter *it)
     }
 
     // Check if there is another field in list to read
-    if (it->_private.field_next == it->_private.blist_end){
+    if (it->_private.field_next >= it->_private.blist_end){
         it->_private.err_code = FDS_EOC;
         return it->_private.err_code;
     }
@@ -149,7 +151,7 @@ fds_blist_iter_next(struct fds_blist_iter *it)
 
         if (elem_length == 255U) {
             // Check if we are not reading beyond the end of the list
-            if (it->_private.field_next + 2U > it->_private.blist_end){
+            if (it->_private.field_next + 3U > it->_private.blist_end){
                 it->_private.err_msg = err_msg[ERR_VARSIZE_UNEXP_END];
                 it->_private.err_code = FDS_ERR_FORMAT;
                 return it->_private.err_code;
@@ -161,7 +163,7 @@ fds_blist_iter_next(struct fds_blist_iter *it)
     }
 
     // Check if we are not reading beyond the end of the list
-    if (it->_private.field_next + elem_length > it->_private.blist_end){
+    if (it->_private.field_next + elem_length + data_offset > it->_private.blist_end){
         it->_private.err_msg = err_msg[ERR_BLIST_UNEXP_END];
         it->_private.err_code = FDS_ERR_FORMAT;
         return it->_private.err_code;
@@ -274,25 +276,18 @@ fds_stlist_iter_next(struct fds_stlist_iter *it)
     const struct fds_template *tmplt = fds_tsnapshot_template_get(it->_private.snap,tmplt_id);
     if ((tmplt == NULL) && (it->_private.flags == FDS_STL_REPORT)){
         // Not a fatal error
+        it->_private.err_msg = err_msg[ERR_TMPLT_NOTFOUND];
         it->_private.err_code = FDS_ERR_NOTFOUND;
     }
 
-    if (it->_private.field_id == SUB_TMPLT_LIST_ID && tmplt != NULL){
-        // Template was found so we need to skip all the fields to determine the size
-        struct fds_drec drec;
-        struct fds_drec_iter data_it;
-        drec.tmplt = tmplt;
-        drec.data = it->_private.next_rec;
-
-        fds_drec_iter_init(&data_it, &drec, FDS_DREC_REVERSE_SKIP | FDS_DREC_UNKNOWN_SKIP );
-        rec_size =0;
-        int rc;
-        while ((rc = fds_drec_iter_next(&data_it)) == FDS_OK){
-            rec_size += data_it.field.size;
-        }
-        if (rc != FDS_EOC){
-            it->_private.err_code = FDS_ERR_NOTFOUND;
-            it->_private.err_msg = err_msg[ERR_INTERNAL];
+    //TODO EOC in subTemplate MultiLIst means next record but in subTmpltLst means end of list
+    if (tmplt != NULL){
+        int rc = get_record_size(tmplt, it->_private.next_rec, it->_private.stlist_end, &rec_size);
+        if (rc != FDS_OK){
+            // In case of FDS_EOC length in template needs more size than it's available
+            // no padding is used in lists, so there will be error
+            it->_private.err_code = FDS_ERR_FORMAT;
+            it->_private.err_msg = err_msg[ERR_READ_RECORD];
             return it->_private.err_code;
         }
     }
@@ -307,6 +302,58 @@ fds_stlist_iter_next(struct fds_stlist_iter *it)
     it->_private.next_rec += rec_size;
     it->_private.next_offset += rec_size;
     return it->_private.err_code;
+}
+
+int
+get_record_size(const struct fds_template *tmplt, uint8_t* data_start, uint8_t* data_end, uint16_t *record_size)
+{
+    uint32_t size = tmplt->data_length;
+    if (data_start + size > data_end) {
+        // The rest of the Data Set is padding
+        return FDS_EOC;
+    }
+
+    if ((tmplt->flags & FDS_TEMPLATE_DYNAMIC) == 0) {
+        // Processing a static record
+        *record_size = (uint16_t) size;
+        return FDS_OK;
+    }
+
+    // Processing a dynamic record
+    size = 0;
+    uint16_t idx;
+
+    for (idx = 0; idx < tmplt->fields_cnt_total; ++idx) {
+        uint16_t field_size = tmplt->fields[idx].length;
+        if (field_size != FDS_IPFIX_VAR_IE_LEN) {
+            size += field_size;
+            continue;
+        }
+
+        // This is a field with variable-length encoding
+        if (&data_start[size + 1] > data_end) {
+            // The memory is beyond the end of the Data Set
+            break;
+        }
+
+
+        field_size = data_start[size];
+        size += 1U;
+        if (field_size != 255U) {
+            size += field_size;
+            continue;
+        }
+
+        if (&data_start[size + 2] > data_end) {
+            // The memory is beyond the end of the Data Set
+            return FDS_ERR_FORMAT;
+        }
+
+        field_size = ntohs(*(uint16_t *) &data_start[size]);
+        size += 2U + field_size;
+    }
+    *record_size = (uint16_t) size;
+    return FDS_OK;
 }
 
 const char *

@@ -130,12 +130,18 @@ protected:
         drec2.var_header(VALUE_IFC1.length(), false); // empty string (only header)
         drec2.append_string(VALUE_IFC2);
 
-        subTempLst_info.id = SUB_TMPLT_LIST_ID;
-        subTempMultiLst_info.id = SUB_TMPLT_MULTI_LIST_ID;
+        fds_iemgr_elem *def1 = (fds_iemgr_elem *) malloc(sizeof(fds_iemgr_elem));
+        def1->data_type = FDS_ET_SUB_TEMPLATE_LIST;
+        subTempLst_info.def = def1;
+
+        fds_iemgr_elem *def2 = (fds_iemgr_elem *) malloc(sizeof(fds_iemgr_elem));
+        def2->data_type = FDS_ET_SUB_TEMPLATE_MULTILIST;
+        subTempMultiLst_info.def = def2;
     }
 
     void TearDown() override {
-
+        free((void*)subTempLst_info.def);
+        free((void*)subTempMultiLst_info.def);
     }
 };
 
@@ -154,9 +160,8 @@ TEST_F(stlistIter, subTemplateList_init)
     ASSERT_EQ(it.semantic,0);
     ASSERT_EQ((uint8_t *)it._private.stlist, field.data);
     ASSERT_EQ(it._private.stlist_end, field.data + field.size);
-    ASSERT_EQ(it._private.field_id, SUB_TMPLT_LIST_ID);
+    ASSERT_EQ(it._private.type, SUB_TMPLT_LIST_ID);
     ASSERT_EQ(it._private.flags, FDS_STL_TIGNORE);
-    ASSERT_EQ(it._private.next_offset,0);
 }
 
 TEST_F(stlistIter, subTemplateMultiList_init)
@@ -179,9 +184,8 @@ TEST_F(stlistIter, subTemplateMultiList_init)
     ASSERT_EQ(it.semantic,1);
     ASSERT_EQ((uint8_t *)it._private.stlist, field.data);
     ASSERT_EQ(it._private.stlist_end, field.data + field.size);
-    ASSERT_EQ(it._private.field_id, SUB_TMPLT_MULTI_LIST_ID);
+    ASSERT_EQ(it._private.type, SUB_TMPLT_MULTI_LIST_ID);
     ASSERT_EQ(it._private.flags, FDS_STL_REPORT);
-    ASSERT_EQ(it._private.next_offset,0);
 }
 
 TEST_F(stlistIter, subTemplateList_first_record)
@@ -201,12 +205,36 @@ TEST_F(stlistIter, subTemplateList_first_record)
     ASSERT_EQ(it.tid,256);
     uint16_t *src_port = reinterpret_cast<uint16_t *>(it.rec.data);
     ASSERT_EQ(ntohs(*src_port),VALUE_SRC_PORT);
-    ASSERT_EQ(it._private.next_rec, it.rec.data);
     ASSERT_EQ(it._private.next_rec, it._private.stlist_end);
-    int size = it.rec.size;
-    uint8_t *first_rec = it.rec.data;
+
 
     ret = fds_stlist_iter_next(&it);
-    ASSERT_EQ(it.rec.data, first_rec + size);
+    ASSERT_EQ(ret,FDS_EOC);
+}
+
+TEST_F(stlistIter, subTemplateList_threeRecords)
+{
+    subTempList.subTemp_header(0,256);
+    subTempList.append_data_record(drec2);
+    subTempList.append_data_record(drec2);
+    subTempList.append_data_record(drec2);
+    subTempList.dump();
+
+    field.size = subTempList.size();
+    field.data = subTempList.release();
+    field.info = (const fds_tfield *)&subTempLst_info;
+
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
+
+    for (int i=0; i<3; i++){
+        int ret = fds_stlist_iter_next(&it);
+        ASSERT_EQ(ret,FDS_OK);
+        ASSERT_EQ(it.tid,256);
+        uint16_t *src_port = reinterpret_cast<uint16_t *>(it.rec.data);
+        ASSERT_EQ(ntohs(*src_port),VALUE_SRC_PORT);
+        ASSERT_EQ(it._private.next_rec, it._private.stlist_end);
+    }
+
+    int ret = fds_stlist_iter_next(&it);
     ASSERT_EQ(ret,FDS_EOC);
 }

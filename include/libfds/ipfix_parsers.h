@@ -483,10 +483,12 @@ struct fds_stlist_iter {
         struct fds_ipfix_stlist *stlist;
         uint8_t *stlist_end;
         uint8_t *next_rec;
-        uint16_t next_offset;
+        uint8_t *recs_end;
+
         const fds_tsnapshot_t *snap;
+
         enum fds_stl_flags flags;
-        uint16_t field_id;
+        enum fds_iemgr_element_type type;
         const char *err_msg;
         int err_code;
     } _private;

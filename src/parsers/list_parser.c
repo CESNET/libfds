@@ -261,8 +261,17 @@ fds_stlist_iter_next(struct fds_stlist_iter *it)
     }
     // Check if we are not reading beyond end of the list
     if (it->_private.next_rec >= it->_private.stlist_end){
-        it->_private.err_code = FDS_EOC;
+        // Size of the data that was read equals size in the header
+        if (it->_private.stlist_end == it->_private.recs_end){
+            it->_private.err_code = FDS_EOC;
+        }
+        // Size of the data that was read is smaller than size in header - wrong format
+        else{
+            it->_private.err_code = FDS_ERR_FORMAT;
+            it->_private.err_msg = err_msg[ERR_READ_RECORD];
+        }
         return it->_private.err_code;
+
     }
 
     // Set the error code in advance
@@ -381,10 +390,10 @@ read_header(struct fds_stlist_iter *it)
             it->_private.err_code = FDS_ERR_FORMAT;
             return NULL;
         }
-        tmplt_id = ntohs((uint16_t) it->_private.next_rec);
-        it->_private.next_rec += 2U;
-        int16_t rec_size = ntohs((uint16_t) it->_private.next_rec);
-        it->_private.next_rec += 2U;
+        struct fds_ipfix_set_hdr *hdr = (struct fds_ipfix_set_hdr *) it->_private.next_rec;
+        tmplt_id = ntohs(hdr->flowset_id);
+        uint16_t rec_size = ntohs(hdr->length);
+        it->_private.next_rec += 4U;
         it->_private.recs_end = it->_private.next_rec + rec_size;
     }
 

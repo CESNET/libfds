@@ -160,7 +160,7 @@ TEST_F(stlistIter, subTemplateList_init)
     ASSERT_EQ(it.semantic,0);
     ASSERT_EQ((uint8_t *)it._private.stlist, field.data);
     ASSERT_EQ(it._private.stlist_end, field.data + field.size);
-    ASSERT_EQ(it._private.type, SUB_TMPLT_LIST_ID);
+    ASSERT_EQ(it._private.type, FDS_ET_SUB_TEMPLATE_LIST);
     ASSERT_EQ(it._private.flags, FDS_STL_TIGNORE);
 }
 
@@ -184,7 +184,7 @@ TEST_F(stlistIter, subTemplateMultiList_init)
     ASSERT_EQ(it.semantic,1);
     ASSERT_EQ((uint8_t *)it._private.stlist, field.data);
     ASSERT_EQ(it._private.stlist_end, field.data + field.size);
-    ASSERT_EQ(it._private.type, SUB_TMPLT_MULTI_LIST_ID);
+    ASSERT_EQ(it._private.type, FDS_ET_SUB_TEMPLATE_MULTILIST);
     ASSERT_EQ(it._private.flags, FDS_STL_REPORT);
 }
 
@@ -204,6 +204,7 @@ TEST_F(stlistIter, subTemplateList_first_record)
     ASSERT_EQ(ret,FDS_OK);
     ASSERT_EQ(it.tid,256);
     uint16_t *src_port = reinterpret_cast<uint16_t *>(it.rec.data);
+    std::cout<<ntohs(*src_port)<<std::endl;
     ASSERT_EQ(ntohs(*src_port),VALUE_SRC_PORT);
     ASSERT_EQ(it._private.next_rec, it._private.stlist_end);
 
@@ -215,9 +216,9 @@ TEST_F(stlistIter, subTemplateList_first_record)
 TEST_F(stlistIter, subTemplateList_threeRecords)
 {
     subTempList.subTemp_header(0,256);
-    subTempList.append_data_record(drec2);
-    subTempList.append_data_record(drec2);
-    subTempList.append_data_record(drec2);
+    subTempList.append_data_record(drec);
+    subTempList.append_data_record(drec);
+    subTempList.append_data_record(drec);
     subTempList.dump();
 
     field.size = subTempList.size();
@@ -229,10 +230,74 @@ TEST_F(stlistIter, subTemplateList_threeRecords)
     for (int i=0; i<3; i++){
         int ret = fds_stlist_iter_next(&it);
         ASSERT_EQ(ret,FDS_OK);
+        ASSERT_EQ(it.rec.data, field.data + 3U + i*drec.size());
         ASSERT_EQ(it.tid,256);
         uint16_t *src_port = reinterpret_cast<uint16_t *>(it.rec.data);
         ASSERT_EQ(ntohs(*src_port),VALUE_SRC_PORT);
-        ASSERT_EQ(it._private.next_rec, it._private.stlist_end);
+    }
+
+    int ret = fds_stlist_iter_next(&it);
+    ASSERT_EQ(ret,FDS_EOC);
+}
+
+TEST_F(stlistIter, subTemplateMultiList_first_record)
+{
+    subTempMultiList.subTempMulti_header(5);
+    subTempMultiList.subTempMulti_data_hdr(256,48);
+    subTempMultiList.append_data_record(drec);
+    subTempMultiList.dump();
+
+
+    field.size = subTempMultiList.size();
+    field.data = subTempMultiList.release();
+    field.info = (const fds_tfield *)&subTempMultiLst_info;
+
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
+    ASSERT_EQ(it._private.next_rec, field.data+1U);
+
+    int ret = fds_stlist_iter_next(&it);
+    ASSERT_EQ(ret,FDS_OK);
+    ASSERT_EQ(it.tid,256);
+    uint16_t *src_port = reinterpret_cast<uint16_t *>(it.rec.data);
+    ASSERT_EQ(ntohs(*src_port),VALUE_SRC_PORT);
+    ASSERT_EQ(it._private.next_rec, it._private.stlist_end);
+
+
+    ret = fds_stlist_iter_next(&it);
+    ASSERT_EQ(ret,FDS_EOC);
+}
+
+TEST_F(stlistIter, subTemplateMultiList_threeRecords)
+{
+    subTempMultiList.subTempMulti_header(5);
+    subTempMultiList.subTempMulti_data_hdr(256,drec.size() * 2);
+    subTempMultiList.append_data_record(drec);
+    subTempMultiList.append_data_record(drec);
+    subTempMultiList.subTempMulti_data_hdr(257,drec2.size() * 2);
+    subTempMultiList.append_data_record(drec2);
+    subTempMultiList.append_data_record(drec2);
+    subTempMultiList.dump();
+
+    field.size = subTempMultiList.size();
+    field.data = subTempMultiList.release();
+    field.info = (const fds_tfield *)&subTempMultiLst_info;
+
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
+
+    for (int i=0; i<2; i++){
+        int ret = fds_stlist_iter_next(&it);
+        ASSERT_EQ(ret,FDS_OK);
+        ASSERT_EQ(it.tid,256);
+        uint16_t *src_port = reinterpret_cast<uint16_t *>(it.rec.data);
+        ASSERT_EQ(ntohs(*src_port),VALUE_SRC_PORT);
+    }
+    for (int i=0; i<2; i++){
+        int ret = fds_stlist_iter_next(&it);
+        ASSERT_EQ(ret,FDS_OK);
+        ASSERT_EQ(it.tid,257);
+        char out[10];
+        fds_string2str(it.rec.data+1U,7U,&out[0],10U);
+        ASSERT_STREQ(out,VALUE_APP_NAME.c_str());
     }
 
     int ret = fds_stlist_iter_next(&it);

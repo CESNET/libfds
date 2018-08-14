@@ -178,14 +178,14 @@ TEST_F(stlistIter, subTemplateMultiList_init)
     field.data = subTempMultiList.release();
     field.info = (const fds_tfield *)&subTempMultiLst_info;
 
-    fds_stlist_iter_init(&it,&field,snap,FDS_STL_REPORT);
+    fds_stlist_iter_init(&it,&field,snap,FDS_STL_FLAG_REPORT);
     ASSERT_EQ(it._private.err_code, FDS_OK);
     ASSERT_EQ(it._private.next_rec, field.data + 1U);
     ASSERT_EQ(it.semantic,1);
     ASSERT_EQ((uint8_t *)it._private.stlist, field.data);
     ASSERT_EQ(it._private.stlist_end, field.data + field.size);
     ASSERT_EQ(it._private.type, FDS_ET_SUB_TEMPLATE_MULTILIST);
-    ASSERT_EQ(it._private.flags, FDS_STL_REPORT);
+    ASSERT_EQ(it._private.flags, FDS_STL_FLAG_REPORT);
 }
 
 TEST_F(stlistIter, subTemplateList_first_record)
@@ -198,7 +198,7 @@ TEST_F(stlistIter, subTemplateList_first_record)
     field.data = subTempList.release();
     field.info = (const fds_tfield *)&subTempLst_info;
 
-    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
 
     int ret = fds_stlist_iter_next(&it);
     ASSERT_EQ(ret,FDS_OK);
@@ -225,7 +225,7 @@ TEST_F(stlistIter, subTemplateList_threeRecords)
     field.data = subTempList.release();
     field.info = (const fds_tfield *)&subTempLst_info;
 
-    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
 
     for (int i=0; i<3; i++){
         int ret = fds_stlist_iter_next(&it);
@@ -252,7 +252,7 @@ TEST_F(stlistIter, subTemplateMultiList_first_record)
     field.data = subTempMultiList.release();
     field.info = (const fds_tfield *)&subTempMultiLst_info;
 
-    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
     ASSERT_EQ(it._private.next_rec, field.data+1U);
 
     int ret = fds_stlist_iter_next(&it);
@@ -282,7 +282,7 @@ TEST_F(stlistIter, subTemplateMultiList_threeRecords)
     field.data = subTempMultiList.release();
     field.info = (const fds_tfield *)&subTempMultiLst_info;
 
-    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
 
     for (int i=0; i<2; i++){
         int ret = fds_stlist_iter_next(&it);

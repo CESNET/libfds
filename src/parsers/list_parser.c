@@ -47,8 +47,6 @@ enum error_codes {
     ERR_OK,
     ERR_BLIST_SHORT,
     ERR_BLIST_UNEXP_END,
-    ERR_ITER,
-    ERR_INTERNAL,
     ERR_VARSIZE_UNEXP_END,
     ERR_ST_LIST_SHORT,
     ERR_STM_LIST_SHORT,
@@ -57,6 +55,7 @@ enum error_codes {
     ERR_READ_RECORD,
     ERR_FIELD_TYPE,
     ERR_FIELD_DEF_MISSING,
+    ERR_TMPLTID_NOT_VALID
 };
 
 /** Corresponding error messages */
@@ -65,22 +64,21 @@ static const char *err_msg[] = {
     [ERR_BLIST_SHORT]                   = "Size of the field is smaller than the minimal size of the Basic list.",
     [ERR_BLIST_UNEXP_END]               = "Unexpected end of the list while reading its members.",
     [ERR_VARSIZE_UNEXP_END]             = "Unexpected end of the list while reading size of the member.",
-    [ERR_ITER]                          = "Iterator error.",
-    [ERR_INTERNAL]                      = "Internal error.",
     [ERR_ST_LIST_SHORT]                 = "Field is too small for subTemplateList to fit in.",
     [ERR_TMPLT_NOTFOUND]                = "Template ID was not found in a snapshot.",
     [ERR_STM_LIST_SHORT]                = "Field is too small for subTemplateMultiList to fit in.",
     [ERR_STM_LIST_HDR_UNEXP_END]        = "Unexpected end of record while reading header of the data record.",
     [ERR_READ_RECORD]                   = "Error while reading data record. Data is not in correct format.",
     [ERR_FIELD_TYPE]                    = "Field is not subTemplateList nor subTemplateMultiList.",
-    [ERR_FIELD_DEF_MISSING]             = "Field definition is missing therefore it cannot be used for this iterator."
+    [ERR_FIELD_DEF_MISSING]             = "Field definition is missing therefore it cannot be used for this iterator.",
+    [ERR_TMPLTID_NOT_VALID]             = "Template ID is not valid!"
 };
 
 void
 fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fds_iemgr_t *ie_mgr)
 {
-    // Check if the Basic list can fit into the field
-    if ( field->size < FDS_IPFIX_BLIST_HDR_SHORT){
+    if (field->size < FDS_IPFIX_BLIST_SHORT_HDR_LEN) {
+        // Check if the Basic list can fit into the field
         it->_private.err_msg = err_msg[ERR_BLIST_SHORT];
         it->_private.err_code = FDS_ERR_FORMAT;
         return;
@@ -89,7 +87,13 @@ fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fd
     it->_private.blist = ((struct fds_ipfix_blist *)field->data);
     it->_private.blist_end = field->data + field->size;
 
-    it->semantic = (enum fds_ipfix_list_semantics) it->_private.blist->semantic;
+    if (it->_private.blist->semantic > 0 && it->_private.blist->semantic <= 4){
+        // Semantic is known
+        it->semantic = (enum fds_ipfix_list_semantics) it->_private.blist->semantic;
+    } else {
+        // Unknown semantic
+        it->semantic = FDS_IPFIX_LIST_UNDEFINED;
+    }
 
     // Filling the structure tfield
     it->_private.info.def = NULL;
@@ -101,30 +105,28 @@ fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fd
 
     uint32_t hdr_size;
 
-    // Enterprise number NOT present
-    if ((it->_private.info.id & (1U<<15)) == 0 ) {
-        hdr_size = FDS_IPFIX_BLIST_HDR_SHORT;
-    }
-    //Enterprise number present
-    else if ( field->size >= FDS_IPFIX_BLIST_HDR_LONG) {
-        hdr_size = FDS_IPFIX_BLIST_HDR_LONG;
-        it->_private.info.id = it->_private.info.id & ~(1U<<15);
+    if ((it->_private.info.id & (1U << 15)) == 0 ) {
+        // Enterprise number NOT present
+        hdr_size = FDS_IPFIX_BLIST_SHORT_HDR_LEN;
+    } else if (field->size >= FDS_IPFIX_BLIST_LONG_HDR_LEN) {
+        // Enterprise number present
+        hdr_size = FDS_IPFIX_BLIST_LONG_HDR_LEN;
+        it->_private.info.id = it->_private.info.id & ~(1U << 15);
         it->_private.info.en = ntohl(it->_private.blist->enterprise_number);
-    }
-    // Error handling
-    else {
+    } else {
+        // Error handling
         it->_private.err_msg = err_msg[ERR_BLIST_SHORT];
         it->_private.err_code = FDS_ERR_FORMAT;
         return;
     }
     it->_private.field_next = field->data + hdr_size;
 
-    //If IEManager present, we will fill the definition of the field
-    if (ie_mgr != NULL){
+    if (ie_mgr != NULL) {
+        // If IEManager present, we will fill the definition of the field
         it->_private.info.def = fds_iemgr_elem_find_id(ie_mgr, it->_private.info.en, it->_private.info.id);
     }
 
-    //Error message OK
+    // Error message OK
     it->_private.err_msg = err_msg[ERR_OK];
     it->_private.err_code = FDS_OK;
 }
@@ -132,13 +134,13 @@ fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fd
 int
 fds_blist_iter_next(struct fds_blist_iter *it)
 {
-    // Check if the iterator is without errors
-    if (it->_private.err_code != FDS_OK){
+    if (it->_private.err_code != FDS_OK) {
+        // Check if the iterator is without errors
         return it->_private.err_code;
     }
 
-    // Check if there is another field in list to read
-    if (it->_private.field_next >= it->_private.blist_end){
+    if (it->_private.field_next >= it->_private.blist_end) {
+        // Check if there is another field in list to read
         it->_private.err_code = FDS_EOC;
         return it->_private.err_code;
     }
@@ -155,7 +157,7 @@ fds_blist_iter_next(struct fds_blist_iter *it)
 
         if (elem_length == 255U) {
             // Check if we are not reading beyond the end of the list
-            if (it->_private.field_next + 3U > it->_private.blist_end){
+            if (it->_private.field_next + 3U > it->_private.blist_end) {
                 it->_private.err_msg = err_msg[ERR_VARSIZE_UNEXP_END];
                 it->_private.err_code = FDS_ERR_FORMAT;
                 return it->_private.err_code;
@@ -167,7 +169,7 @@ fds_blist_iter_next(struct fds_blist_iter *it)
     }
 
     // Check if we are not reading beyond the end of the list
-    if (it->_private.field_next + elem_length + data_offset > it->_private.blist_end){
+    if (it->_private.field_next + elem_length + data_offset > it->_private.blist_end) {
         it->_private.err_msg = err_msg[ERR_BLIST_UNEXP_END];
         it->_private.err_code = FDS_ERR_FORMAT;
         return it->_private.err_code;
@@ -197,33 +199,40 @@ void
 fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, const fds_tsnapshot_t *snap, uint16_t flags)
 {
     // Check the definition of the field
-    if (field->info->def == NULL){
-        // Is this error in format?
+    enum fds_iemgr_element_type type
+    if ((flags & FDS_STL_FLAG_AS_SUBTEMPLIST) != 0) {
+        // Forced interpretation as subTemplateList
+        type = FDS_ET_SUB_TEMPLATE_LIST;
+    } else if ((flags & FDS_STL_FLAG_AS_SUBTEMPMULTILIST) != 0) {
+        // Forced interpretation as subTemplateMultiList
+        type = FDS_ET_SUB_TEMPLATE_MULTILIST;
+    } else if (field->info->def == NULL) {
+        // Definition of the field is not available - cannot be interpreted
         it->_private.err_code = FDS_ERR_FORMAT;
         it->_private.err_msg = err_msg[ERR_FIELD_DEF_MISSING];
         return;
+    } else {
+        // Default state - reading type from available definition
+        type = field->info->def->data_type;
+        if(type != FDS_ET_SUB_TEMPLATE_LIST && type != FDS_ET_SUB_TEMPLATE_MULTILIST) {
+            // Is this error in format?
+            it->_private.err_code = FDS_ERR_FORMAT;
+            it->_private.err_msg = err_msg[ERR_FIELD_TYPE];
+            return;
+        }
     }
-    enum fds_iemgr_element_type type = field->info->def->data_type;
-    if(type != FDS_ET_SUB_TEMPLATE_LIST && type != FDS_ET_SUB_TEMPLATE_MULTILIST){
-        // Is this error in format?
-        it->_private.err_code = FDS_ERR_FORMAT;
-        it->_private.err_msg = err_msg[ERR_FIELD_TYPE];
-        return;
-    }
-    // subTemplateList part
-    if (type == FDS_ET_SUB_TEMPLATE_LIST){
-        //Check if the list can fit in the field
-        if (field->size < FDS_IPFIX_STLIST_HDR) {
+
+    if (type == FDS_ET_SUB_TEMPLATE_LIST) {
+        // subTemplateList part
+        if (field->size < FDS_IPFIX_STLIST_HDR_LEN) {
             it->_private.err_code = FDS_ERR_FORMAT;
             it->_private.err_msg = err_msg[ERR_ST_LIST_SHORT];
             return;
         }
-        it->_private.next_rec = field->data + FDS_IPFIX_STLIST_HDR;
-    }
-    // subTemplateMultiList part
-    else {
-        // Header is same structure as previous + 2U for data length field which is compulsory
-        if (field->size < FDS_IPFIX_STLIST_HDR + 2U){
+        it->_private.next_rec = field->data + FDS_IPFIX_STLIST_HDR_LEN;
+    } else {
+        // subTemplateMultiList part
+        if (field->size < FDS_IPFIX_STMULTILIST_HDR_LEN) {
             it->_private.err_code = FDS_ERR_FORMAT;
             it->_private.err_msg = err_msg[ERR_STM_LIST_SHORT];
             return;
@@ -236,12 +245,18 @@ fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, c
     it->_private.stlist = (struct fds_ipfix_stlist *) field->data;
     it->_private.snap = snap;
     it->_private.stlist_end = field->data + field->size;
-    it->_private.flags = (enum fds_stl_flags) flags;
+    it->_private.flags = flags;
 
     it->_private.err_msg = err_msg[ERR_OK];
     it->_private.err_code = FDS_OK;
 
-    it->semantic = (enum fds_ipfix_list_semantics) it->_private.stlist->semantic;
+    if (it->_private.stlist->semantic > 0 && it->_private.stlist->semantic <= 4){
+        // Semantic is known
+        it->semantic = (enum fds_ipfix_list_semantics) it->_private.stlist->semantic;
+    } else {
+        // Unknown semantic
+        it->semantic = FDS_IPFIX_LIST_UNDEFINED;
+    }
     // Setting the end of records to the same place as next record so the next function will read the header first
     it->_private.recs_end = it->_private.next_rec;
 }
@@ -256,17 +271,16 @@ int
 fds_stlist_iter_next(struct fds_stlist_iter *it)
 {
     // Check if iterator is without errors
-    if (it->_private.err_code != FDS_OK && it->_private.err_code != FDS_ERR_NOTFOUND){
+    if (it->_private.err_code != FDS_OK && it->_private.err_code != FDS_ERR_NOTFOUND) {
         return it->_private.err_code;
     }
     // Check if we are not reading beyond end of the list
-    if (it->_private.next_rec >= it->_private.stlist_end){
-        // Size of the data that was read equals size in the header
-        if (it->_private.stlist_end == it->_private.recs_end){
+    if (it->_private.next_rec >= it->_private.stlist_end) {
+        if (it->_private.stlist_end == it->_private.recs_end) {
+            // Size of the data that was read equals size in the header
             it->_private.err_code = FDS_EOC;
-        }
-        // Size of the data that was read is smaller than size in header - wrong format
-        else{
+        } else {
+            // Size of the data that was read is smaller than size in header - wrong format
             it->_private.err_code = FDS_ERR_FORMAT;
             it->_private.err_msg = err_msg[ERR_READ_RECORD];
         }
@@ -277,29 +291,27 @@ fds_stlist_iter_next(struct fds_stlist_iter *it)
     // Set the error code in advance
     it->_private.err_code = FDS_OK;
 
-    // If we need to read header (start of iteration e.g.) we will read it
-    // Otherwise template stays the same
     const struct fds_template * tmplt;
-    if (it->_private.recs_end == it->_private.next_rec){
+    if (it->_private.recs_end == it->_private.next_rec) {
+        // If we need to read header (start of iteration e.g.) we will read it
         tmplt = read_header(it);
-    }
-    else{
+    } else {
+        // Otherwise template stays the same
         tmplt = it->rec.tmplt;
     }
 
     // read record
     uint16_t rec_size;
-    // Template is available
-    if (tmplt != NULL){
+    if (tmplt != NULL) {
+        // Template is available
         int rc = get_record_size(tmplt, it->_private.next_rec, it->_private.recs_end, &rec_size);
-        if (rc != FDS_OK){
+        if (rc != FDS_OK) {
             it->_private.err_code = FDS_ERR_FORMAT;
             it->_private.err_msg = err_msg[ERR_READ_RECORD];
             return it->_private.err_code;
         }
-    }
-    // Template is missing so we skip all the records because we don't know how to read them
-    else {
+    } else {
+        // Template is missing so we skip all the records because we don't know how to read them
         rec_size = (uint16_t) (it->_private.recs_end - it->_private.next_rec);
     }
 
@@ -322,17 +334,16 @@ fds_stlist_iter_err(struct fds_stlist_iter *it)
 int
 get_record_size(const struct fds_template *tmplt, uint8_t* data_start, uint8_t* data_end, uint16_t *record_size)
 {
-
     uint32_t size = tmplt->data_length;
-    if (data_start + size > data_end) {
-        // The rest of the Data Set is padding
-        return FDS_EOC;
-    }
 
     if ((tmplt->flags & FDS_TEMPLATE_DYNAMIC) == 0) {
         // Processing a static record
-        *record_size = (uint16_t) size;
-        return FDS_OK;
+        if (data_start + size <= data_end) {
+            *record_size = (uint16_t) size;
+            return FDS_OK;
+        } else {
+            return FDS_ERR_FORMAT;
+        }
     }
 
     // Processing a dynamic record
@@ -349,9 +360,8 @@ get_record_size(const struct fds_template *tmplt, uint8_t* data_start, uint8_t* 
         // This is a field with variable-length encoding
         if (&data_start[size + 1] > data_end) {
             // The memory is beyond the end of the Data Set
-            break;
+            return FDS_ERR_FORMAT;
         }
-
 
         field_size = data_start[size];
         size += 1U;
@@ -368,8 +378,13 @@ get_record_size(const struct fds_template *tmplt, uint8_t* data_start, uint8_t* 
         field_size = ntohs(*(uint16_t *) &data_start[size]);
         size += 2U + field_size;
     }
-    *record_size = (uint16_t) size;
-    return FDS_OK;
+
+    if (data_start + size <= data_end) {
+        *record_size = (uint16_t) size;
+        return FDS_OK;
+    } else {
+        return FDS_ERR_FORMAT;
+    }
 }
 
 const struct fds_template *
@@ -379,13 +394,12 @@ read_header(struct fds_stlist_iter *it)
     const struct fds_template * tmplt;
 
 
-    if (it->_private.type == FDS_ET_SUB_TEMPLATE_LIST){
+    if (it->_private.type == FDS_ET_SUB_TEMPLATE_LIST) {
         tmplt_id = ntohs(it->_private.stlist->template_id);
         it->_private.recs_end = it->_private.stlist_end;
-    }
-    else{
-        //Check if we are not reading beyond the message
-        if (it->_private.next_rec + 4U > it->_private.stlist_end){
+    } else {
+        // Check if we are not reading beyond the message
+        if (it->_private.next_rec + FDS_IPFIX_STMULTILIST_HDR_LEN > it->_private.stlist_end) {
             it->_private.err_msg = err_msg[ERR_STM_LIST_HDR_UNEXP_END];
             it->_private.err_code = FDS_ERR_FORMAT;
             return NULL;
@@ -393,14 +407,20 @@ read_header(struct fds_stlist_iter *it)
         struct fds_ipfix_set_hdr *hdr = (struct fds_ipfix_set_hdr *) it->_private.next_rec;
         tmplt_id = ntohs(hdr->flowset_id);
         uint16_t rec_size = ntohs(hdr->length);
-        it->_private.next_rec += 4U;
         it->_private.recs_end = it->_private.next_rec + rec_size;
+    }
+
+    if (tmplt_id < 256) {
+        // Template ID must be greater than 256
+        it->_private.err_msg = err_msg[ERR_TMPLTID_NOT_VALID];
+        it->_private.err_code = FDS_ERR_FORMAT;
+        return NULL
     }
 
     // Get the template from the snapshot
     it->tid = tmplt_id;
     tmplt = fds_tsnapshot_template_get(it->_private.snap,tmplt_id);
-    if ((tmplt == NULL) && (it->_private.flags == FDS_STL_REPORT)){
+    if ((tmplt == NULL) && ((it->_private.flags & FDS_STL_FLAG_REPORT) != 0)) {
         // Not a fatal error
         it->_private.err_msg = err_msg[ERR_TMPLT_NOTFOUND];
         it->_private.err_code = FDS_ERR_NOTFOUND;

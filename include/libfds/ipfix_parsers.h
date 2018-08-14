@@ -465,12 +465,10 @@ FDS_API const char *
 fds_blist_iter_err(const struct fds_blist_iter *it);
 
 enum fds_stl_flags{
-    FDS_STL_TIGNORE = 0,
-    FDS_STL_REPORT  = 1
+    FDS_STL_FLAG_REPORT  = 1,
+    FDS_STL_FLAG_AS_SUBTEMPLIST = 2,
+    FDS_STL_FLAG_AS_SUBTEMPMULTILIST = 3
 };
-
-#define SUB_TMPLT_LIST_ID       292
-#define SUB_TMPLT_MULTI_LIST_ID 293
 
 struct fds_stlist_iter {
     /** Current record                  */
@@ -487,7 +485,7 @@ struct fds_stlist_iter {
 
         const fds_tsnapshot_t *snap;
 
-        enum fds_stl_flags flags;
+        uint16_t flags;
         enum fds_iemgr_element_type type;
         const char *err_msg;
         int err_code;
@@ -510,7 +508,8 @@ struct fds_stlist_iter {
  *
  */
 FDS_API void
-fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, const fds_tsnapshot_t *snap, uint16_t flags);
+fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, const fds_tsnapshot_t *snap,
+        uint16_t flags);
 
 /**
  * \brief Get the next record from subTemplateList or subTemplateMultiList
@@ -536,7 +535,8 @@ fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, c
  * \param it Iterator which will be updated with next record
  * \return #FDS_OK if the iterator was successfully prepared
  * \return #FDS_EOC if there are no more records to read
- * \return #FDS_ERR_FORMAT if the message is malformed. You can find more information about errors in fds_stlist_iter_err()
+ * \return #FDS_ERR_FORMAT if the message is malformed.
+ * You can find more information about errors in fds_stlist_iter_err()
  */
 FDS_API int
 fds_stlist_iter_next(struct fds_stlist_iter *it);

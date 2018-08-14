@@ -149,7 +149,7 @@ TEST_F(blistIter, init_short_hdr)
     ASSERT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ORDERED);
     ASSERT_EQ(it._private.info.id, 8);
     ASSERT_EQ(it._private.info.length, 4);
-    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_SHORT);
+    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist + FDS_IPFIX_BLIST_SHORT_HDR_LEN);
 
 }
 
@@ -159,7 +159,7 @@ TEST_F(blistIter, init_long_hdr)
     ASSERT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_EXACTLY_ONE_OF);
     ASSERT_EQ(it._private.info.id, 8);
     ASSERT_EQ(it._private.info.length, 4);
-    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_LONG);
+    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN);
     ASSERT_EQ(it._private.info.en, 74);
 }
 
@@ -183,14 +183,14 @@ TEST_F(blistIter, next_short_hdr)
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 4);
-    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_SHORT);
+    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_SHORT_HDR_LEN);
     fds_ip2str(it.field.data, it.field.size, &out[0], 20);
     ASSERT_STREQ(out, VALUE_SRC_IP4_1.c_str());
     // Second field in list
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 4);
-    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_SHORT + 4);
+    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_SHORT_HDR_LEN + 4);
     fds_ip2str(it.field.data, it.field.size, &out[0], 20);
     ASSERT_STREQ(out, VALUE_SRC_IP4_2.c_str());
     // Testing end pointer and return code
@@ -210,21 +210,21 @@ TEST_F(blistIter, next_long_hdr)
     fds_ip2str(it.field.data, it.field.size, &out[0], 20);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 4);
-    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_LONG);
+    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN);
     ASSERT_STREQ(out, VALUE_SRC_IP4_1.c_str());
     // Second field in list
     ret = fds_blist_iter_next(&it);
     fds_ip2str(it.field.data, it.field.size, &out[0], 20);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 4);
-    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_LONG + 4U);
+    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN + 4U);
     ASSERT_STREQ(out, VALUE_SRC_IP4_2.c_str());
     // Third field in list
     ret = fds_blist_iter_next(&it);
     fds_ip2str(it.field.data, it.field.size, &out[0], 20);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 4);
-    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_HDR_LONG + 8U);
+    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN + 8U);
     ASSERT_STREQ(out, VALUE_SRC_IP4_3.c_str());
     ASSERT_EQ(it._private.field_next, it._private.blist_end); // testing end pointer and return code
     
@@ -287,7 +287,7 @@ TEST_F(blistIter, next_varlen_data_long)
 TEST_F(blistIter, malformed_field_short_hdr )
 {
     field_short_hdr.data = static_cast<uint8_t *>(
-            memcpy(field_short_hdr.data+FDS_IPFIX_BLIST_HDR_SHORT, field_varlen_elems_short.data+FDS_IPFIX_BLIST_HDR_SHORT, field_short_hdr.size - 3));
+            memcpy(field_short_hdr.data+FDS_IPFIX_BLIST_SHORT_HDR_LEN, field_varlen_elems_short.data+FDS_IPFIX_BLIST_SHORT_HDR_LEN, field_short_hdr.size - 3));
     field_short_hdr.size = static_cast<uint16_t>(field_short_hdr.size - 3);
 
     int ret;

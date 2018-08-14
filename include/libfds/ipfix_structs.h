@@ -453,10 +453,10 @@ struct __attribute__((__packed__)) fds_ipfix_dset {
 };
 
  /** Size of Basic list header without Enterprise number */
-#define FDS_IPFIX_BLIST_HDR_SHORT 5U
+#define FDS_IPFIX_BLIST_SHORT_HDR_LEN 5U
 
 /** Size of Basic list header when the Enterprise number is present */
-#define FDS_IPFIX_BLIST_HDR_LONG 9U
+#define FDS_IPFIX_BLIST_LONG_HDR_LEN 9U
 
 /** Structured data type semantics */
 enum fds_ipfix_list_semantics {
@@ -464,7 +464,7 @@ enum fds_ipfix_list_semantics {
     FDS_IPFIX_LIST_EXACTLY_ONE_OF   = 1,  /**< "exactlyOneOf" structured data type semantic   */
     FDS_IPFIX_LIST_ONE_OR_MORE_OF   = 2,  /**< "oneOrMoreOf" structured data type semantic    */
     FDS_IPFIX_LIST_ALL_OF           = 3,  /**< "allOf" structured data type semantic          */
-    FDS_IPFIX_LIST_ORDERED          = 4,  /**<  "ordered" structured data type semantic       */
+    FDS_IPFIX_LIST_ORDERED          = 4,  /**< "ordered" structured data type semantic       */
     FDS_IPFIX_LIST_UNDEFINED        = 255,/**< "undefined" structured data type semantic      */
 
 };
@@ -511,7 +511,8 @@ struct __attribute__((__packed__)) fds_ipfix_blist {
 
 };
 
-#define FDS_IPFIX_STLIST_HDR 3U
+#define FDS_IPFIX_STLIST_HDR_LEN 3U
+#define FDS_IPFIX_STMULTILIST_HDR_LEN 5U
 
 struct __attribute__((__packed__)) fds_ipfix_stlist {
     uint8_t semantic;

@@ -215,6 +215,10 @@ enum fds_iemgr_element_unit {
     FDS_EU_ENTRIES,
     /** The type represents a number of L2 frames                                                */
     FDS_EU_FRAMES,
+    /** The type represents a number of transport ports                                          */
+    FDS_EU_PORTS,
+    /** The type represents a units of the inferred Information Elements                         */
+    FDS_EU_INFERRED,
     /** An unassigned unit type (invalid value)                                                  */
     FDS_EU_UNASSIGNED = 65535
 };
@@ -291,6 +295,57 @@ struct fds_iemgr_elem {
 
 /** Element Manager  */
 typedef struct fds_iemgr fds_iemgr_t;
+
+/**
+ * \brief Get a string representation of an IE type
+ * \param[in] type Type
+ * \return Statically allocated string or NULL (invalid type)
+ */
+FDS_API const char *
+fds_iemgr_type2str(enum fds_iemgr_element_type type);
+
+/**
+ * \brief Get an IE type from a string representation
+ * \note The comparison function is case insensitive.
+ * \param[in] str String
+ * \return Type or #FDS_ET_UNASSIGNED, in case of failure.
+ */
+FDS_API enum fds_iemgr_element_type
+fds_iemgr_str2type(const char *str);
+
+/**
+ * \brief Get a string representation of an IE semantic
+ * \param[in] sem Semantic
+ * \return Statically allocated string or NULL (invalid type)
+ */
+FDS_API const char *
+fds_iemgr_semantic2str(enum fds_iemgr_element_semantic sem);
+
+/**
+ * \brief Get an IE semantic from a string representation
+ * \note The comparison function is case insensitive.
+ * \param[in] str String
+ * \return Type or #FDS_ES_UNASSIGNED, in case of failure.
+ */
+FDS_API enum fds_iemgr_element_semantic
+fds_iemgr_str2semantic(const char *str);
+
+/**
+ * \brief Get a string representation of an IE unit
+ * \param[in] unit Unit
+ * \return Statically allocated string or NULL (invalid type)
+ */
+FDS_API const char *
+fds_iemgr_unit2str(enum fds_iemgr_element_unit unit);
+
+/**
+ * \brief Get an IE semantic from a string representation
+ * \note The comparison function is case insensitive.
+ * \param[in] str String
+ * \return Type or #FDS_EU_UNASSIGNED, in case of failure.
+ */
+FDS_API enum fds_iemgr_element_unit
+fds_iemgr_str2unit(const char *str);
 
 /**
  * \brief Create a manager

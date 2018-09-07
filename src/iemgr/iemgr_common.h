@@ -319,30 +319,6 @@ char *
 copy_str(const char *str);
 
 /**
- * \brief Get units of an element
- * \param unit Element units in a string
- * \return In what units are data
- */
-fds_iemgr_element_unit
-get_data_unit(const char *unit);
-
-/**
- * \brief Get semantics of an element
- * \param[in] semantic Semantic of an element in string
- * \return In what semantic is the element
- */
-fds_iemgr_element_semantic
-get_data_semantic(const char *semantic);
-
-/**
- * \brief Get data type of an element
- * \param[in] type Data type in string
- * \return Data type of the element
- */
-fds_iemgr_element_type
-get_data_type(const char *type);
-
-/**
  * \brief Get element status
  * \param[in] status Element status
  * \return Element status

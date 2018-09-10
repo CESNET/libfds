@@ -297,6 +297,74 @@ struct fds_iemgr_elem {
 typedef struct fds_iemgr fds_iemgr_t;
 
 /**
+ * \brief Check if a type of an Information Element is a signed integer
+ * \param[in] type IE type to test
+ * \return True or false
+ */
+static inline bool
+fds_iemgr_is_type_signed(enum fds_iemgr_element_type type)
+{
+    return (type == FDS_ET_SIGNED_64 || type == FDS_ET_SIGNED_32
+        ||  type == FDS_ET_SIGNED_16 || type == FDS_ET_SIGNED_8);
+}
+
+/**
+ * \brief Check if a type of an Information Element is an unsigned integer
+ * \param[in] type IE type to test
+ * \return True or false
+ */
+static inline bool
+fds_iemgr_is_type_unsigned(enum fds_iemgr_element_type type)
+{
+    return (type == FDS_ET_UNSIGNED_64 || type == FDS_ET_UNSIGNED_32
+        ||  type == FDS_ET_UNSIGNED_16 || type == FDS_ET_UNSIGNED_8);
+}
+
+/**
+ * \brief Check if a type of an Information Element is a floating-point number
+ * \param[in] type IE type to test
+ * \return True or false
+ */
+static inline bool
+fds_iemgr_is_type_float(enum fds_iemgr_element_type type)
+{
+    return (type == FDS_ET_FLOAT_32 || type == FDS_ET_FLOAT_64);
+}
+
+/**
+ * \brief Check if a type of an Information Element is an IPv4/IPv6 address
+ * \param[in] type IE type to test
+ * \return True or false
+ */
+static inline bool
+fds_iemgr_is_type_ip(enum fds_iemgr_element_type type)
+{
+    return (type == FDS_ET_IPV4_ADDRESS || type == FDS_ET_IPV6_ADDRESS);
+}
+
+/**
+ * \brief Check if a type of an Information Element is a timestamp
+ * \param[in] type IE type to test
+ * \return True or false
+ */
+static inline bool
+fds_iemgr_is_type_time(enum fds_iemgr_element_type type) {
+    return (type == FDS_ET_DATE_TIME_SECONDS || type == FDS_ET_DATE_TIME_MILLISECONDS
+        ||  type == FDS_ET_DATE_TIME_MICROSECONDS || type == FDS_ET_DATE_TIME_NANOSECONDS);
+}
+
+/**
+ * \brief Check if a type of an Information Element is a list
+ * \param[in] type IE type to test
+ * \return True or false
+ */
+static inline bool
+fds_iemgr_is_type_list(enum fds_iemgr_element_type type) {
+    return (type == FDS_ET_BASIC_LIST || type == FDS_ET_SUB_TEMPLATE_LIST
+        ||  type == FDS_ET_SUB_TEMPLATE_MULTILIST);
+}
+
+/**
  * \brief Get a string representation of an IE type
  * \param[in] type Type
  * \return Statically allocated string or NULL (invalid type)

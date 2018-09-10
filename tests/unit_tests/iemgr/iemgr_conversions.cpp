@@ -11,9 +11,6 @@ int main(int argc, char **argv)
     return RUN_ALL_TESTS();
 }
 
-// String representation of invalid type
-#define INVALID_TYPE "Unassigned"
-
 TEST(conversion, str2type)
 {
     EXPECT_EQ(FDS_ET_OCTET_ARRAY,            fds_iemgr_str2type("octetArray"));
@@ -50,13 +47,13 @@ TEST(conversion, type2str)
     int cnt = 0;
     for (size_t i = 0; i < FDS_ET_UNASSIGNED; ++i) {
         enum fds_iemgr_element_type type = static_cast<enum fds_iemgr_element_type>(i);
-        std::string str = fds_iemgr_type2str(type);
-        if (str == INVALID_TYPE) {
+        const char *str = fds_iemgr_type2str(type);
+        if (str == nullptr) {
             continue;
         }
 
         cnt++;
-        EXPECT_EQ(type, fds_iemgr_str2type(str.c_str()));
+        EXPECT_EQ(type, fds_iemgr_str2type(str));
     }
 
     EXPECT_GT(cnt, 0) << "No conversion called!";
@@ -84,13 +81,13 @@ TEST(conversion, semantic2str)
     int cnt = 0;
     for (size_t i = 0; i < FDS_ES_UNASSIGNED; ++i) {
         enum fds_iemgr_element_semantic sem = static_cast<enum fds_iemgr_element_semantic>(i);
-        std::string str = fds_iemgr_semantic2str(sem);
-        if (str == INVALID_TYPE) {
+        const char *str = fds_iemgr_semantic2str(sem);
+        if (str == nullptr) {
             continue;
         }
 
         cnt++;
-        EXPECT_EQ(sem, fds_iemgr_str2semantic(str.c_str()));
+        EXPECT_EQ(sem, fds_iemgr_str2semantic(str));
     }
 
     EXPECT_GT(cnt, 0) << "No conversion called!";
@@ -125,13 +122,13 @@ TEST(conversion, unit2str)
     int cnt = 0;
     for (size_t i = 0; i < FDS_EU_UNASSIGNED; ++i) {
         enum fds_iemgr_element_unit unit = static_cast<enum fds_iemgr_element_unit>(i);
-        std::string str = fds_iemgr_unit2str(unit);
-        if (str == INVALID_TYPE) {
+        const char *str = fds_iemgr_unit2str(unit);
+        if (str == nullptr) {
             continue;
         }
 
         cnt++;
-        EXPECT_EQ(unit, fds_iemgr_str2unit(str.c_str()));
+        EXPECT_EQ(unit, fds_iemgr_str2unit(str));
     }
 
     EXPECT_GT(cnt, 0) << "No conversion called!";

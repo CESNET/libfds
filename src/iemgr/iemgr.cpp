@@ -671,7 +671,7 @@ fds_iemgr_type2str(enum fds_iemgr_element_type type)
     if (type < table_type_size) {
         return table_type[type];
     } else {
-        return "Unassigned";
+        return NULL;
     }
 }
 
@@ -681,7 +681,7 @@ fds_iemgr_semantic2str(enum fds_iemgr_element_semantic sem)
     if (sem < table_semantic_size) {
         return table_semantic[sem];
     } else {
-        return "Unassigned";
+        return NULL;
     }
 }
 
@@ -691,7 +691,7 @@ fds_iemgr_unit2str(enum fds_iemgr_element_unit unit)
     if (unit < table_unit_size) {
         return table_unit[unit];
     } else {
-        return "Unassigned";
+        return NULL;
     }
 }
 

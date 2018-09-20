@@ -2,7 +2,7 @@
 // Created by lukashutak on 07/09/18.
 //
 
-#include <ipfixcol2.h>
+#include <libfds.h>
 #include <gtest/gtest.h>
 
 int main(int argc, char **argv)

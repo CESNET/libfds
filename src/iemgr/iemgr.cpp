@@ -44,8 +44,12 @@
 #include <cstring>
 #include <algorithm>
 #include <set>
-#include <bits/unique_ptr.h>
+#include <memory>
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <libfds/xml_parser.h>
 #include <libfds/iemgr.h>
 #include <cassert>
@@ -245,14 +249,25 @@ dir_read(fds_iemgr_t* mgr, const char* path, fds_xml_t* parser, const string& na
 
     struct dirent *ent;
     while ((ent = readdir(dir.get())) != nullptr) {
-        if (ent->d_type != DT_REG) {
-            continue;
+        // Determine type of the file
+        const string file_path = dir_path +'/'+ string(ent->d_name);
+        struct stat file_info;
+        std::unique_ptr<char, decltype(&free)> abs_path(realpath(file_path.c_str(), nullptr), &free);
+        if (!abs_path || stat(abs_path.get(), &file_info) == -1) {
+            mgr->err_msg = "Unable to access file '" + string(abs_path.get()) + "'!";
+            return false;
         }
-        if (ent->d_name[0] == '.') {
+
+        if ((file_info.st_mode & S_IFMT) != S_IFREG) {
+            // Skip non-regular files!
             continue;
         }
 
-        const string file_path = dir_path +'/'+ string(ent->d_name);
+        if (ent->d_name[0] == '.') {
+            // Skip hidden files!
+            continue;
+        }
+
         if (!file_parse(mgr, parser, file_path.c_str())) {
             return false;
         }

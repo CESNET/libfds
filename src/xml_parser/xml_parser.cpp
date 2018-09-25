@@ -46,7 +46,7 @@
 #include <limits>
 #include <set>
 #include <libfds/xml_parser.h>
-#include <bits/unique_ptr.h>
+#include <memory>
 
 /** \cond DOXYGEN_SKIP_THIS */
 using unique_ctx = std::unique_ptr<xmlParserCtxt, decltype(&::xmlFreeParserCtxt)>;

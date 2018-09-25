@@ -53,7 +53,7 @@
 #include <limits>
 #include <algorithm>
 #include <set>
-#include <bits/unique_ptr.h>
+#include <memory>
 #include <sys/stat.h>
 #include <libfds/iemgr.h>
 #include <libfds/xml_parser.h>

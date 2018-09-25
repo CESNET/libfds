@@ -47,6 +47,7 @@
 #include <endian.h>
 #include <string>
 #include <memory>
+#include <cmath>
 
 #include <iomanip> // setprecision
 #include <sstream> // stringstream
@@ -336,17 +337,17 @@ float2strNormal_32check(float value)
     EXPECT_EQ(idx, strlen(res_ptr.get()));
 
     for (const auto &result : {res_specific, res_universal}) {
-        if (isnan(value)) {
+        if (std::isnan(value)) {
             /*
              * Special case: expected result is not a number
              * Because (NaN == NaN) is always false, we have to check it separately
              */
-            EXPECT_TRUE(isnan(result));
-        } else if (isinf(value)) {
+            EXPECT_TRUE(std::isnan(result));
+        } else if (std::isinf(value)) {
             /*
              * Special case: expected result is infinity
              */
-            EXPECT_EQ(isinf(value), isinf(result));
+            EXPECT_EQ(std::isinf(value), std::isinf(result));
         } else {
             /*
              * When the converter converts float to string only 6 valid digits are
@@ -419,17 +420,17 @@ float2strNormal_64check(double value)
     EXPECT_EQ(idx, strlen(res_ptr.get()));
 
     for (const auto &result : {res_specific, res_universal}) {
-        if (isnan(value)) {
+        if (std::isnan(value)) {
             /*
              * Special case: expected result is not a number
              * Because (NaN == NaN) is always false, we have to check it separately
              */
-            EXPECT_TRUE(isnan(result));
-        } else if (isinf(value)) {
+            EXPECT_TRUE(std::isnan(result));
+        } else if (std::isinf(value)) {
             /*
              * Special case: expected result is infinity
              */
-            EXPECT_EQ(isinf(value), isinf(result));
+            EXPECT_EQ(std::isinf(value), std::isinf(result));
         } else {
             /*
              * When the converter converts float to string only 15 valid digits are

@@ -43,7 +43,48 @@
 #include <libfds.h>
 #include <stdio.h>      // snprintf
 #include <inttypes.h>   // PRIi64, PRIu32,...
+#include <math.h>       // isnormal
 #include "branchlut2.h"
+
+int
+fds_set_float_be(void *field, size_t size, double value)
+{
+    if (size == sizeof(uint64_t)) {
+        // 64 bits, we have static assert for sizeof(double) == sizeof(uint64_t)
+        union {
+            uint64_t u64;
+            double   dbl;
+        } cast_helper;
+
+        cast_helper.dbl = value;
+        *(uint64_t *) field = htobe64(cast_helper.u64);
+        return FDS_OK;
+
+    } else if (size == sizeof(uint32_t)) {
+        // 32 bits, we have static assert for sizeof(float) == sizeof(uint32_t)
+        union {
+            uint32_t u32;
+            float    flt;
+        } cast_helper;
+        bool over = false;
+
+        if (value < -FLT_MAX && isnormal(value)) {
+            cast_helper.flt = -FLT_MAX;
+            over = true;
+        } else if (value > FLT_MAX && isnormal(value)) {
+            cast_helper.flt = FLT_MAX;
+            over = true;
+        } else {
+            cast_helper.flt = (float) value;
+        }
+
+        *(uint32_t *) field = htonl(cast_helper.u32);
+        return over ? FDS_ERR_TRUNC : FDS_OK;
+
+    } else {
+        return FDS_ERR_ARG;
+    }
+}
 
 /**
  * \brief Datetime wrapper function (from seconds to UTC string)

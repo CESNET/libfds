@@ -464,27 +464,43 @@ fds_blist_iter_next(struct fds_blist_iter *it);
 FDS_API const char *
 fds_blist_iter_err(const struct fds_blist_iter *it);
 
+/**
+ * \brief Flags for parser of subTemplate and subTemplateMulti lists
+ */
 enum fds_stl_flags{
-    FDS_STL_FLAG_REPORT  = 1,
-    FDS_STL_FLAG_AS_SUBTEMPLIST = 2,
-    FDS_STL_FLAG_AS_SUBTEMPMULTILIST = 3
+    /**
+     * \brief Report missing template
+     *
+     * If template is not found, the record in list won't be skipped but iterator returns #FDS_ERR_NOT_FOUND
+     */
+    FDS_STL_FLAG_REPORT  = 1<<0,
+    /**
+     * \brief Force iterator to parse the data as subTemplateList
+     */
+    FDS_STL_FLAG_AS_SUBTEMPLIST = 1<<1,
+    /**
+     * \brief Force iterator to parse the data as subTemplateMultiList
+     */
+    FDS_STL_FLAG_AS_SUBTEMPMULTILIST = 1<<2
 };
 
+/**
+ * \brief Iterator for both subTemplate and subTemplateMulti lists
+ */
 struct fds_stlist_iter {
-    /** Current record                  */
+    /** Current record                              */
     struct fds_drec rec;
-    /** Template ID of current record   */
+    /** Template ID of current record               */
     uint16_t tid;
-    /** Semantic of the list            */
+    /** Semantic of the list                        */
     enum fds_ipfix_list_semantics semantic;
+    /** FOR INTERNAL USE ONLY. DO NOT USE DIRECTLY! */
     struct {
         struct fds_ipfix_stlist *stlist;
         uint8_t *stlist_end;
         uint8_t *next_rec;
         uint8_t *recs_end;
-
         const fds_tsnapshot_t *snap;
-
         uint16_t flags;
         enum fds_iemgr_element_type type;
         const char *err_msg;
@@ -535,6 +551,8 @@ fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, c
  * \param it Iterator which will be updated with next record
  * \return #FDS_OK if the iterator was successfully prepared
  * \return #FDS_EOC if there are no more records to read
+ * \return #FDS_ERR_NOTFOUND If the template for current record is not found, which is not fatal error
+ * and the unknown template record can be skipped. Flag #FDS_STL_FLAG_REPORT must be set during initialization.
  * \return #FDS_ERR_FORMAT if the message is malformed.
  * You can find more information about errors in fds_stlist_iter_err()
  */

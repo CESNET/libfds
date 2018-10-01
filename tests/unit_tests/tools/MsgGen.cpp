@@ -508,7 +508,7 @@ void ipfix_stlist::subTempMulti_data_hdr(uint16_t template_id, uint16_t size) {
         throw std::invalid_argument("fds_set_int_be() failed!");
     }
     mem = mem_reserve(2U);
-    if (fds_set_uint_be(mem, 2U, size) != FDS_OK) {
+    if (fds_set_uint_be(mem, 2U, size+4U) != FDS_OK) {
         throw std::invalid_argument("fds_set_int_be() failed!");
     }
 }

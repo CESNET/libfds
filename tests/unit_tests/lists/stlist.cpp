@@ -154,14 +154,15 @@ TEST_F(stlistIter, subTemplateList_init)
     field.data = subTempList.release();
     field.info = (const fds_tfield *)&subTempLst_info;
 
-    fds_stlist_iter_init(&it,&field,snap,FDS_STL_TIGNORE);
+    fds_stlist_iter_init(&it,&field,snap,0);
     ASSERT_EQ(it._private.err_code, FDS_OK);
     ASSERT_EQ(it._private.next_rec, field.data + 3U);
     ASSERT_EQ(it.semantic,0);
     ASSERT_EQ((uint8_t *)it._private.stlist, field.data);
     ASSERT_EQ(it._private.stlist_end, field.data + field.size);
     ASSERT_EQ(it._private.type, FDS_ET_SUB_TEMPLATE_LIST);
-    ASSERT_EQ(it._private.flags, FDS_STL_TIGNORE);
+    ASSERT_EQ(it._private.flags, 0);
+    ASSERT_EQ((char*)it._private.next_rec, (char*)it._private.stlist+ FDS_IPFIX_STLIST_HDR_LEN);
 }
 
 TEST_F(stlistIter, subTemplateMultiList_init)
@@ -199,6 +200,8 @@ TEST_F(stlistIter, subTemplateList_first_record)
     field.info = (const fds_tfield *)&subTempLst_info;
 
     fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
+    ASSERT_EQ(it._private.type, FDS_ET_SUB_TEMPLATE_LIST);
+
 
     int ret = fds_stlist_iter_next(&it);
     ASSERT_EQ(ret,FDS_OK);
@@ -256,6 +259,7 @@ TEST_F(stlistIter, subTemplateMultiList_first_record)
     ASSERT_EQ(it._private.next_rec, field.data+1U);
 
     int ret = fds_stlist_iter_next(&it);
+    std::cout<<fds_stlist_iter_err(&it)<<std::endl;
     ASSERT_EQ(ret,FDS_OK);
     ASSERT_EQ(it.tid,256);
     uint16_t *src_port = reinterpret_cast<uint16_t *>(it.rec.data);
@@ -283,6 +287,7 @@ TEST_F(stlistIter, subTemplateMultiList_threeRecords)
     field.info = (const fds_tfield *)&subTempMultiLst_info;
 
     fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
+    ASSERT_NE((uint8_t *)it._private.next_rec, (uint8_t *)it._private.stlist);
 
     for (int i=0; i<2; i++){
         int ret = fds_stlist_iter_next(&it);

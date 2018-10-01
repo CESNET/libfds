@@ -511,11 +511,27 @@ struct __attribute__((__packed__)) fds_ipfix_blist {
 
 };
 
+/**
+ * \brief Minimal length of the header of subTemplateList
+ */
 #define FDS_IPFIX_STLIST_HDR_LEN 3U
+/**
+ * \brief Minimal length of the header of subTemplateMultiList
+ */
 #define FDS_IPFIX_STMULTILIST_HDR_LEN 5U
 
+/**
+ * \brief Structure with the fields of subTemplateList and subTemplateMultiList
+ * which are same for both type of data
+ */
 struct __attribute__((__packed__)) fds_ipfix_stlist {
+    /**
+     * \brief Semantic of the lists
+     */
     uint8_t semantic;
+    /**
+     * \brief Template ID of the first record in the list
+     */
     uint16_t template_id;
 };
 

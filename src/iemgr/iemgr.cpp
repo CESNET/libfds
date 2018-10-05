@@ -44,8 +44,12 @@
 #include <cstring>
 #include <algorithm>
 #include <set>
-#include <bits/unique_ptr.h>
+#include <memory>
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <libfds/xml_parser.h>
 #include <libfds/iemgr.h>
 #include <cassert>
@@ -245,14 +249,25 @@ dir_read(fds_iemgr_t* mgr, const char* path, fds_xml_t* parser, const string& na
 
     struct dirent *ent;
     while ((ent = readdir(dir.get())) != nullptr) {
-        if (ent->d_type != DT_REG) {
-            continue;
+        // Determine type of the file
+        const string file_path = dir_path +'/'+ string(ent->d_name);
+        struct stat file_info;
+        std::unique_ptr<char, decltype(&free)> abs_path(realpath(file_path.c_str(), nullptr), &free);
+        if (!abs_path || stat(abs_path.get(), &file_info) == -1) {
+            mgr->err_msg = "Unable to access file '" + string(abs_path.get()) + "'!";
+            return false;
         }
-        if (ent->d_name[0] == '.') {
+
+        if ((file_info.st_mode & S_IFMT) != S_IFREG) {
+            // Skip non-regular files!
             continue;
         }
 
-        const string file_path = dir_path +'/'+ string(ent->d_name);
+        if (ent->d_name[0] == '.') {
+            // Skip hidden files!
+            continue;
+        }
+
         if (!file_parse(mgr, parser, file_path.c_str())) {
             return false;
         }
@@ -596,4 +611,143 @@ fds_iemgr_last_err(const fds_iemgr_t *mgr)
     }
 
     return mgr->err_msg.c_str();
+}
+
+/** String representation of ::fds_iemgr_element_type */
+static const char *table_type[] = {
+    "octetArray",             // 0
+    "unsigned8",
+    "unsigned16",
+    "unsigned32",
+    "unsigned64",
+    "signed8",                // 5
+    "signed16",
+    "signed32",
+    "signed64",
+    "float32",
+    "float64",                // 10
+    "boolean",
+    "macAddress",
+    "string",
+    "dateTimeSeconds",
+    "dateTimeMilliseconds",   // 15
+    "dateTimeMicroseconds",
+    "dateTimeNanoseconds",
+    "ipv4Address",
+    "ipv6Address",
+    "basicList",              // 20
+    "subTemplateList",
+    "subTemplateMultiList"
+};
+
+/** String representation of ::fds_iemgr_element_semantic */
+static const char *table_semantic[] = {
+    "default",                // 0
+    "quantity",
+    "totalCounter",
+    "deltaCounter",
+    "identifier",
+    "flags",                  // 5
+    "list",
+    "snmpCounter",
+    "snmpGauge"
+};
+
+/** String representation of ::fds_iemgr_element_unit */
+static const char *table_unit[] = {
+    "none",                   // 0
+    "bits",
+    "octets",
+    "packets",
+    "flows",
+    "seconds",                // 5
+    "milliseconds",
+    "microseconds",
+    "nanoseconds",
+    "4-octet words",
+    "messages",               // 10
+    "hops",
+    "entries",
+    "frames",
+    "ports",
+    "inferred"                // 15
+};
+
+/** Size of table with IE types */
+constexpr size_t table_type_size = sizeof(table_type) / sizeof(table_type[0]);
+/** Size of table with IE semantics */
+constexpr size_t table_semantic_size = sizeof(table_semantic) / sizeof(table_semantic[0]);
+/** Size of table with IE units */
+constexpr size_t table_unit_size = sizeof(table_unit) / sizeof(table_unit[0]);
+
+const char *
+fds_iemgr_type2str(enum fds_iemgr_element_type type)
+{
+    if (type < table_type_size) {
+        return table_type[type];
+    } else {
+        return NULL;
+    }
+}
+
+const char *
+fds_iemgr_semantic2str(enum fds_iemgr_element_semantic sem)
+{
+    if (sem < table_semantic_size) {
+        return table_semantic[sem];
+    } else {
+        return NULL;
+    }
+}
+
+const char *
+fds_iemgr_unit2str(enum fds_iemgr_element_unit unit)
+{
+    if (unit < table_unit_size) {
+        return table_unit[unit];
+    } else {
+        return NULL;
+    }
+}
+
+enum fds_iemgr_element_type
+fds_iemgr_str2type(const char *str)
+{
+    for (size_t i = 0; i < table_type_size; ++i) {
+        if (strcasecmp(str, table_type[i]) != 0) {
+            continue;
+        }
+
+        return (enum fds_iemgr_element_type) i;
+    }
+
+    return FDS_ET_UNASSIGNED;
+}
+
+enum fds_iemgr_element_semantic
+fds_iemgr_str2semantic(const char *str)
+{
+    for (size_t i = 0; i < table_semantic_size; ++i) {
+        if (strcasecmp(str, table_semantic[i]) != 0) {
+            continue;
+        }
+
+        return (enum fds_iemgr_element_semantic) i;
+    }
+
+    return FDS_ES_UNASSIGNED;
+}
+
+enum fds_iemgr_element_unit
+fds_iemgr_str2unit(const char *str)
+{
+    for (size_t i = 0; i < table_unit_size; ++i) {
+        if (strcasecmp(str, table_unit[i]) != 0) {
+            continue;
+        }
+
+        return (enum fds_iemgr_element_unit) i;
+    }
+
+    return FDS_EU_UNASSIGNED;
 }

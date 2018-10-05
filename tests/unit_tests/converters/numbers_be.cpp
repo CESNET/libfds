@@ -2015,20 +2015,20 @@ TEST_F(ConverterFloat, SetAndGetNan)
 	// 4 bytes float
 	EXPECT_EQ(fds_set_float_be(&cast32->flt, BYTES_4, flt_nan), FDS_OK);
 	EXPECT_EQ(fds_get_float_be(&cast32->flt, BYTES_4, &conv_res), FDS_OK);
-	EXPECT_TRUE(isnan(conv_res));
+	EXPECT_TRUE(std::isnan(conv_res));
 
 	EXPECT_EQ(fds_set_float_be(&cast32->flt, BYTES_4, -flt_nan), FDS_OK);
 	EXPECT_EQ(fds_get_float_be(&cast32->flt, BYTES_4, &conv_res), FDS_OK);
-	EXPECT_TRUE(isnan(conv_res));
+	EXPECT_TRUE(std::isnan(conv_res));
 
 	// 8 bytes float
 	EXPECT_EQ(fds_set_float_be(&cast64->flt, BYTES_8, dbl_nan), FDS_OK);
 	EXPECT_EQ(fds_get_float_be(&cast64->flt, BYTES_8, &conv_res), FDS_OK);
-	EXPECT_TRUE(isnan(conv_res));
+	EXPECT_TRUE(std::isnan(conv_res));
 
 	EXPECT_EQ(fds_set_float_be(&cast64->flt, BYTES_8, -dbl_nan), FDS_OK);
 	EXPECT_EQ(fds_get_float_be(&cast64->flt, BYTES_8, &conv_res), FDS_OK);
-	EXPECT_TRUE(isnan(conv_res));
+	EXPECT_TRUE(std::isnan(conv_res));
 }
 
 /**

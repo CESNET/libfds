@@ -1,4 +1,5 @@
 # List of test files
+unit_tests_register_test(iemgr_conversions.cpp)
 unit_tests_register_test(iemgr_create.cpp             iemgr_common.h)
 unit_tests_register_test(iemgr_copy.cpp               iemgr_common.h)
 unit_tests_register_test(iemgr_clear.cpp              iemgr_common.h)

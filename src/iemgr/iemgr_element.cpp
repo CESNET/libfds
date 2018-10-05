@@ -325,7 +325,7 @@ element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
             elem->name = copy_str(cont->ptr_string);
             break;
         case ELEM_DATA_TYPE:
-            elem->data_type = get_data_type(cont->ptr_string);
+            elem->data_type = fds_iemgr_str2type(cont->ptr_string);
             if (elem->data_type == FDS_ET_UNASSIGNED) {
                 mgr->err_msg = "Data type of the element with ID '" +to_string(elem->id)+
                         "' in scope with PEN '" +to_string(scope->head.pen)+ "' not recognised.";
@@ -333,7 +333,7 @@ element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
             }
             break;
         case ELEM_DATA_SEMAN:
-            elem->data_semantic = get_data_semantic(cont->ptr_string);
+            elem->data_semantic = fds_iemgr_str2semantic(cont->ptr_string);
             if (elem->data_semantic == FDS_ES_UNASSIGNED) {
                 mgr->err_msg = "Data semantic of the element with ID '" +to_string(elem->id)+
                         "' in scope with PEN '" +to_string(scope->head.pen)+ "' not recognised.";
@@ -341,7 +341,7 @@ element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
             }
             break;
         case ELEM_DATA_UNIT:
-            elem->data_unit = get_data_unit(cont->ptr_string);
+            elem->data_unit = fds_iemgr_str2unit(cont->ptr_string);
             if (elem->data_unit == FDS_EU_UNASSIGNED) {
                 mgr->err_msg = "Data unit of the element with ID '" +to_string(elem->id)+
                         "' in scope with PEN '" +to_string(scope->head.pen)+ "' not recognised.";

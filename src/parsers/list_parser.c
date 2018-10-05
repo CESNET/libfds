@@ -404,7 +404,6 @@ stl_read_hdr(struct fds_stlist_iter *it)
     if (it->_private.type == FDS_ET_SUB_TEMPLATE_LIST) {
         tmplt_id = ntohs(it->_private.stlist->template_id);
         it->_private.recs_end = it->_private.stlist_end;
-//        it->_private.next_rec += FDS_IPFIX_STLIST_HDR_LEN;
     } else {
         // Check if we are not reading beyond the message
         if (it->_private.next_rec + FDS_IPFIX_SET_HDR_LEN > it->_private.stlist_end) {

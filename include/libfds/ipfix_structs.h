@@ -475,9 +475,9 @@ enum fds_ipfix_list_semantics {
  *
  *  Basic list is one of the Information Elements that can be present in
  *  fields. Basic list contains only one type of information elements.
- *  Minimal size of Basic list header is 5 bytes (::FDS_IPFIX_BLIST_HDR_SHORT)
+ *  Minimal size of Basic list header is 5 bytes (::FDS_IPFIX_BLIST_SHORT_HDR_LEN)
  *  but if the Enterprise number is present in header,
- *  the minimal size is 9 bytes (::FDS_IPFIX_BLIST_HDR_LONG).
+ *  the minimal size is 9 bytes (::FDS_IPFIX_BLIST_LONG_HDR_LEN).
  */
 struct __attribute__((__packed__)) fds_ipfix_blist {
     /**

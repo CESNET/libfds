@@ -471,7 +471,7 @@ enum fds_stl_flags{
     /**
      * \brief Report missing template
      *
-     * If template is not found, the record in list won't be skipped but iterator returns #FDS_ERR_NOT_FOUND
+     * If template is not found, the record in list won't be skipped but iterator returns #FDS_ERR_NOTFOUND
      */
     FDS_STL_FLAG_REPORT  = 1<<0,
     /**
@@ -518,7 +518,6 @@ struct fds_stlist_iter {
  * \param it Uninitialized structure of iterator
  * \param field Field which contains one of the lists (except basicList)
  * \param snap Snapshot
- * \param tmgr Template manager for template parsing
  * \param flags Initialization flags
  *
  *

@@ -11,12 +11,12 @@ Vendor:         @CPACK_PACKAGE_VENDOR@
 Packager:       @CPACK_PACKAGE_CONTACT@
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}
-BuildRequires:  gcc, gcc-c++, cmake >= 2.8.8, make, doxygen, pkg-config
-BuildRequires:  libxml2-devel, gtest >= 1.6.0, gtest-devel
+BuildRequires:  gcc >= 4.8, gcc-c++ >= 4.8, cmake >= 2.8.8, make, doxygen
+BuildRequires:  pkg-config, libxml2-devel, python2-docutils
 Requires:       libxml2
 
 %description
-libfds is library for processing IPFIX and NetFlow v5/v9 flow data.
+libfds is a library for processing IPFIX flow data.
 It provides tools for processing records and management of templates and
 Information Elements.
 
@@ -27,7 +27,7 @@ Group:          Liberouter
 Requires:       %{name}%{?_isa} = %{version}-%{release}
 
 %description devel
-libfds is library for processing IPFIX and NetFlow v5/v9 flow data.
+libfds is a library for processing IPFIX flow data.
 It provides tools for processing records and management of templates and
 Information Elements.
 
@@ -69,5 +69,5 @@ ctest -V %{?_smp_mflags}
 %{_libdir}/pkgconfig/libfds.pc
 
 %changelog
-* Tue Feb  13 2018 Lukas Hutak <lukas.hutak@cesnet.cz>
--
+* Mon Oct 8 2018 Lukas Hutak <lukas.hutak@cesnet.cz> 0.1.0-1
+- Initial RPM release

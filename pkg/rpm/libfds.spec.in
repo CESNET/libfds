@@ -11,7 +11,7 @@ Vendor:         @CPACK_PACKAGE_VENDOR@
 Packager:       @CPACK_PACKAGE_CONTACT@
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}
-BuildRequires:  gcc >= 4.8, gcc-c++ >= 4.8, cmake >= 2.8.8, make
+BuildRequires:  gcc >= 4.8, gcc-c++ >= 4.8, cmake >= 2.8.8, make, git
 BuildRequires:  libxml2-devel, python2-docutils
 Requires:       libxml2
 

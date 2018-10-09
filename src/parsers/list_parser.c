@@ -75,7 +75,7 @@ static const char *err_msg[] = {
 };
 
 void
-fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fds_iemgr_t *ie_mgr)
+fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field, const fds_iemgr_t *ie_mgr)
 {
     if (field->size < FDS_IPFIX_BLIST_SHORT_HDR_LEN) {
         // Check if the Basic list can fit into the field
@@ -262,7 +262,7 @@ fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, c
     it->_private.err_msg = err_msg[ERR_OK];
     it->_private.err_code = FDS_OK;
 
-    if (it->_private.stlist->semantic >= 0 && it->_private.stlist->semantic <= 4){
+    if (it->_private.stlist->semantic <= 4){
         // Semantic is known
         it->semantic = (enum fds_ipfix_list_semantics) it->_private.stlist->semantic;
     } else {

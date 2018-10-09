@@ -423,7 +423,7 @@ struct fds_blist_iter {
  * \param[in] ie_mgr IE manager for finding field definition (can be NULL)
  */
 FDS_API void
-fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,  fds_iemgr_t *ie_mgr);
+fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field, const fds_iemgr_t *ie_mgr);
 
 /**
  * \brief Get the next field in the Basic list

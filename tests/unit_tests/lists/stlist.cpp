@@ -308,3 +308,114 @@ TEST_F(stlistIter, subTemplateMultiList_threeRecords)
     int ret = fds_stlist_iter_next(&it);
     ASSERT_EQ(ret,FDS_EOC);
 }
+
+TEST_F(stlistIter, subTemplateList_missing_template_report)
+{
+    subTempList.subTemp_header(0,260);
+    subTempList.append_data_record(drec);
+    subTempList.append_data_record(drec);
+    subTempList.append_data_record(drec);
+    subTempList.dump();
+
+    field.size = subTempList.size();
+    field.data = subTempList.release();
+    field.info = (const fds_tfield *)&subTempLst_info;
+
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
+
+    // First we expect missing template report
+    int ret = fds_stlist_iter_next(&it);
+    ASSERT_EQ(ret,FDS_ERR_NOTFOUND);
+
+    // Second attempt needs to end EOC because we don't know how to read anything in the message
+    ret = fds_stlist_iter_next(&it);
+    ASSERT_EQ(ret,FDS_EOC);
+}
+
+TEST_F(stlistIter, subTemplateList_missing_template_skip)
+{
+    subTempList.subTemp_header(0,260);
+    subTempList.append_data_record(drec);
+    subTempList.append_data_record(drec);
+    subTempList.append_data_record(drec);
+    subTempList.dump();
+
+    field.size = subTempList.size();
+    field.data = subTempList.release();
+    field.info = (const fds_tfield *)&subTempLst_info;
+
+    fds_stlist_iter_init(&it, &field, snap, 0);
+
+    // We expect the end of the message because parser don't know how to interpret any data
+    int ret = fds_stlist_iter_next(&it);
+    ASSERT_EQ(ret,FDS_EOC);
+}
+
+TEST_F(stlistIter, subTemplateMultiList_missing_template_report)
+{
+    subTempMultiList.subTempMulti_header(5);
+    subTempMultiList.subTempMulti_data_hdr(259,drec.size() * 2);
+    subTempMultiList.append_data_record(drec);
+    subTempMultiList.append_data_record(drec);
+    subTempMultiList.subTempMulti_data_hdr(257,drec2.size() * 2);
+    subTempMultiList.append_data_record(drec2);
+    subTempMultiList.append_data_record(drec2);
+    subTempMultiList.dump();
+
+    field.size = subTempMultiList.size();
+    field.data = subTempMultiList.release();
+    field.info = (const fds_tfield *)&subTempMultiLst_info;
+
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
+    ASSERT_NE((uint8_t *)it._private.next_rec, (uint8_t *)it._private.stlist);
+
+    // first template is missing so we expect report and skipping the records
+    int ret = fds_stlist_iter_next(&it);
+    ASSERT_EQ(ret,FDS_ERR_NOTFOUND);
+
+    // second is availableso we expect correct read of the data
+    for (int i=0; i<2; i++){
+        int ret = fds_stlist_iter_next(&it);
+        ASSERT_EQ(ret,FDS_OK);
+        ASSERT_EQ(it.tid,257);
+        char out[10];
+        fds_string2str(it.rec.data+1U,7U,&out[0],10U);
+        ASSERT_STREQ(out,VALUE_APP_NAME.c_str());
+    }
+
+    ret = fds_stlist_iter_next(&it);
+    ASSERT_EQ(ret,FDS_EOC);
+}
+
+TEST_F(stlistIter, subTemplateMultiList_missing_template_skip)
+{
+    subTempMultiList.subTempMulti_header(5);
+    subTempMultiList.subTempMulti_data_hdr(259,drec.size() * 2);
+    subTempMultiList.append_data_record(drec);
+    subTempMultiList.append_data_record(drec);
+    subTempMultiList.subTempMulti_data_hdr(257,drec2.size() * 2);
+    subTempMultiList.append_data_record(drec2);
+    subTempMultiList.append_data_record(drec2);
+    subTempMultiList.dump();
+
+    field.size = subTempMultiList.size();
+    field.data = subTempMultiList.release();
+    field.info = (const fds_tfield *)&subTempMultiLst_info;
+
+    fds_stlist_iter_init(&it, &field, snap, 0);
+    ASSERT_NE((uint8_t *)it._private.next_rec, (uint8_t *)it._private.stlist);
+
+    // first template is not available, but we don't care about it, we want to read
+    // the first valid data, which are on the second position in this case
+    for (int i=0; i<2; i++){
+        int ret = fds_stlist_iter_next(&it);
+        ASSERT_EQ(ret,FDS_OK);
+        ASSERT_EQ(it.tid,257);
+        char out[10];
+        fds_string2str(it.rec.data+1U,7U,&out[0],10U);
+        ASSERT_STREQ(out,VALUE_APP_NAME.c_str());
+    }
+
+    int ret = fds_stlist_iter_next(&it);
+    ASSERT_EQ(ret,FDS_EOC);
+}

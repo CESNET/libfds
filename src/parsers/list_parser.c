@@ -317,9 +317,18 @@ fds_stlist_iter_next(struct fds_stlist_iter *it)
             it->_private.err_msg = err_msg[ERR_READ_RECORD];
             return it->_private.err_code;
         }
-    } else {
-        // Template is missing so we skip all the records because we don't know how to read them
+    }
+    else if ((it->_private.flags & FDS_STL_FLAG_REPORT) != 0){
+        // Template is missing but the user wish to report the missing template
         rec_size = (uint16_t) (it->_private.recs_end - it->_private.next_rec);
+        it->_private.err_msg = err_msg[ERR_TMPLT_NOTFOUND];
+        it->_private.err_code = FDS_ERR_NOTFOUND;
+    }
+    else {
+        // Template is missing so we skip it
+        rec_size = (uint16_t) (it->_private.recs_end - it->_private.next_rec);
+        it->_private.next_rec += rec_size;
+        return fds_stlist_iter_next(it);
     }
 
     // Setting up the public part
@@ -428,11 +437,6 @@ stl_read_hdr(struct fds_stlist_iter *it)
     // Get the template from the snapshot
     it->tid = tmplt_id;
     tmplt = fds_tsnapshot_template_get(it->_private.snap,tmplt_id);
-    if ((tmplt == NULL) && ((it->_private.flags & FDS_STL_FLAG_REPORT) != 0)) {
-        // Not a fatal error
-        it->_private.err_msg = err_msg[ERR_TMPLT_NOTFOUND];
-        it->_private.err_code = FDS_ERR_NOTFOUND;
-    }
     return tmplt;
 
 }

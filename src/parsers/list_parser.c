@@ -418,7 +418,7 @@ stl_read_hdr(struct fds_stlist_iter *it)
         it->_private.next_rec += FDS_IPFIX_SET_HDR_LEN;
     }
 
-    if (tmplt_id < 256) {
+    if (tmplt_id < FDS_IPFIX_SET_MIN_DSET) {
         // Template ID must be greater than 256
         it->_private.err_msg = err_msg[ERR_TMPLTID_NOT_VALID];
         it->_private.err_code = FDS_ERR_FORMAT;

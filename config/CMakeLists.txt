@@ -1,16 +1,16 @@
 # System directory
 install(
 	DIRECTORY system
-	DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/libfds"
+	DESTINATION "${INSTALL_DIR_SYSCONF}/libfds"
 )
 
 # User directory (just create an empty directory)
 install(
 	DIRECTORY
-	DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/libfds/user"
+	DESTINATION "${INSTALL_DIR_SYSCONF}/libfds/user"
 )
 
 install(
 	DIRECTORY
-	DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/libfds/user/elements"
+	DESTINATION "${INSTALL_DIR_SYSCONF}/libfds/user/elements"
 )

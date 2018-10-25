@@ -50,5 +50,5 @@ set_target_properties(fds PROPERTIES
 # Installation targets
 install(
 	TARGETS fds LIBRARY
-	DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+	DESTINATION ${INSTALL_DIR_LIB}
 )

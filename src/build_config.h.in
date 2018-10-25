@@ -69,7 +69,7 @@
 
 /** \brief Path to default configuration files                            */
 #define FDS_DEFAULT_CFG_DIR \
-	"@CMAKE_INSTALL_FULL_SYSCONFDIR@/libfds/"
+	"@INSTALL_DIR_SYSCONF@/libfds/"
 
 
 /** \brief Compiler name and version                                      */

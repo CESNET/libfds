@@ -20,9 +20,9 @@ set(LIBFDS_VERSION
 
 # Include modules
 include(CMakeModules/git_info.cmake)
+include(CMakeModules/install_dirs.cmake)
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
-include(GNUInstallDirs)
 
 CHECK_C_COMPILER_FLAG(-std=gnu11 COMPILER_SUPPORT_GNU11)
 if (NOT COMPILER_SUPPORT_GNU11)

@@ -4,14 +4,14 @@ Homepage:          http://www.liberouter.org/
 Section:           libs
 Priority:          optional
 Standards-Version: 3.9.8
-Build-Depends:     debhelper (>= 10), cmake (>= 2.8.8), doxygen,
-                   libxml2-dev, pkg-config
+Build-Depends:     debhelper (>= 10), cmake (>= 2.8.8), doxygen, make,
+                   gcc (>= 4.8), g++ (>= 4.8), libxml2-dev, pkg-config
 
 Package:           @CPACK_PACKAGE_NAME@
 Architecture:      any
 Depends:           ${shlibs:Depends}, ${misc:Depends}, libxml2
 Description:       @CPACK_PACKAGE_DESCRIPTION_SUMMARY@
- libfds is library for processing IPFIX and NetFlow v5/v9 flow data.
+ libfds is library for processing IPFIX flow data.
  It provides tools for processing records and management of templates and
  Information Elements.
 
@@ -21,7 +21,7 @@ Section:           libdevel
 Priority:          extra
 Depends:           @CPACK_PACKAGE_NAME@ (= ${binary:Version}), ${misc:Depends}
 Description:       @CPACK_PACKAGE_DESCRIPTION_SUMMARY@ (development package)
- libfds is library for processing IPFIX and NetFlow v5/v9 flow data.
+ libfds is library for processing IPFIX flow data.
  It provides tools for processing records and management of templates and
  Information Elements.
  .

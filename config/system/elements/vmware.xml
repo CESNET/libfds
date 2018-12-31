@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ipfix-elements>
+    <scope>
+        <pen>6876</pen>
+        <name>vmware</name>
+        <biflow mode="none"></biflow>
+    </scope>
+
+    <!-- 
+    Source: Flows Monitored by the IPFIX for vSphere Distributed Switch
+    https://docs.vmware.com/en/VMware-NSX-Data-Center-for-vSphere/6.4/com.vmware.nsx.admin.doc/GUID-40805D0E-8A97-4011-B85C-CBF37812DBB5.html
+    -->
+    <element>
+        <id>880</id>
+        <name>tenantProtocol</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>881</id>
+        <name>tenantSourceIPv4</name>
+        <dataType>ipv4Address</dataType>
+    </element>
+    <element>
+        <id>882</id>
+        <name>tenantDestIPv4</name>
+        <dataType>ipv4Address</dataType>
+    </element>
+    <element>
+        <id>883</id>
+        <name>tenantSourceIPv6</name>
+        <dataType>ipv6Address</dataType>
+    </element>
+    <element>
+        <id>884</id>
+        <name>tenantDestIPv6</name>
+        <dataType>ipv6Address</dataType>
+    </element>
+    <element>
+        <id>886</id>
+        <name>tenantSourcePort</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
+        <id>887</id>
+        <name>tenantDestPort</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
+        <id>888</id>
+        <name>egressInterfaceAttr</name>
+        <dataType>unsigned16</dataType>
+        <!-- <description>
+            <paragraph>0x01 (dvUplink) indicates dvUplink</paragraph>
+            <paragraph>0x02 (Access port) indicates it is an access port where the virtual machine is connected. The access port number is assigned to the ingressInterface parameter in the template.</paragraph>
+            <paragraph>0x03 (Management port) shows that it is a VXLAN tunnel port and the port number associated with it is a management VMKNic port.</paragraph>
+        </description> -->
+    </element>
+    <element>
+        <id>889</id>
+        <name>vxlanExportRole</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>890</id>
+        <name>ingressInterfaceAttr</name>
+        <dataType>unsigned16</dataType>
+        <!-- <description>
+            <paragraph>0x01 (dvUplink) indicates dvuplink</paragraph>
+            <paragraph>0x02 (Access port) indicates it is an access port where the virtual machine is connected. The access port number is assigned to the ingressInterface parameter in the template.</paragraph>
+            <paragraph>0x03 (Management port) shows that it is a VXLAN tunnel port and the port number associated with it is a management VMKNic port.</paragraph>
+        </description> -->
+    </element>
+
+</ipfix-elements>

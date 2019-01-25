@@ -369,6 +369,214 @@ fds_tset_iter_next(struct fds_tset_iter *it);
 FDS_API const char *
 fds_tset_iter_err(const struct fds_tset_iter *it);
 
+
+/**
+ * @}
+ *
+ * \defgroup fds_blist_iter IPFIX Basic list iterator
+ * \ingroup fds_parsers
+ * \brief Iterator over Fields in Basic list
+ *
+ * The iterator provides a simple way to go trough all the fields in Basic list data type.
+ * This iterator can be used only on the Basic list data type which represents
+ * a list of zero or more instances of an Information Element.
+ * If Information Element manager is provided during the initialization of the iterator, the definition
+ * of the field is automatically filled.
+ *
+ *
+ * @{
+ */
+
+/** Iterator over basic list fields in an IPFIX Basic list data type  */
+struct fds_blist_iter {
+    /** Current field     */
+    struct fds_drec_field field;
+    /** Semantic of the basic list **/
+    enum fds_ipfix_list_semantics semantic;
+
+    struct {
+        /** Start of the basic list                 */
+        struct fds_ipfix_blist *blist;
+        /** Info about the single field in the list */
+        struct fds_tfield info;
+        /** Pointer to the start of the next record */
+        uint8_t *field_next;
+        /** End of the basic list                   */
+        uint8_t *blist_end;
+        /** Error buffer                            */
+        const char *err_msg;
+        /** Last error code                         */
+        int err_code;
+
+    } _private; /**< Internal structure (dO NOT use directly!)  */
+};
+
+/**
+ * \brief Initialize Basic list data type iterator
+ *
+ * \warning
+ *   After initialization the iterator has initialized only internal structures but public part
+ *   is still undefined i.e. doesn't point to the first Field in the list. To get the first field
+ *   see fds_blist_iter_next().
+ * \param[in] it Uninitialized structure of iterator
+ * \param[in] field Field with data type of Basic list
+ * \param[in] ie_mgr IE manager for finding field definition (can be NULL)
+ */
+FDS_API void
+fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field, const fds_iemgr_t *ie_mgr);
+
+/**
+ * \brief Get the next field in the Basic list
+ *
+ * Move the iterator to the next Field in the order, If this function was not previously called
+ * after initialization by fds_blist_iter_init(), then the iterator will point to the first field
+ * in the Basic list.
+ *
+ * \code{.c}
+ *  struct fds_blist_iter blist_it;
+ *  fds_blist_iter_init(&blist_it, field, ie_manager[or NULL]);
+ *
+ *  int rc;
+ *  while ((rc = fds_blist_iter_next(&blist_it)) == FDS_OK) {
+ *      // Add your code here...
+ *  }
+ *
+ *  if (rc != FDS_EOC) {
+ *      // error message fds_blist_iter_err();
+ *  }
+ * \endcode
+ *
+ * \param[in] it Basic list iterator
+ * \return #FDS_OK if the next Field is prepared.
+ * \return #FDS_EOC if no more Fields are available.
+ * \return #FDS_ERR_FORMAT otherwise and fills an error message (see fds_blist_iter_err()).
+ */
+FDS_API int
+fds_blist_iter_next(struct fds_blist_iter *it);
+
+/**
+ * \brief Get the last error message
+ * \note The message is statically allocated string that can be passed to other function even
+ *   when the iterator doesn't exist anymore.
+ * \param[in] it Iterator
+ * \return The error message
+ */
+FDS_API const char *
+fds_blist_iter_err(const struct fds_blist_iter *it);
+
+/**
+ * \brief Flags for parser of subTemplate and subTemplateMulti lists
+ */
+enum fds_stl_flags{
+    /**
+     * \brief Report missing template
+     *
+     * If template is not found, the record in list won't be skipped but iterator returns #FDS_ERR_NOTFOUND.
+     */
+    FDS_STL_REPORT  = 1<<0,
+    /**
+     * \brief Force iterator to parse the data as subTemplateList
+     */
+    FDS_STL_AS_SUBTEMPLIST = 1<<1,
+    /**
+     * \brief Force iterator to parse the data as subTemplateMultiList
+     */
+    FDS_STL_AS_SUBTEMPMULTILIST = 1<<2
+};
+
+/**
+ * \brief Iterator for both subTemplate and subTemplateMulti lists
+ */
+struct fds_stlist_iter {
+    /** Current record                              */
+    struct fds_drec rec;
+    /** Template ID of current record               */
+    uint16_t tid;
+    /** Semantic of the list                        */
+    enum fds_ipfix_list_semantics semantic;
+    /** FOR INTERNAL USE ONLY. DO NOT USE DIRECTLY! */
+    struct {
+        /** Header of the subTemplate(Multi) list   */
+        struct fds_ipfix_stlist *stlist;
+        /** End of the whole list                   */
+        uint8_t *stlist_end;
+        /** Next record in list                     */
+        uint8_t *next_rec;
+        /** End of the records in the list          */
+        uint8_t *recs_end;
+        /** Snapshot for withdrawing the template   */
+        const fds_tsnapshot_t *snap;
+        /** Flags that has been set up during init  */
+        uint16_t flags;
+        /** Type of the list (subTemplate x subTemplateMulti) */
+        enum fds_iemgr_element_type type;
+        /** Error message                           */
+        const char *err_msg;
+        /** Error code                              */
+        int err_code;
+    } _private;
+};
+
+/**
+ * \brief Initialize subTemplateList and  subTemplateMultiList iterator
+ *
+ * \warning
+ *   After initialization the iterator has initialized only internal structures but public part
+ *   is still undefined i.e. doesn't point to the first Field in the list. To get the first field
+ *   see fds_stlist_iter_next().
+ * \param it Uninitialized structure of iterator
+ * \param field Field which contains one of the lists (except basicList)
+ * \param snap Snapshot
+ * \param flags Initialization flags
+ *
+ *
+ */
+FDS_API void
+fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, const fds_tsnapshot_t *snap,
+        uint16_t flags);
+
+/**
+ * \brief Get the next record from subTemplateList or subTemplateMultiList
+ *
+ * Move the iterator to the next Record in the order, If this function was not previously called
+ * after initialization by fds_stlist_iter_init(), then the iterator will point to the first field
+ * in the subTemplateList or subTemplateMultiList.
+ *
+ * \code{.c}
+ *  struct fds_stlist_iter stlist_it;
+ *  fds_stlist_iter_init(&stlist_it, field, record->snapshot, FDS_STL_REPORT);
+ *
+ *  int rc;
+ *  while ((rc = fds_stlist_iter_next(&stlist_it)) == FDS_OK) {
+ *      // Add your code here...
+ *  }
+ *
+ *  if (rc != FDS_EOC) {
+ *      // error message fds_stlist_iter_err();
+ *  }
+ * \endcode
+ *
+ * \param it Iterator which will be updated with next record
+ * \return #FDS_OK if the iterator was successfully prepared
+ * \return #FDS_EOC if there are no more records to read
+ * \return #FDS_ERR_NOTFOUND If the template for current record is not found, which is not fatal error
+ * and the unknown template record can be skipped. Flag #FDS_STL_FLAG_REPORT must be set during initialization.
+ * \return #FDS_ERR_FORMAT if the message is malformed.
+ * You can find more information about errors in fds_stlist_iter_err()
+ */
+FDS_API int
+fds_stlist_iter_next(struct fds_stlist_iter *it);
+
+/**
+ * \brief Get the last error message
+ * \note The message is statically allocated string that can be passed to other function even
+ *   when the iterator doesn't exist anymore.
+ * \param[in] it Iterator
+ * \return The error message
+ */
+FDS_API const char *
+fds_stlist_iter_err(struct fds_stlist_iter *it);
+
 #ifdef __cplusplus
 }
 #endif

@@ -195,15 +195,25 @@ fds_blist_iter_err(const struct fds_blist_iter *it)
 
 //////////////////////////////////////////////////////////////
 /**
- * \brief Universal auxiliary function for reading both headers of subTemplate and subTemplateMulti lists
+ * \brief Auxiliary function for reading headers of subTemplate and subTemplateMulti lists
  *
  * This functions
- * \param it iterator for the list
- * \return
+ * \param[in] it iterator for the list
+ * \return  Pointer to the structure with information about the template.
  */
 const struct fds_template *
 stl_read_hdr(struct fds_stlist_iter *it);
 
+/**
+ * \brief Auxiliary function that gets the real size of he record
+ *
+ * \param[in] tmplt         Template for parsing the data
+ * \param[in] data_start    Start of the raw data
+ * \param[in] data_end      End of the raw data
+ * \param[out] record_size  Variable where the result will be stored
+ * \return FDS_OK           If everything goes well
+ * \return FDS_ERR_FORMAT   If the data are malformed
+ */
 int
 stl_get_rec_size(const struct fds_template *tmplt, uint8_t *data_start, uint8_t *data_end, uint16_t *record_size);
 
@@ -212,10 +222,10 @@ fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, c
 {
     // Check the definition of the field
     enum fds_iemgr_element_type type;
-    if ((flags & FDS_STL_FLAG_AS_SUBTEMPLIST) != 0) {
+    if ((flags & FDS_STL_AS_SUBTEMPLIST) != 0) {
         // Forced interpretation as subTemplateList
         type = FDS_ET_SUB_TEMPLATE_LIST;
-    } else if ((flags & FDS_STL_FLAG_AS_SUBTEMPMULTILIST) != 0) {
+    } else if ((flags & FDS_STL_AS_SUBTEMPMULTILIST) != 0) {
         // Forced interpretation as subTemplateMultiList
         type = FDS_ET_SUB_TEMPLATE_MULTILIST;
     } else if (field->info->def == NULL) {
@@ -262,7 +272,7 @@ fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, c
     it->_private.err_msg = err_msg[ERR_OK];
     it->_private.err_code = FDS_OK;
 
-    if (it->_private.stlist->semantic <= 4){
+    if (it->_private.stlist->semantic >= 0 && it->_private.stlist->semantic <= 4){
         // Semantic is known
         it->semantic = (enum fds_ipfix_list_semantics) it->_private.stlist->semantic;
     } else {
@@ -318,7 +328,7 @@ fds_stlist_iter_next(struct fds_stlist_iter *it)
             return it->_private.err_code;
         }
     }
-    else if ((it->_private.flags & FDS_STL_FLAG_REPORT) != 0){
+    else if ((it->_private.flags & FDS_STL_REPORT) != 0){
         // Template is missing but the user wish to report the missing template
         rec_size = (uint16_t) (it->_private.recs_end - it->_private.next_rec);
         it->_private.err_msg = err_msg[ERR_TMPLT_NOTFOUND];

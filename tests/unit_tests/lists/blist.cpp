@@ -5,6 +5,9 @@
 #include <gtest/gtest.h>
 #include <libfds.h>
 #include <MsgGen.h>
+#include <memory>
+
+using set_uniq = std::unique_ptr<fds_ipfix_set_hdr, decltype(&free)>;
 
 int main(int argc, char **argv)
 {
@@ -27,7 +30,6 @@ protected:
     struct fds_drec_field field_long_hdr;
     struct fds_drec_field field_varlen_elems_short;
     struct fds_drec_field field_varlen_elems_long;
-//    struct fds_drec_field field_varlen_malformed;
 
     struct fds_blist_iter it;
 
@@ -117,6 +119,7 @@ protected:
         field_short_hdr.size = field_short_blist.size();
         field_short_hdr.data = field_short_blist.release();
 
+
         field_long_hdr.size = field_long_blist.size();
         field_long_hdr.data = field_long_blist.release();
 
@@ -125,12 +128,27 @@ protected:
 
         field_varlen_elems_long.size = field_varlen_long_blist.size();
         field_varlen_elems_long.data = field_varlen_long_blist.release();
+
+        free(fields.release());
+        free(str_fields.release());
+        free(str_fields2.release());
+        free(blist_empty.release());
+        free(blist_long.release());
+        free(blist_short.release());
+        free(blist_varlen_long.release());
+        free(blist_varlen_short.release());
+
     }
 
     /** \brief After each test */
     void TearDown() override {
         // free allocated data here
         fds_iemgr_destroy(ie_mgr);
+        free(field_empty.data);
+        free(field_varlen_elems_long.data);
+        free(field_varlen_elems_short.data);
+        free(field_long_hdr.data);
+        free(field_short_hdr.data);
     }
 };
 
@@ -141,7 +159,7 @@ TEST_F(blistIter, init_empty_blist)
     ASSERT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_UNDEFINED);
     ASSERT_EQ(it._private.info.id, 6);
     ASSERT_EQ(it._private.info.length, 0);
-    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist_end);
+    ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist_end);
 }
 TEST_F(blistIter, init_short_hdr)
 {
@@ -149,7 +167,7 @@ TEST_F(blistIter, init_short_hdr)
     ASSERT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ORDERED);
     ASSERT_EQ(it._private.info.id, 8);
     ASSERT_EQ(it._private.info.length, 4);
-    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist + FDS_IPFIX_BLIST_SHORT_HDR_LEN);
+    ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_SHORT_HDR_LEN);
 
 }
 
@@ -159,7 +177,7 @@ TEST_F(blistIter, init_long_hdr)
     ASSERT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_EXACTLY_ONE_OF);
     ASSERT_EQ(it._private.info.id, 8);
     ASSERT_EQ(it._private.info.length, 4);
-    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN);
+    ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN);
     ASSERT_EQ(it._private.info.en, 74);
 }
 
@@ -169,7 +187,7 @@ TEST_F(blistIter, next_empty_blist)
     int ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_EOC);
     ASSERT_EQ(it._private.err_code, FDS_EOC);
-    ASSERT_EQ((void*)it._private.field_next, (void*)it._private.blist_end);
+    ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist_end);
     ASSERT_EQ(it._private.info.offset, 0);
     ASSERT_EQ(it._private.info.length, 0);
 }
@@ -183,14 +201,14 @@ TEST_F(blistIter, next_short_hdr)
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 4);
-    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_SHORT_HDR_LEN);
+    ASSERT_EQ((uint8_t*)it.field.data, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_SHORT_HDR_LEN);
     fds_ip2str(it.field.data, it.field.size, &out[0], 20);
     ASSERT_STREQ(out, VALUE_SRC_IP4_1.c_str());
     // Second field in list
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 4);
-    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_SHORT_HDR_LEN + 4);
+    ASSERT_EQ((uint8_t*)it.field.data, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_SHORT_HDR_LEN + 4);
     fds_ip2str(it.field.data, it.field.size, &out[0], 20);
     ASSERT_STREQ(out, VALUE_SRC_IP4_2.c_str());
     // Testing end pointer and return code
@@ -210,21 +228,21 @@ TEST_F(blistIter, next_long_hdr)
     fds_ip2str(it.field.data, it.field.size, &out[0], 20);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 4);
-    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN);
+    ASSERT_EQ((uint8_t*)it.field.data, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN);
     ASSERT_STREQ(out, VALUE_SRC_IP4_1.c_str());
     // Second field in list
     ret = fds_blist_iter_next(&it);
     fds_ip2str(it.field.data, it.field.size, &out[0], 20);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 4);
-    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN + 4U);
+    ASSERT_EQ((uint8_t*)it.field.data, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN + 4U);
     ASSERT_STREQ(out, VALUE_SRC_IP4_2.c_str());
     // Third field in list
     ret = fds_blist_iter_next(&it);
     fds_ip2str(it.field.data, it.field.size, &out[0], 20);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 4);
-    ASSERT_EQ((void*)it.field.data, (void*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN + 8U);
+    ASSERT_EQ((uint8_t*)it.field.data, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN + 8U);
     ASSERT_STREQ(out, VALUE_SRC_IP4_3.c_str());
     ASSERT_EQ(it._private.field_next, it._private.blist_end); // testing end pointer and return code
     
@@ -286,21 +304,22 @@ TEST_F(blistIter, next_varlen_data_long)
 //Header with constant size but data with variable size
 TEST_F(blistIter, malformed_field_short_hdr )
 {
-    field_short_hdr.data = static_cast<uint8_t *>(
-            memcpy(field_short_hdr.data+FDS_IPFIX_BLIST_SHORT_HDR_LEN, field_varlen_elems_short.data+FDS_IPFIX_BLIST_SHORT_HDR_LEN, field_short_hdr.size - 3));
-    field_short_hdr.size = static_cast<uint16_t>(field_short_hdr.size - 3);
+    struct fds_drec_field malformed;
+    malformed.data = (uint8_t*) malloc(field_short_hdr.size -2 + FDS_IPFIX_BLIST_SHORT_HDR_LEN);
+    memcpy( malformed.data, field_short_hdr.data, FDS_IPFIX_BLIST_SHORT_HDR_LEN);
+    memcpy( malformed.data+FDS_IPFIX_BLIST_SHORT_HDR_LEN,
+            field_varlen_elems_short.data+FDS_IPFIX_BLIST_SHORT_HDR_LEN,
+            field_short_hdr.size - 2);
+    malformed.size = static_cast<uint16_t>(field_short_hdr.size - 3);
 
     int ret;
-    fds_blist_iter_init(&it, &field_short_hdr, ie_mgr);
+    fds_blist_iter_init(&it, &malformed, ie_mgr);
     ASSERT_EQ(it._private.err_code,FDS_OK);
 
-    ret = fds_blist_iter_next(&it);
-    std::cout<<fds_blist_iter_err(&it)<<std::endl;
-    ASSERT_EQ(ret, FDS_ERR_FORMAT);
-
-    std::cout<<fds_blist_iter_err(&it)<<std::endl;
+    fds_blist_iter_next(&it);
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_ERR_FORMAT);
+    free(malformed.data);
 }
 
 TEST_F(blistIter, malformed_field_varlen)
@@ -325,20 +344,24 @@ TEST_F(blistIter, malformed_sizehdr_no_data)
     ipfix_field field_varlen_short_blist;
     field_varlen_short_blist.append_blist(blist_varlen_short);
 
-    field_varlen_elems_short.size = field_varlen_short_blist.size();
-    field_varlen_elems_short.data = field_varlen_short_blist.release();
+    struct fds_drec_field malformed;
 
-    fds_blist_iter_init(&it,&field_varlen_elems_short,ie_mgr);
+    malformed.size = field_varlen_short_blist.size();
+    malformed.data = field_varlen_short_blist.release();
+
+    fds_blist_iter_init(&it,&malformed,ie_mgr);
     int ret = fds_blist_iter_next(&it);
     std::cout<<fds_blist_iter_err(&it)<<std::endl;
     ASSERT_EQ(ret, FDS_ERR_FORMAT);
 
-    field_varlen_elems_short.size -=2U;
+    malformed.size -=2U;
 
-    fds_blist_iter_init(&it,&field_varlen_elems_short,ie_mgr);
+    fds_blist_iter_init(&it,&malformed,ie_mgr);
     ret = fds_blist_iter_next(&it);
     std::cout<<fds_blist_iter_err(&it)<<std::endl;
     ASSERT_EQ(ret, FDS_ERR_FORMAT);
+
+    free(malformed.data);
 
 
 

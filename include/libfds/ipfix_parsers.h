@@ -471,17 +471,17 @@ enum fds_stl_flags{
     /**
      * \brief Report missing template
      *
-     * If template is not found, the record in list won't be skipped but iterator returns #FDS_ERR_NOTFOUND
+     * If template is not found, the record in list won't be skipped but iterator returns #FDS_ERR_NOTFOUND.
      */
-    FDS_STL_FLAG_REPORT  = 1<<0,
+    FDS_STL_REPORT  = 1<<0,
     /**
      * \brief Force iterator to parse the data as subTemplateList
      */
-    FDS_STL_FLAG_AS_SUBTEMPLIST = 1<<1,
+    FDS_STL_AS_SUBTEMPLIST = 1<<1,
     /**
      * \brief Force iterator to parse the data as subTemplateMultiList
      */
-    FDS_STL_FLAG_AS_SUBTEMPMULTILIST = 1<<2
+    FDS_STL_AS_SUBTEMPMULTILIST = 1<<2
 };
 
 /**
@@ -496,14 +496,23 @@ struct fds_stlist_iter {
     enum fds_ipfix_list_semantics semantic;
     /** FOR INTERNAL USE ONLY. DO NOT USE DIRECTLY! */
     struct {
+        /** Header of the subTemplate(Multi) list   */
         struct fds_ipfix_stlist *stlist;
+        /** End of the whole list                   */
         uint8_t *stlist_end;
+        /** Next record in list                     */
         uint8_t *next_rec;
+        /** End of the records in the list          */
         uint8_t *recs_end;
+        /** Snapshot for withdrawing the template   */
         const fds_tsnapshot_t *snap;
+        /** Flags that has been set up during init  */
         uint16_t flags;
+        /** Type of the list (subTemplate x subTemplateMulti) */
         enum fds_iemgr_element_type type;
+        /** Error message                           */
         const char *err_msg;
+        /** Error code                              */
         int err_code;
     } _private;
 };
@@ -535,7 +544,7 @@ fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field, c
  *
  * \code{.c}
  *  struct fds_stlist_iter stlist_it;
- *  fds_stlist_iter_init(&stlist_it, field, record->snapshot, FDS_STL_TIGNORE);
+ *  fds_stlist_iter_init(&stlist_it, field, record->snapshot, FDS_STL_REPORT);
  *
  *  int rc;
  *  while ((rc = fds_stlist_iter_next(&stlist_it)) == FDS_OK) {

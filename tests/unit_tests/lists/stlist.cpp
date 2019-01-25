@@ -20,6 +20,7 @@ private:
 protected:
     // Snapshot
     const fds_tsnapshot_t *snap;
+    fds_tmgr_t *tmgr;
 
     // Data records for creating lists
     ipfix_drec drec {};
@@ -56,7 +57,6 @@ protected:
     std::string VALUE_IFC2     = "eth0";
 
     void SetUp() override {
-        fds_tmgr_t *tmgr;
         tmgr = fds_tmgr_create(FDS_SESSION_UDP);
         if (!tmgr) {
             throw std::runtime_error("Failed to create the template manager");
@@ -137,17 +137,20 @@ protected:
         fds_iemgr_elem *def2 = (fds_iemgr_elem *) malloc(sizeof(fds_iemgr_elem));
         def2->data_type = FDS_ET_SUB_TEMPLATE_MULTILIST;
         subTempMultiLst_info.def = def2;
+
     }
 
     void TearDown() override {
         free((void*)subTempLst_info.def);
         free((void*)subTempMultiLst_info.def);
+        free(field.data);
+        fds_tmgr_destroy(tmgr);
     }
 };
 
 TEST_F(stlistIter, subTemplateList_init)
 {
-    subTempList.subTemp_header(0,256);
+    subTempList.subTemp_header(FDS_IPFIX_LIST_NONE_OF,256);
     subTempList.append_data_record(drec);
 
     field.size = subTempList.size();
@@ -157,7 +160,7 @@ TEST_F(stlistIter, subTemplateList_init)
     fds_stlist_iter_init(&it,&field,snap,0);
     ASSERT_EQ(it._private.err_code, FDS_OK);
     ASSERT_EQ(it._private.next_rec, field.data + 3U);
-    ASSERT_EQ(it.semantic,0);
+    ASSERT_EQ(it.semantic,FDS_IPFIX_LIST_NONE_OF);
     ASSERT_EQ((uint8_t *)it._private.stlist, field.data);
     ASSERT_EQ(it._private.stlist_end, field.data + field.size);
     ASSERT_EQ(it._private.type, FDS_ET_SUB_TEMPLATE_LIST);
@@ -179,14 +182,14 @@ TEST_F(stlistIter, subTemplateMultiList_init)
     field.data = subTempMultiList.release();
     field.info = (const fds_tfield *)&subTempMultiLst_info;
 
-    fds_stlist_iter_init(&it,&field,snap,FDS_STL_FLAG_REPORT);
+    fds_stlist_iter_init(&it,&field,snap,FDS_STL_REPORT);
     ASSERT_EQ(it._private.err_code, FDS_OK);
     ASSERT_EQ(it._private.next_rec, field.data + 1U);
     ASSERT_EQ(it.semantic,1);
     ASSERT_EQ((uint8_t *)it._private.stlist, field.data);
     ASSERT_EQ(it._private.stlist_end, field.data + field.size);
     ASSERT_EQ(it._private.type, FDS_ET_SUB_TEMPLATE_MULTILIST);
-    ASSERT_EQ(it._private.flags, FDS_STL_FLAG_REPORT);
+    ASSERT_EQ(it._private.flags, FDS_STL_REPORT);
 }
 
 TEST_F(stlistIter, subTemplateList_first_record)
@@ -199,7 +202,7 @@ TEST_F(stlistIter, subTemplateList_first_record)
     field.data = subTempList.release();
     field.info = (const fds_tfield *)&subTempLst_info;
 
-    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
     ASSERT_EQ(it._private.type, FDS_ET_SUB_TEMPLATE_LIST);
 
 
@@ -228,7 +231,7 @@ TEST_F(stlistIter, subTemplateList_threeRecords)
     field.data = subTempList.release();
     field.info = (const fds_tfield *)&subTempLst_info;
 
-    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
 
     for (int i=0; i<3; i++){
         int ret = fds_stlist_iter_next(&it);
@@ -255,7 +258,7 @@ TEST_F(stlistIter, subTemplateMultiList_first_record)
     field.data = subTempMultiList.release();
     field.info = (const fds_tfield *)&subTempMultiLst_info;
 
-    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
     ASSERT_EQ(it._private.next_rec, field.data+1U);
 
     int ret = fds_stlist_iter_next(&it);
@@ -286,7 +289,7 @@ TEST_F(stlistIter, subTemplateMultiList_threeRecords)
     field.data = subTempMultiList.release();
     field.info = (const fds_tfield *)&subTempMultiLst_info;
 
-    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
     ASSERT_NE((uint8_t *)it._private.next_rec, (uint8_t *)it._private.stlist);
 
     for (int i=0; i<2; i++){
@@ -321,7 +324,7 @@ TEST_F(stlistIter, subTemplateList_missing_template_report)
     field.data = subTempList.release();
     field.info = (const fds_tfield *)&subTempLst_info;
 
-    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
 
     // First we expect missing template report
     int ret = fds_stlist_iter_next(&it);
@@ -353,7 +356,7 @@ TEST_F(stlistIter, subTemplateList_missing_template_skip)
 
 TEST_F(stlistIter, subTemplateMultiList_missing_template_report)
 {
-    subTempMultiList.subTempMulti_header(5);
+    subTempMultiList.subTempMulti_header(3);
     subTempMultiList.subTempMulti_data_hdr(259,drec.size() * 2);
     subTempMultiList.append_data_record(drec);
     subTempMultiList.append_data_record(drec);
@@ -366,12 +369,15 @@ TEST_F(stlistIter, subTemplateMultiList_missing_template_report)
     field.data = subTempMultiList.release();
     field.info = (const fds_tfield *)&subTempMultiLst_info;
 
-    fds_stlist_iter_init(&it, &field, snap, FDS_STL_FLAG_REPORT);
+    fds_stlist_iter_init(&it, &field, snap, FDS_STL_REPORT);
     ASSERT_NE((uint8_t *)it._private.next_rec, (uint8_t *)it._private.stlist);
 
     // first template is missing so we expect report and skipping the records
     int ret = fds_stlist_iter_next(&it);
     ASSERT_EQ(ret,FDS_ERR_NOTFOUND);
+    ASSERT_EQ(it.semantic,FDS_IPFIX_LIST_ALL_OF);
+    ASSERT_EQ(it.tid, 259);
+
 
     // second is availableso we expect correct read of the data
     for (int i=0; i<2; i++){

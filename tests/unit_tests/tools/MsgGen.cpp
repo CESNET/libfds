@@ -484,7 +484,6 @@ void ipfix_blist::header_long(uint8_t semantic, uint16_t field_id, uint16_t elem
     // Add the Enterprise number
     uint32_t *mem = reinterpret_cast<uint32_t *>(mem_reserve(4U));
     mem[0] = htonl(en);
-
 }
 
 void ipfix_stlist::subTemp_header(uint8_t semantic, uint16_t template_id) {

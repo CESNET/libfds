@@ -111,14 +111,12 @@ protected:
         ipfix_field field_varlen_long_blist;
         field_varlen_long_blist.append_blist(blist_varlen_long);
 
-
         // Save size and data pointer in the structures
         field_empty.size = field_blist_empty.size();
         field_empty.data = field_blist_empty.release();
 
         field_short_hdr.size = field_short_blist.size();
         field_short_hdr.data = field_short_blist.release();
-
 
         field_long_hdr.size = field_long_blist.size();
         field_long_hdr.data = field_long_blist.release();
@@ -128,16 +126,6 @@ protected:
 
         field_varlen_elems_long.size = field_varlen_long_blist.size();
         field_varlen_elems_long.data = field_varlen_long_blist.release();
-
-        free(fields.release());
-        free(str_fields.release());
-        free(str_fields2.release());
-        free(blist_empty.release());
-        free(blist_long.release());
-        free(blist_short.release());
-        free(blist_varlen_long.release());
-        free(blist_varlen_short.release());
-
     }
 
     /** \brief After each test */
@@ -153,6 +141,10 @@ protected:
 };
 
 // ITERATOR -------------------------------------------------------------------------------------
+
+/*
+ * Empty basicList
+ */
 TEST_F(blistIter, init_empty_blist)
 {
     fds_blist_iter_init(&it, &field_empty, ie_mgr);
@@ -161,6 +153,10 @@ TEST_F(blistIter, init_empty_blist)
     ASSERT_EQ(it._private.info.length, 0);
     ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist_end);
 }
+
+/*
+ * basicList with 2 IPv4 addresses (static size)
+ */
 TEST_F(blistIter, init_short_hdr)
 {
     fds_blist_iter_init(&it, &field_short_hdr, ie_mgr);
@@ -168,9 +164,11 @@ TEST_F(blistIter, init_short_hdr)
     ASSERT_EQ(it._private.info.id, 8);
     ASSERT_EQ(it._private.info.length, 4);
     ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_SHORT_HDR_LEN);
-
 }
 
+/*
+ * basicList with 3 IPv4 address (static size) and non-zero Enterprise Number
+ */
 TEST_F(blistIter, init_long_hdr)
 {
     fds_blist_iter_init(&it, &field_long_hdr, ie_mgr);
@@ -178,9 +176,12 @@ TEST_F(blistIter, init_long_hdr)
     ASSERT_EQ(it._private.info.id, 8);
     ASSERT_EQ(it._private.info.length, 4);
     ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN);
-    ASSERT_EQ(it._private.info.en, 74);
+    ASSERT_EQ(it._private.info.en, 74U);
 }
 
+/*
+ * Iterate over empty basicList
+ */
 TEST_F(blistIter, next_empty_blist)
 {
     fds_blist_iter_init(&it, &field_empty, ie_mgr);
@@ -192,6 +193,9 @@ TEST_F(blistIter, next_empty_blist)
     ASSERT_EQ(it._private.info.length, 0);
 }
 
+/*
+ * Iterate over basicList with 2 IPv4 addresses (static size)
+ */
 TEST_F(blistIter, next_short_hdr)
 {
     char out[20];
@@ -217,6 +221,9 @@ TEST_F(blistIter, next_short_hdr)
     ASSERT_EQ(ret, FDS_EOC);
 }
 
+/*
+ * Iterate over basicList with 3 IPv4 address (static size) and non-zero Enterprise Number
+ */
 TEST_F(blistIter, next_long_hdr)
 {
     char out[20];
@@ -245,30 +252,36 @@ TEST_F(blistIter, next_long_hdr)
     ASSERT_EQ((uint8_t*)it.field.data, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN + 8U);
     ASSERT_STREQ(out, VALUE_SRC_IP4_3.c_str());
     ASSERT_EQ(it._private.field_next, it._private.blist_end); // testing end pointer and return code
-    
+
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_EOC);
 }
 
+/*
+ * basicList with 3 variable-length strings (application names)
+ */
 TEST_F(blistIter, next_varlen_data_short)
 {
     char out[15];
-    
+
     fds_blist_iter_init(&it, &field_varlen_elems_short, ie_mgr);
     ASSERT_EQ(it._private.info.length,FDS_IPFIX_VAR_IE_LEN);
-    
+
+    // Short var-length header
     int ret = fds_blist_iter_next(&it);
     fds_string2str(it.field.data, it.field.size, &out[0], 15);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 7U); //First field is 7 Bytes long
     ASSERT_STREQ(out, VALUE_APP_NAME1.c_str());
 
+    // Long var-length header
     ret = fds_blist_iter_next(&it);
     fds_string2str(it.field.data, it.field.size, &out[0], 15);
     ASSERT_EQ(ret, FDS_OK);
     ASSERT_EQ(it.field.size, 11U); //Second field is 11 Bytes long
     ASSERT_STREQ(out, VALUE_APP_NAME2.c_str());
 
+    // Short var-length header with zero size field
     ret = fds_blist_iter_next(&it);
     fds_string2str(it.field.data, it.field.size, &out[0], 15);
     ASSERT_EQ(ret, FDS_OK);
@@ -279,6 +292,9 @@ TEST_F(blistIter, next_varlen_data_short)
     ASSERT_EQ(ret, FDS_EOC);
 }
 
+/*
+ * basicList with 2 variable-length strings
+ */
 TEST_F(blistIter, next_varlen_data_long)
 {
     char out[200];
@@ -301,7 +317,9 @@ TEST_F(blistIter, next_varlen_data_long)
     ASSERT_EQ(ret, FDS_EOC);
 }
 
-//Header with constant size but data with variable size
+/*
+ * Header with constant size but data with variable size
+ */
 TEST_F(blistIter, malformed_field_short_hdr )
 {
     struct fds_drec_field malformed;
@@ -325,6 +343,7 @@ TEST_F(blistIter, malformed_field_short_hdr )
 TEST_F(blistIter, malformed_field_varlen)
 {
     field_varlen_elems_long.size -= 150U;
+    ASSERT_GT(field_varlen_elems_long.size, 0);
 
     fds_blist_iter_init(&it,&field_varlen_elems_long,ie_mgr);
 
@@ -334,6 +353,7 @@ TEST_F(blistIter, malformed_field_varlen)
 
 TEST_F(blistIter, malformed_sizehdr_no_data)
 {
+    // Create only 3 bytes var-length specification without data
     ipfix_field str_fields;
     str_fields.var_header(VALUE_APP_NAME2.length(), true);
 
@@ -345,25 +365,46 @@ TEST_F(blistIter, malformed_sizehdr_no_data)
     field_varlen_short_blist.append_blist(blist_varlen_short);
 
     struct fds_drec_field malformed;
-
     malformed.size = field_varlen_short_blist.size();
     malformed.data = field_varlen_short_blist.release();
 
     fds_blist_iter_init(&it,&malformed,ie_mgr);
     int ret = fds_blist_iter_next(&it);
-    std::cout<<fds_blist_iter_err(&it)<<std::endl;
+    //std::cout<<fds_blist_iter_err(&it)<<std::endl;
     ASSERT_EQ(ret, FDS_ERR_FORMAT);
 
+    // Reduce size of the var-length header to 1 byte
     malformed.size -=2U;
 
     fds_blist_iter_init(&it,&malformed,ie_mgr);
     ret = fds_blist_iter_next(&it);
-    std::cout<<fds_blist_iter_err(&it)<<std::endl;
+    //std::cout<<fds_blist_iter_err(&it)<<std::endl;
     ASSERT_EQ(ret, FDS_ERR_FORMAT);
 
     free(malformed.data);
-
-
-
 }
 
+/*
+ * A non-empty basicList with zero-size fields (can cause infinite iteration)
+ */
+TEST_F(blistIter, malformed_zero_size_fields)
+{
+    // Create a dummy content
+    ipfix_field list_fields;
+    list_fields.append_uint(0, 8);
+
+    ipfix_blist list;
+    list.header_short(fds_ipfix_list_semantics::FDS_IPFIX_LIST_UNDEFINED, 8, 0);
+    list.append_field(list_fields); // Dummy content
+    ipfix_field field_blist;
+    field_blist.append_blist(list);
+
+    struct fds_drec_field malformed;
+    malformed.size = field_blist.size();
+    malformed.data = field_blist.release();
+
+    fds_blist_iter_init(&it, &malformed, ie_mgr);
+    ASSERT_EQ(fds_blist_iter_next(&it), FDS_ERR_FORMAT);
+    //std::cout<<fds_blist_iter_err(&it)<<std::endl;
+    free(malformed.data);
+}

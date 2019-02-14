@@ -667,9 +667,6 @@ fds_stmlist_iter_init(struct fds_stmlist_iter *it, struct fds_drec_field *field,
  * If this function wasn't previously called after initialization by fds_stmlist_iter_init(), then
  * the iterator will point to the first block in the list.
  *
- * Keep on mind that the list can be empty (i.e. no blocks), in that case, this function will
- * immediately return #FDS_EOC.
- *
  * \note
  *   By default, the iterator automatically skips blocks if a Template required to interpret
  *   them is not present in the Template snapshot. However, if the user wants to be notified,

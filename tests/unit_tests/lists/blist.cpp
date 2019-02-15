@@ -21,6 +21,8 @@ private:
     const char *ie_path = "data/iana.xml";
 
 protected:
+    // Expected error message when everything is OK
+    const char *OK_MSG = "No error.";
     // IE manager
     fds_iemgr_t *ie_mgr = nullptr;
 
@@ -143,6 +145,21 @@ protected:
 // ITERATOR -------------------------------------------------------------------------------------
 
 /*
+ * Zero length field
+ */
+TEST_F(blistIter, emptlyField)
+{
+    std::unique_ptr<uint8_t []> random(new uint8_t[10]);
+    struct fds_drec_field field;
+    field.size = 0;
+    field.data = random.get();
+
+    fds_blist_iter_init(&it, &field, ie_mgr);
+    EXPECT_EQ(fds_blist_iter_next(&it), FDS_ERR_FORMAT);
+    EXPECT_STRCASENE(fds_blist_iter_err(&it), OK_MSG);
+}
+
+/*
  * Empty basicList
  */
 TEST_F(blistIter, init_empty_blist)
@@ -187,6 +204,7 @@ TEST_F(blistIter, next_empty_blist)
     fds_blist_iter_init(&it, &field_empty, ie_mgr);
     int ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_EOC);
+    EXPECT_STRCASEEQ(fds_blist_iter_err(&it), OK_MSG);
     ASSERT_EQ(it._private.err_code, FDS_EOC);
     ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist_end);
     ASSERT_EQ(it._private.info.offset, 0);
@@ -219,6 +237,7 @@ TEST_F(blistIter, next_short_hdr)
     ASSERT_EQ(it._private.field_next, it._private.blist_end);
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_EOC);
+    EXPECT_STRCASEEQ(fds_blist_iter_err(&it), OK_MSG);
 }
 
 /*
@@ -255,6 +274,7 @@ TEST_F(blistIter, next_long_hdr)
 
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_EOC);
+    EXPECT_STRCASEEQ(fds_blist_iter_err(&it), OK_MSG);
 }
 
 /*
@@ -290,6 +310,7 @@ TEST_F(blistIter, next_varlen_data_short)
 
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_EOC);
+    EXPECT_STRCASEEQ(fds_blist_iter_err(&it), OK_MSG);
 }
 
 /*
@@ -315,6 +336,7 @@ TEST_F(blistIter, next_varlen_data_long)
 
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_EOC);
+    EXPECT_STRCASEEQ(fds_blist_iter_err(&it), OK_MSG);
 }
 
 /*
@@ -337,6 +359,7 @@ TEST_F(blistIter, malformed_field_short_hdr )
     fds_blist_iter_next(&it);
     ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret, FDS_ERR_FORMAT);
+    EXPECT_STRCASENE(fds_blist_iter_err(&it), OK_MSG);
     free(malformed.data);
 }
 
@@ -349,6 +372,7 @@ TEST_F(blistIter, malformed_field_varlen)
 
     int ret = fds_blist_iter_next(&it);
     ASSERT_EQ(ret,FDS_ERR_FORMAT);
+    EXPECT_STRCASENE(fds_blist_iter_err(&it), OK_MSG);
 }
 
 TEST_F(blistIter, malformed_sizehdr_no_data)
@@ -372,6 +396,7 @@ TEST_F(blistIter, malformed_sizehdr_no_data)
     int ret = fds_blist_iter_next(&it);
     //std::cout<<fds_blist_iter_err(&it)<<std::endl;
     ASSERT_EQ(ret, FDS_ERR_FORMAT);
+    EXPECT_STRCASENE(fds_blist_iter_err(&it), OK_MSG);
 
     // Reduce size of the var-length header to 1 byte
     malformed.size -=2U;
@@ -380,6 +405,7 @@ TEST_F(blistIter, malformed_sizehdr_no_data)
     ret = fds_blist_iter_next(&it);
     //std::cout<<fds_blist_iter_err(&it)<<std::endl;
     ASSERT_EQ(ret, FDS_ERR_FORMAT);
+    EXPECT_STRCASENE(fds_blist_iter_err(&it), OK_MSG);
 
     free(malformed.data);
 }
@@ -405,6 +431,7 @@ TEST_F(blistIter, malformed_zero_size_fields)
 
     fds_blist_iter_init(&it, &malformed, ie_mgr);
     ASSERT_EQ(fds_blist_iter_next(&it), FDS_ERR_FORMAT);
+    EXPECT_STRCASENE(fds_blist_iter_err(&it), OK_MSG);
     //std::cout<<fds_blist_iter_err(&it)<<std::endl;
     free(malformed.data);
 }

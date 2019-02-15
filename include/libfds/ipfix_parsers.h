@@ -738,9 +738,6 @@ fds_stmlist_iter_next_block(struct fds_stmlist_iter *it);
  * \return #FDS_EOC if there are no more Data Records in the block to read.
  * \return #FDS_ERR_FORMAT if the format of the list is invalid and the iterator cannot continue.
  *   (an appropriate error message is set, see fds_stmlist_iter_err())
- * \return #FDS_ERR_NOTFOUND if #FDS_STL_REPORT flag has been set during iterator initialization
- *   and the iterator is unable to find an IPFIX Template to interpret records in this block.
- *   User can skip the whole block using fds_stmlist_iter_next_block().
  */
 FDS_API int
 fds_stmlist_iter_next_rec(struct fds_stmlist_iter *it);

@@ -321,6 +321,21 @@ uint8_t* st_list::reduce_size(const uint8_t *mem, size_t size)
 }
 
 /**
+ * \brief Test iteration over field with zero length
+ */
+TEST_F(st_list, emptlyField)
+{
+    ipfix_stlist list;
+    list_field.size = list.size();
+    list_field.data = list.release();
+
+    struct fds_stmlist_iter it;
+    fds_stmlist_iter_init(&it, &list_field, tsnap, 0);
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_FORMAT);
+    EXPECT_STRCASENE(fds_stmlist_iter_err(&it), OK_MSG);
+}
+
+/**
  * \brief Empty list
  */
 TEST_F(st_list, empty)
@@ -609,6 +624,19 @@ TEST_F(st_list, malformedDynamic)
 // Create just another class to distinguish test types
 class stmulti_list : public st_list {};
 
+/** Test iteration over field with zero length */
+TEST_F(stmulti_list, emptlyField)
+{
+    ipfix_stlist list;
+    list_field.size = list.size();
+    list_field.data = list.release();
+
+    struct fds_stmlist_iter it;
+    fds_stmlist_iter_init(&it, &list_field, tsnap, 0);
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_FORMAT);
+    EXPECT_STRCASENE(fds_stmlist_iter_err(&it), OK_MSG);
+}
+
 /**
  * List with one empty block
  */
@@ -741,6 +769,9 @@ TEST_F(stmulti_list, oneBlockWithMultipleRecords)
     EXPECT_EQ(fds_stmlist_iter_next_block(&it), FDS_EOC);
 }
 
+/**
+ * List with mulitple blocks and different Template (all known)
+ */
 TEST_F(stmulti_list, multipleBlocksWithMultipleRecords)
 {
     ipfix_stlist list;
@@ -792,14 +823,416 @@ TEST_F(stmulti_list, multipleBlocksWithMultipleRecords)
     EXPECT_EQ(fds_stmlist_iter_next_block(&it), FDS_EOC);
 }
 
+/**
+ * List with one block but its template is unknown
+ */
+TEST_F(stmulti_list, oneBlockWithMissingTemplate)
+{
+    const uint16_t unknown_tid = 280;
 
-// TODO: list with all missing Templates (with and without flags)
-// TODO: list with single missing Template (with and without flags
+    ipfix_stlist list;
+    list.subTempMulti_header(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ONE_OR_MORE_OF);
+    list.subTempMulti_data_hdr(unknown_tid, 3 * drec256.size()); // Some random Template ID
+    list.append_data_record(drec256); // Some "dummy" data
+    list.append_data_record(drec256);
+    list.append_data_record(drec256);
+    list_field.size = list.size();
+    list_field.data = list.release();
 
-// TODO: skip the blocks without touching records
+    struct fds_stmlist_iter it;
 
-// TODO: malformed list with one empty block and invalid template ID
-// TODO: malformed list with too short header
-// TODO: malformed list with one block and too long Data Record
-// TODO: malformed list with multiple blocks where the first block is too short for a Data record
-// TODO: invalid combination first get the next record before get the next block
+    // Without the report flag
+    fds_stmlist_iter_init(&it, &list_field, tsnap, 0);
+    EXPECT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ONE_OR_MORE_OF);
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_EOC); // The unknown block should be skipped
+    // No error messages
+    EXPECT_STREQ(fds_stmlist_iter_err(&it), OK_MSG);
+
+    // With the report flag
+    fds_stmlist_iter_init(&it, &list_field, tsnap, FDS_STL_REPORT);
+    EXPECT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ONE_OR_MORE_OF);
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(it.tid, unknown_tid);
+    // The record iterator should return EOC
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // Skip the block
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_EOC);
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+}
+
+/**
+ * List with multiple blocks where all Templates are unknown
+ */
+TEST_F(stmulti_list, multipleBlocksWithAllTemplatesMissing)
+{
+    const uint16_t tid_missing1 = 587U;
+    const uint16_t tid_missing2 = 65535U;
+    const uint16_t tid_missing3 = 12345U;
+
+    ipfix_stlist list;
+    list.subTempMulti_header(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ORDERED);
+    list.subTempMulti_data_hdr(tid_missing1, 0); // First unknown block (empty)
+    list.subTempMulti_data_hdr(tid_missing2, drec257.size()); // Second unknown block (+ dummy data)
+    list.append_data_record(drec257);
+    list.subTempMulti_data_hdr(tid_missing3, 0); // Third unknown block (empty)
+    list_field.size = list.size();
+    list_field.data = list.release();
+
+    struct fds_stmlist_iter it;
+
+    // Without the report flag
+    fds_stmlist_iter_init(&it, &list_field, tsnap, 0);
+    EXPECT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ORDERED);
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_EOC); // All blocks should be skipped
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // No error messages
+    EXPECT_STREQ(fds_stmlist_iter_err(&it), OK_MSG);
+
+    // With the report flag
+    fds_stmlist_iter_init(&it, &list_field, tsnap, FDS_STL_REPORT);
+    EXPECT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ORDERED);
+    // First unknown block
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(it.tid, tid_missing1);
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // Second unknown block
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(it.tid, tid_missing2);
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // Third unknown block
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(it.tid, tid_missing3);
+    // No more blocks and no error messages
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_EOC);
+    EXPECT_STREQ(fds_stmlist_iter_err(&it), OK_MSG);
+}
+
+/**
+ * List with multiple blocks where only some Templates are known
+ */
+TEST_F(stmulti_list, multipleBlocksWithSomeMissingTemplates)
+{
+    const uint16_t tid_missing1 = 300U;
+    const uint16_t tid_missing2 = 65000U;
+    const uint16_t tid_missing3 = 2001U;
+    const uint16_t tid_missing4 = 10000U;
+
+    ipfix_stlist list;
+    list.subTempMulti_header(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF);
+    list.subTempMulti_data_hdr(tid_missing1, drec256.size()); // First unknown block (+ dummy data)
+    list.append_data_record(drec256);
+    list.subTempMulti_data_hdr(tid_missing2, drec257.size()); // Second unknown block (+ dummy data)
+    list.append_data_record(drec257);
+    list.subTempMulti_data_hdr(258, drec258_v1.size() + drec258_v2.size()); // Known Template ID
+    list.append_data_record(drec258_v2);
+    list.append_data_record(drec258_v1);
+    list.subTempMulti_data_hdr(tid_missing3, drec258_v1.size()); // Third unknown block (+ dummy data)
+    list.append_data_record(drec258_v1);
+    list.subTempMulti_data_hdr(257, drec257.size()); // Known Template ID
+    list.append_data_record(drec257);
+    list.subTempMulti_data_hdr(tid_missing4, 0); // Fourth unknown block (empty)
+    list_field.size = list.size();
+    list_field.data = list.release();
+
+    struct fds_stmlist_iter it;
+
+    // Without the report flag (blocks with unknown Template ID should be automatically skipped)
+    fds_stmlist_iter_init(&it , &list_field, tsnap, 0);
+    EXPECT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF);
+    // The first _known_ block
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_OK);
+    EXPECT_EQ(it.tid, 258U);
+    ASSERT_EQ(fds_stmlist_iter_next_rec(&it), FDS_OK);
+    check258_v2(it.rec);
+    ASSERT_EQ(fds_stmlist_iter_next_rec(&it), FDS_OK);
+    check258_v1(it.rec);
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // The second _known_ block
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_OK);
+    EXPECT_EQ(it.tid, 257U);
+    ASSERT_EQ(fds_stmlist_iter_next_rec(&it), FDS_OK);
+    check257(it.rec);
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // No more blocks should be available + no error should be set
+    EXPECT_EQ(fds_stmlist_iter_next_block(&it), FDS_EOC);
+    EXPECT_STREQ(fds_stmlist_iter_err(&it), OK_MSG);
+
+    // With the report flag (unknown Templates should be reported!)
+    fds_stmlist_iter_init(&it , &list_field, tsnap, FDS_STL_REPORT);
+    EXPECT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF);
+    // Block 1 (unknown)
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(it.tid, tid_missing1);
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // Block 2 (unknown)
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(it.tid, tid_missing2);
+    // Block 3 (known)
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_OK);
+    EXPECT_EQ(it.tid, 258U);
+    ASSERT_EQ(fds_stmlist_iter_next_rec(&it), FDS_OK);
+    check258_v2(it.rec);
+    ASSERT_EQ(fds_stmlist_iter_next_rec(&it), FDS_OK);
+    check258_v1(it.rec);
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // Block 4 (unknown)
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(it.tid, tid_missing3);
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // Block 5 (known)
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_OK);
+    EXPECT_EQ(it.tid, 257U);
+    // Block 6 (unknown)
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_NOTFOUND);
+    EXPECT_EQ(it.tid, tid_missing4);
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // No more blocks should be available + no error should be set
+    EXPECT_EQ(fds_stmlist_iter_next_block(&it), FDS_EOC);
+    EXPECT_STRCASEEQ(fds_stmlist_iter_err(&it), OK_MSG);
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+}
+
+/**
+ * \brief Skipping to a next block without iteration over all records inside a current block
+ *
+ * Block and record functions should be independent.
+ */
+TEST_F(stmulti_list, skipBlocksWithoutGoingThroughAllRecords)
+{
+    ipfix_stlist list;
+    list.subTempMulti_header(fds_ipfix_list_semantics::FDS_IPFIX_LIST_NONE_OF);
+    list.subTempMulti_data_hdr(258, drec258_v1.size() + drec258_v2.size());
+    list.append_data_record(drec258_v1);
+    list.append_data_record(drec258_v2);
+    list.subTempMulti_data_hdr(257, 3 * drec257.size());
+    list.append_data_record(drec257);
+    list.append_data_record(drec257);
+    list.append_data_record(drec257);
+    list.subTempMulti_data_hdr(258, 0); // Empty block
+    list.subTempMulti_data_hdr(256, drec256.size());
+    list.append_data_record(drec256);
+    list_field.size = list.size();
+    list_field.data = list.release();
+
+    struct fds_stmlist_iter it;
+    fds_stmlist_iter_init(&it , &list_field, tsnap, FDS_STL_REPORT);
+    // Check if the block is here and immediately skip it
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_OK);
+    EXPECT_EQ(it.tid, 258U);
+    // Check first few records in the next block
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_OK);
+    EXPECT_EQ(it.tid, 257U);
+    ASSERT_EQ(fds_stmlist_iter_next_rec(&it), FDS_OK);
+    check257(it.rec);
+    ASSERT_EQ(fds_stmlist_iter_next_rec(&it), FDS_OK);
+    check257(it.rec);
+    // Don't check the last one and skip directly to the next block
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_OK);
+    EXPECT_EQ(it.tid, 258U);
+    ASSERT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // The last block
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_OK);
+    EXPECT_EQ(it.tid, 256U);
+    // Ignore this block content and continue
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_EOC);
+}
+
+/**
+ * \brief One empty block with invalid Template ID (< 256)
+ */
+TEST_F(stmulti_list, malformedEmptyBlockWithInvalidTemplateID)
+{
+    ipfix_stlist list;
+    list.subTempMulti_header(fds_ipfix_list_semantics::FDS_IPFIX_LIST_NONE_OF);
+    list.subTempMulti_data_hdr(255, 0);
+    list_field.size = list.size();
+    list_field.data = list.release();
+
+    struct fds_stmlist_iter it;
+    fds_stmlist_iter_init(&it , &list_field, tsnap, 0);
+    EXPECT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_NONE_OF);
+    EXPECT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_FORMAT);
+    EXPECT_STRCASENE(fds_stmlist_iter_err(&it), OK_MSG);
+}
+
+/**
+ * \brief One non-empty block with invalid Template ID (< 256)
+ */
+TEST_F(stmulti_list, malformedBlockWithInvalidTemplateID)
+{
+    ipfix_stlist list;
+    list.subTempMulti_header(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF);
+    list.subTempMulti_data_hdr(0, drec257.size()); // Template ID 0
+    list.append_data_record(drec257);
+    list_field.size = list.size();
+    list_field.data = list.release();
+
+    struct fds_stmlist_iter it;
+    fds_stmlist_iter_init(&it , &list_field, tsnap, 0);
+    EXPECT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_FORMAT);
+    EXPECT_STRCASENE(fds_stmlist_iter_err(&it), OK_MSG);
+}
+
+/**
+ * \brief Too short header of a list
+ */
+TEST_F(stmulti_list, malformedListHeader)
+{
+    ipfix_stlist list;
+    list.subTempMulti_header(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF);
+    list.subTempMulti_data_hdr(256, 0);
+
+    uint16_t list_len = list.size();
+    uint8_t *list_ptr = list.release();
+
+    for (uint16_t i = 1U; i < list_len - 1; ++i) {  // 1 byte list (i.e. semantic only) is valid
+        // Try to check every possible combination of the too short header
+        SCOPED_TRACE("Removed " + std::to_string(i) + " byte(s) from the header");
+        list_field.size = list_len - i;
+        list_field.data = reduce_size(list_ptr, list_field.size);
+
+        struct fds_stmlist_iter it;
+        fds_stmlist_iter_init(&it, &list_field, tsnap, 0);
+        EXPECT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF);
+        EXPECT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_FORMAT);
+        EXPECT_STRCASENE(fds_stmlist_iter_err(&it), OK_MSG);
+
+        free(list_field.data);
+    }
+
+    free(list_ptr);
+    list_field.data = nullptr;
+}
+
+/**
+ * \brief List with two blocks and a record that exceeds size of the first block
+ */
+TEST_F(stmulti_list, malformedListTooShortBlock)
+{
+    for (uint16_t i = 1; i < drec257.size(); i++) {
+        SCOPED_TRACE("Removed " + std::to_string(i) + " byte(s) from the block");
+        // Create a new record
+        ipfix_stlist list;
+        list.subTempMulti_header(fds_ipfix_list_semantics::FDS_IPFIX_LIST_UNDEFINED);
+        list.subTempMulti_data_hdr(257, drec257.size() - i); // Reduce size of the block
+        list.append_data_record(drec257);
+        list.subTempMulti_data_hdr(256, drec256.size());
+        list_field.size = list.size();
+        list_field.data = list.release();
+
+        struct fds_stmlist_iter it;
+        fds_stmlist_iter_init(&it, &list_field, tsnap, 0);
+        ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_OK);
+        // The record should be broken
+        EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_ERR_FORMAT);
+        EXPECT_STRCASENE(fds_stmlist_iter_err(&it), OK_MSG);
+
+        // The next block should not be available because it can be malformed too
+        EXPECT_NE(fds_stmlist_iter_next_block(&it), FDS_OK);
+        EXPECT_NE(fds_stmlist_iter_next_rec(&it), FDS_OK);
+
+        // Cleanup
+        free(list_field.data);
+    }
+
+    list_field.data = nullptr;
+}
+
+/**
+ * \brief List with one block which length is longer that the enclosing list
+ */
+TEST_F(stmulti_list, malformedListTooShortList)
+{
+    ipfix_stlist list;
+    list.subTempMulti_header(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF);
+    list.subTempMulti_data_hdr(257, drec257.size());
+    list.append_data_record(drec257);
+
+    uint16_t list_len = list.size();
+    uint8_t *list_ptr = list.release();
+
+    // Try all combination of too short list (missing record or missing header bytes)
+    for (uint16_t i = 1; i < drec257.size() + FDS_IPFIX_SET_HDR_LEN; i++) {
+        // Try to check every possible combination of the too short header
+        SCOPED_TRACE("Removed " + std::to_string(i) + " byte(s) from the list");
+        list_field.size = list_len - i;
+        list_field.data = reduce_size(list_ptr, list_field.size);
+
+        struct fds_stmlist_iter it;
+        fds_stmlist_iter_init(&it, &list_field, tsnap, 0);
+        ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_FORMAT);
+        EXPECT_STRCASENE(fds_stmlist_iter_err(&it), OK_MSG);
+
+        // No other actions are allowed
+        EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_ERR_FORMAT);
+        EXPECT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_FORMAT);
+
+        free(list_field.data);
+    }
+
+    free(list_ptr);
+    list_field.data = nullptr;
+}
+
+/**
+ * \brief List with invalid size of a block header (< 4B, don't forget to check RFC 6313 Errata!)
+ */
+TEST_F(stmulti_list, malformedListInvalidBlockSize)
+{
+    ipfix_stlist list;
+    list.subTempMulti_header(fds_ipfix_list_semantics::FDS_IPFIX_LIST_ALL_OF);
+    list.subTempMulti_data_hdr(258, drec258_v1.size()); // Size which will be changed
+    list.append_data_record(drec258_v1); // Dummy data
+    list_field.size = list.size();
+    list_field.data = list.release();
+
+    // Header must be at least 4 bytes long... always
+    for (uint16_t i = 0; i < FDS_IPFIX_SET_HDR_LEN; ++i) {
+        auto list_hdr = reinterpret_cast<struct fds_ipfix_stlist *>(list_field.data);
+        auto block_hdr = reinterpret_cast<struct fds_ipfix_set_hdr *>(&list_hdr->template_id);
+        block_hdr->length = htons(i);
+
+        struct fds_stmlist_iter it;
+        fds_stmlist_iter_init(&it, &list_field, tsnap, 0);
+        ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_FORMAT);
+        EXPECT_STRCASENE(fds_stmlist_iter_err(&it), OK_MSG);
+
+        // No other actions are allowed
+        EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_ERR_FORMAT);
+        EXPECT_EQ(fds_stmlist_iter_next_block(&it), FDS_ERR_FORMAT);
+    }
+}
+
+/**
+ * \brief Calling next_block and next_rec in an invalid order
+ */
+TEST_F(stmulti_list, callNextRecordBeforeNextBlock)
+{
+    ipfix_stlist list;
+    list.subTempMulti_header(fds_ipfix_list_semantics::FDS_IPFIX_LIST_NONE_OF);
+    list.subTempMulti_data_hdr(256, 2 * drec256.size());
+    list.append_data_record(drec256);
+    list.append_data_record(drec256);
+    list.subTempMulti_data_hdr(257, drec257.size());
+    list.append_data_record(drec257);
+    list_field.size = list.size();
+    list_field.data = list.release();
+
+    struct fds_stmlist_iter it;
+    fds_stmlist_iter_init(&it, &list_field, tsnap, 0);
+    // First call the next record and then the block
+    EXPECT_NE(fds_stmlist_iter_next_rec(&it), FDS_OK);
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_OK);
+    // Now everything should work as usual
+    ASSERT_EQ(fds_stmlist_iter_next_rec(&it), FDS_OK);
+    EXPECT_EQ(it.tid, 256);
+    check256(it.rec);
+    ASSERT_EQ(fds_stmlist_iter_next_rec(&it), FDS_OK);
+    EXPECT_EQ(it.tid, 256);
+    check256(it.rec);
+    EXPECT_EQ(fds_stmlist_iter_next_rec(&it), FDS_EOC);
+    // Skip the rest
+    ASSERT_EQ(fds_stmlist_iter_next_block(&it), FDS_OK);
+    EXPECT_EQ(it.tid, 257);
+    EXPECT_EQ(fds_stmlist_iter_next_block(&it), FDS_EOC);
+}

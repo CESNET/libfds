@@ -517,10 +517,9 @@ struct __attribute__((__packed__)) fds_ipfix_blist {
 #define FDS_IPFIX_STLIST_HDR_LEN 3U
 /**
  * \brief Minimal length of the header of subTemplateMultiList
- * \note Represents total length the list with zero Data Records i.e. only Semantic, Template ID,
- *   and Data Records Length is present.
+ * \note Represents total length the list with zero Data Records i.e. only Semantic
  */
-#define FDS_IPFIX_STMULTILIST_HDR_LEN 5U
+#define FDS_IPFIX_STMULTILIST_HDR_LEN 1U
 
 /**
  * \struct fds_ipfix_stlist

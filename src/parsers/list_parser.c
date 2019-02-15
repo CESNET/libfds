@@ -2,6 +2,7 @@
  * \file src/parsers/list_parser.c
  * \brief Simple parsers of a structured data types in IPFIX Message (source file)
  * \author Jan Kala <xkalaj01@stud.fit.vutbr.cz>
+ * \author Lukas Hutak <lukas.hutak@cesnet.cz>
  * \date 2018
  */
 
@@ -55,13 +56,14 @@ enum error_codes {
     ERR_TMPLT_NOTFOUND,
     ERR_TMPLTID_NOT_VALID,
     ERR_SET_EXCEED_LIST,
-    ERR_REC_EXCEED_LIST
+    ERR_REC_EXCEED_LIST,
+    ERR_STM_LIST_SET
 };
 
 /** Corresponding error messages */
 static const char *err_msg[] = {
     [ERR_OK]                 = "No error.",
-    [ERR_BLIST_SHORT]        = "Size of the field is smaller than the minimal size of the Basic list.",
+    [ERR_BLIST_SHORT]        = "Length of the field is smaller than the minimal size of the Basic list.",
     [ERR_BLIST_UNEXP_END]    = "Unexpected end of the list while reading its members.",
     [ERR_BLIST_ZERO]         = "Zero-length fields cannot be stored in the list.",
     [ERR_VARSIZE_UNEXP_END]  = "Unexpected end of the list while reading size of the member.",
@@ -70,8 +72,9 @@ static const char *err_msg[] = {
     [ERR_STM_LIST_UNEXP_END] = "Unexpected end of the list.",
     [ERR_TMPLT_NOTFOUND]     = "Template ID was not found in a snapshot.",
     [ERR_TMPLTID_NOT_VALID]  = "Template ID (< 256) is not valid for Data records.",
-    [ERR_SET_EXCEED_LIST]    = "Inner Data Set size exceeds the size of its enclosing list.",
-    [ERR_REC_EXCEED_LIST]    = "Inner Data Record size exceeds the size of its enclosing list."
+    [ERR_SET_EXCEED_LIST]    = "Inner Data Set length exceeds the length of its enclosing list.",
+    [ERR_REC_EXCEED_LIST]    = "Inner Data Record Length exceeds the length of its enclosing list.",
+    [ERR_STM_LIST_SET]       = "Invalid Data Records Length (< 4B, see also RFC6313 Errata)."
 };
 
 void
@@ -281,6 +284,10 @@ fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field,
     assert(snap != NULL && "Snapshot is NULL!");
     assert(field != NULL && "Field to iterate over is NULL!");
 
+    // Set the default semantic and Template ID(just in case the header is invalid)
+    it->semantic = FDS_IPFIX_LIST_UNDEFINED;
+    it->tid = 0;
+
     if (field->size < FDS_IPFIX_STLIST_HDR_LEN) {
         // Header is too short
         it->private__.err_code = FDS_ERR_FORMAT;
@@ -298,17 +305,12 @@ fds_stlist_iter_init(struct fds_stlist_iter *it, struct fds_drec_field *field,
     }
 
     // Check the type of list semantic
-    enum fds_ipfix_list_semantics list_sem;
     if (list_hdr->semantic <= FDS_IPFIX_LIST_ORDERED) {
-        list_sem = (enum fds_ipfix_list_semantics) list_hdr->semantic;
-    } else {
-        // Unsupported type
-        list_sem = FDS_IPFIX_LIST_UNDEFINED;
+        it->semantic = (enum fds_ipfix_list_semantics) list_hdr->semantic;
     }
 
     // Set public section
     it->tid = tmplt_id;
-    it->semantic = list_sem;
     it->rec.snap = snap;
     it->rec.tmplt = fds_tsnapshot_template_get(snap, tmplt_id);
 
@@ -367,6 +369,9 @@ fds_stmlist_iter_init(struct fds_stmlist_iter *it, struct fds_drec_field *field,
     assert(snap != NULL && "Snapshot is NULL!");
     assert(field != NULL && "Field to iterate over is NULL!");
 
+    // Set the default semantic (just in case the header is invalid)
+    it->semantic = FDS_IPFIX_LIST_UNDEFINED;
+
     if (field->size < FDS_IPFIX_STMULTILIST_HDR_LEN) {
         it->private__.err_code = FDS_ERR_FORMAT;
         it->private__.err_msg = err_msg[ERR_STM_LIST_SHORT];
@@ -376,16 +381,11 @@ fds_stmlist_iter_init(struct fds_stmlist_iter *it, struct fds_drec_field *field,
     struct fds_ipfix_stlist *list_hdr = (struct fds_ipfix_stlist *) field->data;
 
     // Check the type of list semantic
-    enum fds_ipfix_list_semantics list_sem;
     if (list_hdr->semantic <= FDS_IPFIX_LIST_ORDERED) {
-        list_sem = (enum fds_ipfix_list_semantics) list_hdr->semantic;
-    } else {
-        // Unsupported type
-        list_sem = FDS_IPFIX_LIST_UNDEFINED;
+        it->semantic = (enum fds_ipfix_list_semantics) list_hdr->semantic;
     }
 
     // Set the public section
-    it->semantic = list_sem;
     memset(&it->rec, 0, sizeof(it->rec));
 
     // Set the private section
@@ -412,6 +412,7 @@ fds_stmlist_iter_next_block(struct fds_stmlist_iter *it)
     while (1) {
         if (it->private__.block_next >= it->private__.list_end) {
             // End of the list has been reached
+            it->private__.rec_next = it->private__.block_next;
             return FDS_EOC;
         }
 
@@ -429,6 +430,13 @@ fds_stmlist_iter_next_block(struct fds_stmlist_iter *it)
         if (tmplt_id < FDS_IPFIX_SET_MIN_DSET) {
             // Invalid Template ID
             it->private__.err_msg = err_msg[ERR_TMPLTID_NOT_VALID];
+            it->private__.err_code = FDS_ERR_FORMAT;
+            return it->private__.err_code;
+        }
+
+        if (set_len < FDS_IPFIX_SET_HDR_LEN) {
+            // Invalid Header length of the header
+            it->private__.err_msg = err_msg[ERR_STM_LIST_SET];
             it->private__.err_code = FDS_ERR_FORMAT;
             return it->private__.err_code;
         }
@@ -453,6 +461,7 @@ fds_stmlist_iter_next_block(struct fds_stmlist_iter *it)
 
         // Template not found...
         if ((it->private__.flags & FDS_STL_REPORT) != 0) {
+            it->private__.rec_next = it->private__.block_next; // Skip the content
             return FDS_ERR_NOTFOUND;
         }
 
@@ -467,11 +476,6 @@ fds_stmlist_iter_next_rec(struct fds_stmlist_iter *it)
 {
     if (it->private__.err_code != FDS_OK) {
         return it->private__.err_code;
-    }
-
-    if (!it->private__.tmplt) {
-        // Template is not defined... this can happen only if the report flag is enabled
-        return FDS_ERR_NOTFOUND;
     }
 
     if (it->private__.rec_next >= it->private__.block_next) {

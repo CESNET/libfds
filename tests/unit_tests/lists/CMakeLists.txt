@@ -14,4 +14,4 @@ configure_file(
 )
 
 unit_tests_register_test(blist.cpp ${AUX_TOOLS})
-#unit_tests_register_test(stlist.cpp ${AUX_TOOLS})
+unit_tests_register_test(new_stlist.cpp ${AUX_TOOLS})

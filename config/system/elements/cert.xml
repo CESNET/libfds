@@ -3,7 +3,7 @@
 	<scope>
 		<pen>6871</pen>
 		<name>cert</name>
-		<biflow mode="split"/>
+		<biflow mode="split">15</biflow>
 	</scope>
 	<!-- Extracted from yaf-2.10.0 /infomodel/cert.xml -->
 	<element>

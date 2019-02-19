@@ -81,6 +81,10 @@ void
 fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,
     const fds_iemgr_t *ie_mgr)
 {
+    // Set default values before parsing
+    memset(&it->field, 0, sizeof(it->field));
+    it->semantic = FDS_IPFIX_LIST_UNDEFINED;
+
     if (field->size < FDS_IPFIX_BLIST_SHORT_HDR_LEN) {
         // Check if the Basic list can fit into the field
         it->_private.err_msg = err_msg[ERR_BLIST_SHORT];
@@ -94,9 +98,6 @@ fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,
     if (it->_private.blist->semantic <= FDS_IPFIX_LIST_ORDERED) {
         // Semantic is known
         it->semantic = (enum fds_ipfix_list_semantics) it->_private.blist->semantic;
-    } else {
-        // Unknown semantic
-        it->semantic = FDS_IPFIX_LIST_UNDEFINED;
     }
 
     // Filling the structure tfield
@@ -104,8 +105,9 @@ fds_blist_iter_init(struct fds_blist_iter *it, struct fds_drec_field *field,
     it->_private.info.id = ntohs(it->_private.blist->field_id);
     it->_private.info.length = ntohs(it->_private.blist->element_length);
     it->_private.info.en = 0;
-    it->_private.info.flags = 0; // Do I need any flags?
+    it->_private.info.flags = 0;
     it->_private.info.offset = 0;
+    it->field.info = &it->_private.info;
 
     uint32_t hdr_size;
     if ((it->_private.info.id & (1U << 15)) == 0) {

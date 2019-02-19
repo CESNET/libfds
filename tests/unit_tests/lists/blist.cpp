@@ -147,7 +147,7 @@ protected:
 /*
  * Zero length field
  */
-TEST_F(blistIter, emptlyField)
+TEST_F(blistIter, emptyField)
 {
     std::unique_ptr<uint8_t []> random(new uint8_t[10]);
     struct fds_drec_field field;
@@ -166,8 +166,8 @@ TEST_F(blistIter, init_empty_blist)
 {
     fds_blist_iter_init(&it, &field_empty, ie_mgr);
     ASSERT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_UNDEFINED);
-    ASSERT_EQ(it._private.info.id, 6);
-    ASSERT_EQ(it._private.info.length, 0);
+    ASSERT_EQ(it.field.info->id, 6);
+    ASSERT_EQ(it.field.info->length, 0);
     ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist_end);
 }
 
@@ -178,8 +178,8 @@ TEST_F(blistIter, init_short_hdr)
 {
     fds_blist_iter_init(&it, &field_short_hdr, ie_mgr);
     ASSERT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_ORDERED);
-    ASSERT_EQ(it._private.info.id, 8);
-    ASSERT_EQ(it._private.info.length, 4);
+    ASSERT_EQ(it.field.info->id, 8);
+    ASSERT_EQ(it.field.info->length, 4);
     ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_SHORT_HDR_LEN);
 }
 
@@ -190,10 +190,10 @@ TEST_F(blistIter, init_long_hdr)
 {
     fds_blist_iter_init(&it, &field_long_hdr, ie_mgr);
     ASSERT_EQ(it.semantic, fds_ipfix_list_semantics::FDS_IPFIX_LIST_EXACTLY_ONE_OF);
-    ASSERT_EQ(it._private.info.id, 8);
-    ASSERT_EQ(it._private.info.length, 4);
+    ASSERT_EQ(it.field.info->id, 8);
+    ASSERT_EQ(it.field.info->length, 4);
     ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist + FDS_IPFIX_BLIST_LONG_HDR_LEN);
-    ASSERT_EQ(it._private.info.en, 74U);
+    ASSERT_EQ(it.field.info->en, 74U);
 }
 
 /*
@@ -207,8 +207,8 @@ TEST_F(blistIter, next_empty_blist)
     EXPECT_STRCASEEQ(fds_blist_iter_err(&it), OK_MSG);
     ASSERT_EQ(it._private.err_code, FDS_EOC);
     ASSERT_EQ((uint8_t*)it._private.field_next, (uint8_t*)it._private.blist_end);
-    ASSERT_EQ(it._private.info.offset, 0);
-    ASSERT_EQ(it._private.info.length, 0);
+    ASSERT_EQ(it.field.info->offset, 0);
+    ASSERT_EQ(it.field.info->length, 0);
 }
 
 /*
@@ -285,7 +285,7 @@ TEST_F(blistIter, next_varlen_data_short)
     char out[15];
 
     fds_blist_iter_init(&it, &field_varlen_elems_short, ie_mgr);
-    ASSERT_EQ(it._private.info.length,FDS_IPFIX_VAR_IE_LEN);
+    ASSERT_EQ(it.field.info->length,FDS_IPFIX_VAR_IE_LEN);
 
     // Short var-length header
     int ret = fds_blist_iter_next(&it);

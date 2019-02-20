@@ -412,9 +412,10 @@ struct fds_blist_iter {
  * \brief Initialize basicList data type iterator
  *
  * \warning
- *   After initialization the iterator has initialized only internal structures but public part
- *   is still undefined i.e. doesn't point to the first field in the list. To get the first field
- *   see fds_blist_iter_next().
+ *   After initialization the iterator has initialized only private structures but in the public
+ *   part only semantic is specified. However, the content of the Data Field is still undefined i.e.
+ *   it doesn't point to the first field in the list. To get the first field see
+ *   fds_blist_iter_next().
  * \note
  *   If Information Manager \p ie_mgr is defined, the iterator will try to find definition of the
  *   field and properly fill \ref fds_tfield.def pointer. However, keep on mind that the definition

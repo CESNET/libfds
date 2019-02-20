@@ -890,6 +890,27 @@ TEST_F(drecIter, overReverseDirection)
     }
 }
 
+// Check if padding fields are shown if the padding flag is set
+TEST_F(drecIter, showPadding)
+{
+    struct fds_drec_iter iter;
+    fds_drec_iter_init(&iter, &rec, FDS_DREC_PADDING_SHOW);
+
+    const unsigned int padding_exp = 2U;
+    unsigned int padding_cnt = 0;
+
+    while (fds_drec_iter_next(&iter) != FDS_EOC) {
+        // Check if the field is padding
+        if (iter.field.info->en != 0 || iter.field.info->id != 210) {
+            continue;
+        }
+
+        ++padding_cnt;
+    }
+
+    EXPECT_EQ(padding_cnt, padding_exp);
+}
+
 // ITERATOR - find --------------------------------------------------------------------------------
 
 // Try to find missing field

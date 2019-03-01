@@ -149,7 +149,11 @@ enum fds_drec_iter_flags {
      * The flag can be combined with ::FDS_DREC_REVERSE_SKIP. In this case, the reverse filter
      * is applied on remapped template fields.
      */
-    FDS_DREC_BIFLOW_REV   = (1 << 3)
+    FDS_DREC_BIFLOW_REV   = (1 << 3),
+    /**
+     * \brief Do not skip Padding fields (PEN: 0, IE: 210, "paddingOctets")
+     */
+    FDS_DREC_PADDING_SHOW = (1 << 4)
 };
 
 /**

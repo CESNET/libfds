@@ -167,15 +167,16 @@ fds_drec_iter_next(struct fds_drec_iter *iter)
 
         // Update info about the next record
         iter->_private.next_offset = offset + field_size;
+
         // Check padding field
-        if (field_def->id == IPFIX_PADDING_IE
+        const uint16_t flags = iter->_private.flags;
+        if ((flags & FDS_DREC_PADDING_SHOW) == 0 && field_def->id == IPFIX_PADDING_IE
                 && (field_def->en == IANA_PEN_FWD || field_def->en == IANA_PEN_REV)) {
             // Skip this field
             continue;
         }
 
         // Check flags
-        const uint16_t flags = iter->_private.flags;
         if (flags == 0) {
             break;
         }

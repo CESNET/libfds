@@ -452,6 +452,89 @@ struct __attribute__((__packed__)) fds_ipfix_dset {
     uint8_t records[1];
 };
 
+ /** Size of basicList header without Enterprise number            */
+#define FDS_IPFIX_BLIST_SHORT_HDR_LEN 5U
+
+/** Size of basicList header when the Enterprise number is present */
+#define FDS_IPFIX_BLIST_LONG_HDR_LEN 9U
+
+/** Structured data type semantics */
+enum fds_ipfix_list_semantics {
+    FDS_IPFIX_LIST_NONE_OF          = 0,  /**< "noneOf" structured data type semantic         */
+    FDS_IPFIX_LIST_EXACTLY_ONE_OF   = 1,  /**< "exactlyOneOf" structured data type semantic   */
+    FDS_IPFIX_LIST_ONE_OR_MORE_OF   = 2,  /**< "oneOrMoreOf" structured data type semantic    */
+    FDS_IPFIX_LIST_ALL_OF           = 3,  /**< "allOf" structured data type semantic          */
+    FDS_IPFIX_LIST_ORDERED          = 4,  /**< "ordered" structured data type semantic        */
+    FDS_IPFIX_LIST_UNDEFINED        = 255 /**< "undefined" structured data type semantic      */
+};
+
+/**
+ * \struct fds_ipfix_blist
+ * \brief  IPFIX basicList header structure
+ *
+ * The type "basicList" represents a list of zero or more instances of
+ * any Information Element, primarily used for single-valued data types.
+ * Minimal size of basicList header is 5 bytes (::FDS_IPFIX_BLIST_SHORT_HDR_LEN)
+ * but if the Enterprise number is present in this header, the minimal size is 9 bytes
+ * (::FDS_IPFIX_BLIST_LONG_HDR_LEN).
+ */
+struct __attribute__((__packed__)) fds_ipfix_blist {
+    /**
+     * The Semantic field indicates the relationship among the different
+     * Information Element values within this Structured Data Information
+     * Element.  Refer to IANA's "IPFIX Structured Data Types Semantics"
+     * registry.
+     */
+    uint8_t semantic;
+
+    /**
+     * Field ID is the Information Element identifier of the Information
+     * Element(s) contained in the list.
+     */
+    uint16_t field_id;
+
+    /**
+     * Per Section 7 of [RFC5101], the Element Length field indicates the
+     * length, in octets, of each list element specified by Field ID, or
+     * contains the value 0xFFFF if the length is encoded as a variable-
+     * length Information Element at the start of the basicList Content.
+     */
+    uint16_t element_length;
+
+    /**
+     * If the Enterprise bit in Field ID (most significant bit in Field ID) is set to 1,
+     * 4-byte enterprise number is present. Otherwise it MUST NOT be used and data present
+     * at this location is not valid.
+     */
+    uint32_t enterprise_number;
+};
+
+/**
+ * \brief Minimal length of the header of subTemplateList
+ * \note Represents total length the list with zero Data Records i.e. only Semantic and Template ID
+ *   is present.
+ */
+#define FDS_IPFIX_STLIST_HDR_LEN 3U
+/**
+ * \brief Minimal length of the header of subTemplateMultiList
+ * \note Represents total length the list with zero Data Records i.e. only Semantic
+ */
+#define FDS_IPFIX_STMULTILIST_HDR_LEN 1U
+
+/**
+ * \struct fds_ipfix_stlist
+ * \brief  Common header structure of subTemplateList and subTemplateMultiList
+ */
+struct __attribute__((__packed__)) fds_ipfix_stlist {
+    /** Semantic of the lists */
+    uint8_t semantic;
+    /**
+     * The Template ID field contains the ID of the Template used to encode and decode the
+     * subTemplateList Content or following Data Records in case of subTemplateMultiList.
+     */
+    uint16_t template_id;
+};
+
 /**@}*/
 
 #endif /* FDS_IPFIX_STRUCTS_H */

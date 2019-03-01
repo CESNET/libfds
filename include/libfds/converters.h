@@ -960,6 +960,8 @@ fds_get_mac(const void *field, size_t size, void *value)
  *   because it just copy a raw content of memory. Therefore, it is up to user
  *   to make sure that value is in the appropriate order in the memory of the
  *   the host computer.
+ * \note The \p size of the \p field can be also zero.
+ *
  * \param[in]  field  Pointer to a data field
  * \param[in]  size   Size of the data field
  * \param[out] value  Pointer to the output buffer
@@ -971,10 +973,6 @@ fds_get_mac(const void *field, size_t size, void *value)
 static inline int
 fds_get_octet_array(const void *field, size_t size, void *value)
 {
-    if (size == 0) {
-        return FDS_ERR_ARG;
-    }
-
     memcpy(value, field, size);
     return FDS_OK;
 }
@@ -984,21 +982,20 @@ fds_get_octet_array(const void *field, size_t size, void *value)
  *
  * \note This function should be independent of endianness of a host computer
  *   because string is always stored as an array of individual bytes.
+ * \note The \p size of the \p field can be also zero.
+ *
  * \param[in]  field  Pointer to a data field
  * \param[in]  size   Size of the data field
  * \param[out] value  Pointer to the output buffer
  * \remark Can be implemented as a wrapper over memcpy.
  * \warning The \p value MUST be at least \p size bytes long.
+ * \warning The terminating null byte is not added!
  * \return On success returns #FDS_OK. Otherwise returns
  *   #FDS_ERR_ARG.
  */
 static inline int
 fds_get_string(const void *field, size_t size, char *value)
 {
-    if (size == 0) {
-        return FDS_ERR_ARG;
-    }
-
     memcpy(value, field, size);
     return FDS_OK;
 }

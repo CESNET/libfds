@@ -30,6 +30,7 @@ add_subdirectory(drec)
 add_subdirectory(converters)
 add_subdirectory(parsers)
 add_subdirectory(file)
+add_subdirectory(filter)
 
 # Create a dynamic library from all source code
 add_library(
@@ -42,7 +43,7 @@ add_library(
 	$<TARGET_OBJECTS:converters_obj>   # Converters
 	$<TARGET_OBJECTS:parsers_obj>      # Parsers
 	$<TARGET_OBJECTS:file_obj>         # File
-
+	$<TARGET_OBJECTS:filter_obj>       # Filter
 	${PROJECT_SOURCE_DIR}/include/libfds/
 )
 

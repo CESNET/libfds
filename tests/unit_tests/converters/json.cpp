@@ -14,6 +14,11 @@
 #include <gtest/gtest.h>
 #include <MsgGen.h>
 
+// Add JSON parser
+#define CONFIGURU_IMPLEMENTATION 1
+#include "tools/configuru.hpp"
+using namespace configuru;
+
 // Path to file with defintion of Information Elements
 static const char *cfg_path = "data/iana.xml";
 
@@ -158,7 +163,7 @@ protected:
 };
 
 // Convert Data Record with default flags to user provided buffer (without reallocation support)
-TEST_F(Drec_basic, simpleParser)
+TEST_F(Drec_basic, defaultConverter)
 {
     size_t buffer_size = 2048;
     std::unique_ptr<char[]> buffer_data(new char[buffer_size]);
@@ -170,11 +175,28 @@ TEST_F(Drec_basic, simpleParser)
     EXPECT_EQ(strlen(buffer_ptr), size_t(rc));
     EXPECT_EQ(buffer_size, buffer_size_orig);
 
-    // TODO: parse the output and compare it with expected values
+    // Try to parse the JSON string and check values
+    Config cfg;
+    ASSERT_NO_THROW(cfg = parse_string(buffer_ptr, JSON, "drec2json"));
+    EXPECT_EQ((std::string) cfg["iana:sourceIPv4Address"], VALUE_SRC_IP4);
+    EXPECT_EQ((std::string) cfg["iana:destinationIPv4Address"], VALUE_DST_IP4);
+    EXPECT_EQ((uint16_t) cfg["iana:sourceTransportPort"], VALUE_SRC_PORT);
+    EXPECT_EQ((uint16_t) cfg["iana:destinationTransportPort"], VALUE_DST_PORT);
+    EXPECT_EQ((uint16_t) cfg["iana:protocolIdentifier"], VALUE_PROTO);
+    EXPECT_EQ((uint64_t) cfg["iana:flowStartMilliseconds"], VALUE_TS_FST);
+    EXPECT_EQ((uint64_t) cfg["iana:flowEndMilliseconds"], VALUE_TS_LST);
+    EXPECT_EQ((uint64_t) cfg["iana:octetDeltaCount"], VALUE_BYTES);
+    EXPECT_EQ((uint64_t) cfg["iana:packetDeltaCount"], VALUE_PKTS);
+    EXPECT_EQ((uint8_t)  cfg["iana:tcpControlBits"], VALUE_TCPBITS);
+
+    // Check if the field with unknown definition of IE is present
+    EXPECT_TRUE(cfg.has_key("en10000:id100"));
+    // Padding field(s) should not be in the JSON
+    EXPECT_FALSE(cfg.has_key("iana:paddingOctets"));
 }
 
 // Convert Data Record to JSON and make the parser to allocate buffer for us
-TEST_F(Drec_basic, parserAlloc)
+TEST_F(Drec_basic, defaultConverterWithAlloc)
 {
     char *buffer = nullptr;
     size_t buffer_size = 0;
@@ -185,7 +207,10 @@ TEST_F(Drec_basic, parserAlloc)
     EXPECT_NE(buffer_size, 0U);
     EXPECT_EQ(strlen(buffer), size_t(rc));
 
-    // TODO: parse the output and compare it with expected values
+    // Try to parse the JSON string and check values
+    Config cfg;
+    ASSERT_NO_THROW(cfg = parse_string(buffer, JSON, "drec2json"));
+    // TODO: implement me!
 
     free(buffer);
 }
@@ -284,13 +309,22 @@ class Drec_biflow : public Drec_base {
 // Convert Data Record with default flags to user provided buffer (without reallocation support)
 TEST_F(Drec_biflow, simpleParser)
 {
-    // TODO
+    // TODO: implement me!
+
+    // NOTE: "iana:interfaceName" has multiple occurrences, therefore, it MUST be converted
+    //  into an array i.e. "iana:interfaceName" : ["", "enp0s31f6"]
+
+    // EXPECT_TRUE(cfg["iana:interfaceName"].is_array());
+    // auto cfg_arr = cfg["iana:interfaceName"].as_array();
+    // EXPECT_EQ(cfg_arr.size(), 2U);
+    // EXPECT_NE(cfg_arr.find(VALUE_IFC1), cfg_arr.end());
+    // EXPECT_NE(cfg_arr.find(VALUE_IFC2), cfg_arr.end());
 }
 
 // Convert Data Record from reverse point of view
 TEST_F(Drec_biflow, reverseView)
 {
-    // TODO
+    // TODO: implement me!
 }
 
 

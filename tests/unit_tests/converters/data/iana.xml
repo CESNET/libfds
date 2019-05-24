@@ -1028,4 +1028,12 @@ and will be lost when the list is regenerated.
         <dataSemantics>default</dataSemantics>
         <status>current</status>
     </element>
+
+    <element>
+        <id>210</id>
+        <name>paddingOctets</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>default</dataSemantics>
+        <status>current</status>
+    </element>
 </ipfix-elements>

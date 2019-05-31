@@ -1036,4 +1036,61 @@ and will be lost when the list is regenerated.
         <dataSemantics>default</dataSemantics>
         <status>current</status>
     </element>
+
+    <element>
+        <id>1000</id>
+        <name>myFloat64</name>
+        <dataType>float64</dataType>
+        <dataSemantics>default</dataSemantics>
+        <status>current</status>
+    </element>
+
+    <element>
+        <id>1001</id>
+        <name>myBool</name>
+        <dataType>boolean</dataType>
+        <dataSemantics>default</dataSemantics>
+        <status>current</status>
+    </element>
+
+    <element>
+        <id>1002</id>
+        <name>myInt</name>
+        <dataType>signed8</dataType>
+        <dataSemantics>default</dataSemantics>
+        <status>current</status>
+    </element>
+
+    <element>
+        <id>1003</id>
+        <name>myFloat32</name>
+        <dataType>float32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <status>current</status>
+    </element>
+
+    <element>
+        <id>1004</id>
+        <name>myPInf</name>
+        <dataType>float64</dataType>
+        <dataSemantics>default</dataSemantics>
+        <status>current</status>
+    </element>
+
+    <element>
+        <id>1005</id>
+        <name>myMInf</name>
+        <dataType>float64</dataType>
+        <dataSemantics>default</dataSemantics>
+        <status>current</status>
+    </element>
+
+    <element>
+        <id>1006</id>
+        <name>myNan</name>
+        <dataType>float64</dataType>
+        <dataSemantics>default</dataSemantics>
+        <status>current</status>
+    </element>
+
 </ipfix-elements>

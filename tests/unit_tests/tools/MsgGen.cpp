@@ -434,6 +434,32 @@ ipfix_drec::append_ip(const std::string &value)
 }
 
 void
+ipfix_drec::append_mac(const std::string &value)
+{
+    uint8_t out_buff[6];
+    char last;
+    unsigned int buffer[6];
+    size_t size = 6;
+
+    if (std::sscanf(value.c_str(),
+        "%02x:%02x:%02x:%02x:%02x:%02x%c",
+        &buffer[0], &buffer[1], &buffer[2],
+        &buffer[3], &buffer[4], &buffer[5], &last) != 6)
+   {
+       throw std::invalid_argument("Unable to parse MAC address!");
+   }
+
+   for (int i = 0; i < 6; i++){
+       out_buff[i] = buffer[i];
+   }
+
+   uint8_t *mem = mem_reserve(size);
+   if (fds_set_mac(mem, size, out_buff) != FDS_OK) {
+       throw std::invalid_argument("fds_set_mac() failed!");
+   }
+}
+
+void
 ipfix_drec::append_octets(const void *data, uint16_t data_len, bool var_field)
 {
     if (var_field) {

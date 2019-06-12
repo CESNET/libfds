@@ -34,13 +34,14 @@ macro(ADD_ZSTD_COMPILATION_FLAGS)
         EnableCompilerFlag("-Wcast-qual" true true)
         EnableCompilerFlag("-Wstrict-prototypes" true false)
         EnableCompilerFlag("-fPIC" true true)
+        EnableCompilerFlag("-fvisibility=hidden" true true)
     elseif (MSVC) # Add specific compilation flags for Windows Visual
 
         set(ACTIVATE_MULTITHREADED_COMPILATION "ON" CACHE BOOL "activate multi-threaded compilation (/MP flag)")
         if (CMAKE_GENERATOR MATCHES "Visual Studio" AND ACTIVATE_MULTITHREADED_COMPILATION)
             EnableCompilerFlag("/MP" true true)
         endif ()
-        
+
         # UNICODE SUPPORT
         EnableCompilerFlag("/D_UNICODE" true true)
         EnableCompilerFlag("/DUNICODE" true true)

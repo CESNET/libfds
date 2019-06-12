@@ -75,20 +75,20 @@ extern "C" {
 *  LZ4LIB_VISIBILITY :
 *  Control library symbols visibility.
 */
-#ifndef LZ4LIB_VISIBILITY
-#  if defined(__GNUC__) && (__GNUC__ >= 4)
-#    define LZ4LIB_VISIBILITY __attribute__ ((visibility ("default")))
-#  else
+//#ifndef LZ4LIB_VISIBILITY
+//#  if defined(__GNUC__) && (__GNUC__ >= 4)
+//#    define LZ4LIB_VISIBILITY __attribute__ ((visibility ("default")))
+//#  else
 #    define LZ4LIB_VISIBILITY
-#  endif
-#endif
-#if defined(LZ4_DLL_EXPORT) && (LZ4_DLL_EXPORT==1)
-#  define LZ4LIB_API __declspec(dllexport) LZ4LIB_VISIBILITY
-#elif defined(LZ4_DLL_IMPORT) && (LZ4_DLL_IMPORT==1)
-#  define LZ4LIB_API __declspec(dllimport) LZ4LIB_VISIBILITY /* It isn't required but allows to generate better code, saving a function pointer load from the IAT and an indirect jump.*/
-#else
+//#  endif
+//#endif
+//#if defined(LZ4_DLL_EXPORT) && (LZ4_DLL_EXPORT==1)
+//#  define LZ4LIB_API __declspec(dllexport) LZ4LIB_VISIBILITY
+//#elif defined(LZ4_DLL_IMPORT) && (LZ4_DLL_IMPORT==1)
+//#  define LZ4LIB_API __declspec(dllimport) LZ4LIB_VISIBILITY /* It isn't required but allows to generate better code, saving a function pointer load from the IAT and an indirect jump.*/
+//#else
 #  define LZ4LIB_API LZ4LIB_VISIBILITY
-#endif
+//#endif
 
 /*------   Version   ------*/
 #define LZ4_VERSION_MAJOR    1    /* for breaking interface changes  */

@@ -52,17 +52,27 @@ endif()
 
 option(ENABLE_DOC            "Enable documentation building"            OFF)
 option(ENABLE_TESTS          "Build Unit tests (make test)"     ${TESTS_DEFAULT})
+option(ENABLE_TESTS_INTERNAL "Build Unit tests that don't use public API" OFF)
 option(ENABLE_TESTS_VALGRIND "Build Unit tests with Valgrind Memcheck"  OFF)
 option(PACKAGE_BUILDER_RPM   "Enable RPM package builder (make rpm)"    OFF)
 option(PACKAGE_BUILDER_DEB   "Enable DEB package builder (make deb)"    OFF)
 
 ## -----------------------------------------------------------------------------
 # Hard coded definitions
-set(CMAKE_C_FLAGS            "${CMAKE_C_FLAGS} -fvisibility=hidden -std=gnu11")
+
+if (NOT ENABLE_TESTS_INTERNAL)
+	# Hide functions that doesn't belong to the public API
+	set(CMAKE_C_FLAGS        "${CMAKE_C_FLAGS} -fvisibility=hidden")
+	set(CMAKE_CXX_FLAGS      "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+else()
+	message(WARNING "Internal Unit Tests enabled! Do not use this version in production!")
+endif()
+
+set(CMAKE_C_FLAGS            "${CMAKE_C_FLAGS} -std=gnu11")
 set(CMAKE_C_FLAGS_RELEASE    "-O2 -DNDEBUG")
 set(CMAKE_C_FLAGS_DEBUG      "-g -O0 -Wall -Wextra -pedantic")
 set(CMAKE_C_FLAGS_COVERAGE   "${CMAKE_C_FLAGS_DEBUG} --coverage -fprofile-arcs -ftest-coverage")
-set(CMAKE_CXX_FLAGS          "${CMAKE_CXX_FLAGS} -fvisibility=hidden -std=gnu++11")
+set(CMAKE_CXX_FLAGS          "${CMAKE_CXX_FLAGS} -std=gnu++11")
 set(CMAKE_CXX_FLAGS_RELEASE  "-O2 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG    "-g -O0 -Wall -Wextra -pedantic")
 set(CMAKE_CXX_FLAGS_COVERAGE "${CMAKE_CXX_FLAGS_DEBUG} --coverage -fprofile-arcs -ftest-coverage")

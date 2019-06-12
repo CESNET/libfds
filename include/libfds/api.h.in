@@ -80,8 +80,11 @@ extern "C" {
 #define FDS_ERR_BUFFER          (-7)
 /** Status code for denied operation                                          */
 #define FDS_ERR_DENIED          (-8)
-/** Status code for modification error                                         */
+/** Status code for modification error                                        */
 #define FDS_ERR_DIFF            (-9)
+
+/** Internal error (can be also caused by malformed file)                     */
+#define FDS_ERR_INTERNAL        (-100)
 
 /**
  * \brief Get the default directory with configuration

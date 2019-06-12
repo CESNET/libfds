@@ -79,6 +79,7 @@ scope_copy(const fds_iemgr_scope_inter* scope)
         res->names.emplace_back(elem->name, elem);
     }
 
+    scope_sort(res.get());
     return res.release();
 }
 

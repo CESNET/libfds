@@ -235,6 +235,8 @@ fds_tmgr_set_snapshot_timeout(fds_tmgr_t *tmgr, uint16_t timeout);
  *   overwritten with new ones. If a definition of an IE was previously available in the older
  *   manager and the new manager doesn't include the definition, the definition will be removed
  *   and corresponding fields will not be interpretable.
+ *   Technically, all templates and snapshots are replaces with new copies and old copies are moved
+ *   to the garbage that should be retrieved using fds_tmgr_garbage_get().
  * \warning If the manager \p iemgr is undefined (i.e. NULL), all references will be removed.
  * \warning Keep in mind this operation is VERY expensive if the manager already includes templates
  *   and snapshots!

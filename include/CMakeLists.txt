@@ -14,12 +14,13 @@ set(SUB_HEADERS
 	libfds/converters.h
 	libfds/iemgr.h
 	libfds/drec.h
+	libfds/file.h
 	libfds/ipfix_parsers.h
 	libfds/ipfix_structs.h
 	libfds/template.h
 	libfds/template_mgr.h
 	libfds/xml_parser.h
-	)
+)
 
 # Installation targets
 install(

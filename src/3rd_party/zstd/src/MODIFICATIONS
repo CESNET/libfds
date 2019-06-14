@@ -1,0 +1,7 @@
+lib/zstd.h
+  - disable visibility modifications ZSTDLIB_VISIBILITY + ZSTDLIB_VISIBILITY
+lib/common/zstd_errrors.h
+  - disable visibility modifications ZSTDERRORLIB_VISIBILITY + ZSTDERRORLIB_API
+CMakeModules/AddZstdCompilationFlags.cmake
+  - add EnableCompilerFlag("-fvisibility=hidden" true true)
+  - add EnableCompilerFlag("-fPIC" true true)

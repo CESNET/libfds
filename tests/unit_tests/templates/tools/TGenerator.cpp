@@ -31,6 +31,8 @@ TGenerator& TGenerator::operator=(TGenerator &&obj)
 {
     if (this != &obj) {
         data = std::move(obj.data);
+        size_alloc = obj.size_alloc;
+        size_used = obj.size_used;
     }
 
     return *this;

@@ -1,0 +1,2 @@
+lz4.h
+- disable visibility modifications LZ4LIB_VISIBILITY + LZ4LIB_API

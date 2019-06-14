@@ -78,7 +78,8 @@ if (ENABLE_TESTS_VALGRIND)
 		"--quiet"
 		"--error-exitcode=1"
 		"--num-callers=32"
-		)
+		"--suppressions=${CMAKE_SOURCE_DIR}/CMakeModules/valgrind/fds.supp"
+	)
 endif()
 
 # ------------------------------------------------------------------------------

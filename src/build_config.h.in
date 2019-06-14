@@ -121,6 +121,11 @@
 	#define FDS_BUILD_ARCH "unknown"
 #endif
 
+// Use system-installed LZ4 library
+#cmakedefine USE_SYSTEM_LZ4
+// Use system-installed ZSTD library
+#cmakedefine USE_SYSTEM_ZSTD
+
 /**@}*/
 
 #endif /* _BUILD_CONFIG_ */

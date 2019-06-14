@@ -295,7 +295,7 @@ struct __attribute__((__packed__)) fds_ipfix_tset {
     struct fds_ipfix_set_hdr header;
 
     /**
-     * The first of templates records in this Template Set. Real size of the record is unknown
+     * The first of template records in this Template Set. Real size of the record is unknown
      * here due to a variable count of fields in each record.
      */
     struct fds_ipfix_trec first_record;

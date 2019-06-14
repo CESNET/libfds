@@ -193,12 +193,13 @@ struct fds_dset_iter {
  *
  * \warning
  *   After initialization the iterator has initialized only internal structures but public part
- *   is still undefined i.e. doesn't point to the first Set in the Message. To get the first field
- *   see fds_dset_iter_next().
+ *   is still undefined i.e. doesn't point to the first Record in the Data Set. To get the first
+ *   field see fds_dset_iter_next().
  * \warning
  *   Make sure that the length of allocated memory of the Set is at least the same as the length
- *   from the Set header before using the iterator.
- * \param[in] it    Iterator structure to initialize
+ *   from the Set header before using the iterator. Not required if you got the Set from
+ *   fds_sets_iter_next().
+ * \param[in] it    Uninitialized structure
  * \param[in] set   Data set header to iterate through
  * \param[in] tmplt Parsed template of Data Records
  */
@@ -277,7 +278,7 @@ fds_dset_iter_err(const struct fds_dset_iter *it);
  * @{
  */
 
-/** Iterator over template records in an IPFIX Template Set  */
+/** Iterator over template records in an IPFIX (Options) Template Set  */
 struct fds_tset_iter {
     union {
         /** Start of the Template Record            (field_cnt > 0 && scope_cnt == 0) */
@@ -311,19 +312,20 @@ struct fds_tset_iter {
 };
 
 /**
- * \brief Initialize IPFIX Template records iterator
+ * \brief Initialize IPFIX (Options) Template records iterator
  *
  * \note
  *   Set ID of the \p set MUST be 2 (::FDS_IPFIX_SET_TMPLT) or 3 (::FDS_IPFIX_SET_OPTS_TMPLT).
  *   Otherwise behavior of the parser is undefined.
  * \warning
  *   After initialization the iterator has initialized only internal structures but public part
- *   is still undefined i.e. doesn't point to the first Set in the Message. To get the first field
+ *   is still undefined i.e. doesn't point to the first Record in the Set. To get the first field
  *   see fds_tset_iter_next().
  * \warning
  *   Make sure that the length of allocated memory of the Set is at least the same as the length
- *   from the Set header before using the iterator.
- * \param[in] it  Iterator structure to initialize
+ *   from the Set header before using the iterator. Not required if you got the Set from
+ *   fds_sets_iter_next().
+ * \param[in] it  Uninitialized structure
  * \param[in] set (Options) Template Set header to iterate through
  */
 FDS_API void

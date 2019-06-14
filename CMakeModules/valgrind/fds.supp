@@ -1,0 +1,23 @@
+#
+# Errors to suppress during unit tests under Valgrind
+#
+# The following suppressions represent memory-leaks in 3rd party
+# libraries that cannot be fixed by libfds developers.
+#
+
+# POSIX asynchronous I/O (usually from librt)
+{
+   <aio_write>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   fun:aio_write
+}
+{
+   <aio_read>
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   fun:aio_read
+}
+

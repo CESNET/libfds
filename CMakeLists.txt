@@ -24,6 +24,9 @@ include(CMakeModules/install_dirs.cmake)
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 
+# Include custom FindXXX modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
+
 CHECK_C_COMPILER_FLAG(-std=gnu11 COMPILER_SUPPORT_GNU11)
 if (NOT COMPILER_SUPPORT_GNU11)
 	message(FATAL_ERROR "Compiler does NOT support C11 with GNU extension")
@@ -56,6 +59,8 @@ option(ENABLE_TESTS_INTERNAL "Build Unit tests that don't use public API" OFF)
 option(ENABLE_TESTS_VALGRIND "Build Unit tests with Valgrind Memcheck"  OFF)
 option(PACKAGE_BUILDER_RPM   "Enable RPM package builder (make rpm)"    OFF)
 option(PACKAGE_BUILDER_DEB   "Enable DEB package builder (make deb)"    OFF)
+option(USE_SYSTEM_LZ4        "Use system-installed LZ4 library"         ON)
+option(USE_SYSTEM_ZSTD       "Use system-installed ZSTD library"        ON)
 
 ## -----------------------------------------------------------------------------
 # Hard coded definitions

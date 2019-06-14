@@ -816,8 +816,7 @@ RECURSIVE              = YES
 # run.
 
 EXCLUDE                = @PROJECT_SOURCE_DIR@/src/proposals/
-EXCLUDE               += @PROJECT_SOURCE_DIR@/src/file/lz4/
-EXCLUDE               += @PROJECT_SOURCE_DIR@/src/file/zstd/
+EXCLUDE               += @PROJECT_SOURCE_DIR@/src/3rd_party/
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded

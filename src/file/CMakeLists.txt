@@ -34,10 +34,6 @@ set(FILE_SRC
     File_reader.hpp
     File_writer.cpp
     File_writer.hpp
-
-    # Compression algorithms
-    lz4/lz4.c
-    lz4/lz4.h
 )
 
 add_library(file_obj OBJECT ${FILE_SRC})

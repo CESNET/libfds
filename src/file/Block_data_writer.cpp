@@ -11,11 +11,12 @@
 #include <cassert>
 
 #include <libfds.h>
+#include <fds_lz4.h>
+#include <fds_zstd.h>
+
 #include "Block_data_writer.hpp"
 #include "File_exception.hpp"
 #include "Io_sync.hpp"
-#include "lz4/lz4.h"
-#include "zstd/lib/zstd.h"
 
 using namespace fds_file;
 

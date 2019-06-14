@@ -4,6 +4,7 @@ Flow Data Storage library
 The library provides components for parsing and processing IPFIX Messages.
 
 Available components:
+
 - IPFIX Data structure parsers
 - IPFIX Data Record iterators (with Biflow support)
 - IPFIX Template manager
@@ -23,7 +24,7 @@ write a new output plugin for the collector.
 How to build
 ------------
 
-Install build dependencies of the library
+First of all, install build dependencies of the library
 
 **RHEL/CentOS:**
 
@@ -35,7 +36,7 @@ Install build dependencies of the library
 * Note: latest systems (e.g. Fedora) use ``dnf`` instead of ``yum``.
 * Note: if ZSTD library (``libzstd-devel``) is not available, you can try to
   add official EPEL repository (``yum -y install epel-release``) and install
-  it again. Alternatively, it's also possible to use libfds embedded version
+  it again. Alternatively, it's also possible to use embedded version
   of the library by passing additional option ``-DUSE_SYSTEM_ZSTD=off`` 
   to ``cmake ..`` while building.
 * Note: if LZ4 library (``lz4-devel``) is not available for your distribution
@@ -50,7 +51,7 @@ Install build dependencies of the library
     # Optionally: doxygen pkg-config
 
 * Note: if ZSTD library (``libzstd-dev``) or LZ4 library (``liblz4-dev``),
-  is not available for your distribution or you prefer to use libfds embedded
+  is not available for your distribution or you prefer to use embedded
   versions of these libraries, you can pass additional option
   ``-DUSE_SYSTEM_LZ4=off``, resp. ``-DUSE_SYSTEM_ZSTD=off`` to ``cmake ..`` 
   while building.

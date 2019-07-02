@@ -1,9 +1,16 @@
 #ifndef FDS_FILTER_AST_H
 #define FDS_FILTER_AST_H
-#include <libfds.h>
 
-fds_filter_ast_node_t *ast_create(fds_filter_op_t op, fds_filter_ast_node_t *left, fds_filter_ast_node_t *right);
+#include "api.h"
 
-void ast_destroy(fds_filter_ast_node_t *node);
+struct fds_filter_ast_node *
+ast_node_create();
+
+void 
+ast_destroy(struct fds_filter_ast_node *node);
+
+void 
+ast_print(FILE *outstream, struct fds_filter_ast_node *node);
+
 
 #endif // FDS_FILTER_AST_H

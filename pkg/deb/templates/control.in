@@ -5,11 +5,13 @@ Section:           libs
 Priority:          optional
 Standards-Version: 3.9.8
 Build-Depends:     debhelper (>= 10), cmake (>= 2.8.8), doxygen, make,
-                   gcc (>= 4.8), g++ (>= 4.8), libxml2-dev, pkg-config
+                   gcc (>= 4.8), g++ (>= 4.8), libxml2-dev, pkg-config,
+                   liblz4-dev, libzstd-dev
 
 Package:           @CPACK_PACKAGE_NAME@
 Architecture:      any
-Depends:           ${shlibs:Depends}, ${misc:Depends}, libxml2
+Depends:           ${shlibs:Depends}, ${misc:Depends}, libxml2,
+                   liblz4-1, libzstd1
 Description:       @CPACK_PACKAGE_DESCRIPTION_SUMMARY@
  libfds is library for processing IPFIX flow data.
  It provides tools for processing records and management of templates and

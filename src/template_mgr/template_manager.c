@@ -1809,6 +1809,41 @@ fds_tsnapshot_template_get(const fds_tsnapshot_t *snap, uint16_t id)
     return (rec != NULL) ? rec->ptr : NULL;
 }
 
+/// Auxiliary internal data structure for public snapshot iterator
+struct tsnapshot_cb_data {
+    /// User defined callback
+    fds_tsnapshot_for_cb cb;
+    /// User data for the user callback
+    void *data;
+};
+
+/**
+ * @brief Auxiliary callback wrapper for public snapshot iterator
+ *
+ * The wrapper makes sure that the user defined callback gets only access to the
+ * IPFIX (Options) Template. Other internal structures of the snapshot are hidden
+ * for users.
+ * @param[in] rec  Snapshot record to process
+ * @param[in] data Internal data structure of the public snapshot iterator
+ * @return Return value of the user defined callback after its execution
+ */
+static bool
+tsnapshot_cb_aux(struct snapshot_rec *rec, void *data)
+{
+    struct tsnapshot_cb_data *for_data = (struct tsnapshot_cb_data *) data;
+    return for_data->cb(rec->ptr, for_data->data);
+}
+
+void
+fds_tsnapshot_for(const fds_tsnapshot_t *snap, fds_tsnapshot_for_cb cb, void *data)
+{
+    // Ugly, but the callback cannot modify the snapshot, so it should be OK
+    fds_tsnapshot_t *snap_orig = (fds_tsnapshot_t *) snap;
+
+    struct tsnapshot_cb_data for_data = {cb, data};
+    snapshot_rec_for(snap_orig, &tsnapshot_cb_aux, &for_data);
+}
+
 int
 fds_tmgr_template_get(fds_tmgr_t *tmgr, uint16_t id, const struct fds_template **tmplt)
 {

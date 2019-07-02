@@ -761,6 +761,91 @@ TEST_P(Common, ieManagerRedefine)
     }
 }
 
+// Auxiliary data structure used in a callback function of a snapshot iterator
+struct snapshot_iterator_data {
+    // List of visited Template IDs
+    std::set<uint16_t> ids;
+    // Callback function fails (i.e. returns false) if the limit is equal to zero
+    ssize_t limit;
+};
+
+// Auxiliary callback function
+bool snapshot_iterator_cb(const struct fds_template *tmplt, void *data)
+{
+    auto my_data = reinterpret_cast<snapshot_iterator_data *>(data);
+
+    // Check whether the callback function should "fail"
+    EXPECT_GE(my_data->limit, 0) << "Called with negative limit value!";
+    if (my_data->limit <= 0) {
+        my_data->limit = -1;
+        return false;
+    }
+    my_data->limit--;
+
+    if (tmplt->id % 2 == 0) {
+        // Biflow Template
+        EXPECT_EQ(tmplt->type, FDS_TYPE_TEMPLATE);
+    } else {
+        // Options Template
+        EXPECT_EQ(tmplt->type, FDS_TYPE_TEMPLATE_OPTS);
+    }
+
+    my_data->ids.emplace(tmplt->id);
+    return true;
+}
+
+// Try to iterate over a Template snapshot
+TEST_P(Common, snapshotIterator)
+{
+    // Add few Templates to the manager
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 123456), FDS_OK);
+
+    // The list must be sorted and all values must be unique!
+    std::initializer_list<uint16_t> list = {256, 257, 511, 512, 513, 564, 1000, 1457, 2234, 65535};
+    for (auto it : list) {
+        struct fds_template *tmplt_ptr;
+        if (it % 2 == 0) { // Even Template IDs belong to biflow template
+            tmplt_ptr = TMock::create(TMock::type::DATA_BASIC_BIFLOW, it);
+        } else { // Odd Template IDs belong to an options template
+            tmplt_ptr = TMock::create(TMock::type::OPTS_MPROC_STAT, it);
+        }
+        EXPECT_EQ(fds_tmgr_template_add(tmgr, tmplt_ptr), FDS_OK);
+    }
+
+    // Get the snapshot
+    const struct fds_tsnapshot *snap = nullptr;
+    ASSERT_EQ(fds_tmgr_snapshot_get(tmgr, &snap), FDS_OK);
+    ASSERT_NE(snap, nullptr);
+
+    // Call the snapshot function for each Template in the snapshot
+    struct snapshot_iterator_data cb_data;
+    cb_data.limit = list.size() + 1; // Enough to process all Templates and limit should remain 1U
+
+    fds_tsnapshot_for(snap, &snapshot_iterator_cb, &cb_data);
+    // Check if all Templates have been visited
+    EXPECT_EQ(cb_data.limit, 1U);
+    EXPECT_EQ(cb_data.ids.size(), list.size());
+    for (uint16_t item : list) {
+        SCOPED_TRACE("item: " + std::to_string(item));
+        EXPECT_NE(cb_data.ids.find(item), cb_data.ids.end());
+    }
+
+    // Try to use the iterator again, but make sure that the callback will not process all Templates
+    ssize_t tmplt_cnt = 5;
+    cb_data.ids.clear();
+    cb_data.limit = tmplt_cnt; // return "false" after 5 processed templates
+
+    fds_tsnapshot_for(snap, &snapshot_iterator_cb, &cb_data);
+    EXPECT_EQ(cb_data.limit, -1);
+    EXPECT_EQ(cb_data.ids.size(), size_t(tmplt_cnt));
+
+    auto list_pos = list.begin();
+    std::advance(list_pos, tmplt_cnt);
+    for (auto it = list.begin(); it < list_pos; ++it) {
+        SCOPED_TRACE("item: " + std::to_string(*it));
+        EXPECT_NE(cb_data.ids.find(*it), cb_data.ids.end());
+    }
+}
 
 
 // TODO: Multiple updates of the same template at the same time + cleanup

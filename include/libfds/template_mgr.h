@@ -422,6 +422,34 @@ fds_tmgr_snapshot_get(const fds_tmgr_t *tmgr, const fds_tsnapshot_t **snap);
 FDS_API const struct fds_template *
 fds_tsnapshot_template_get(const fds_tsnapshot_t *snap, uint16_t id);
 
+
+/**
+ * \brief Function callback for processing an IPFIX (Options) Template in a snapshot
+ *
+ * \param[in] tmplt Template to process
+ * \param[in] data  User defined data for the callback (optional, can be NULL)
+ *
+ * \warning
+ *   Propagation of C++ exceptions is not supported! In other words, no exceptions must be
+ *   thrown in the callback function!
+ * \return True if the iteration should continue.
+ * \return False if the iteration should be immediately terminated.
+ */
+typedef bool (*fds_tsnapshot_for_cb)(const struct fds_template *tmplt, void *data);
+
+/**
+ * \brief Call a function on each IPFIX (Options) Template in a snapshot
+ *
+ * This function allows you to effectively iterate over all IPFIX (Options) Templates defined
+ * in the snapshot. It is guaranteed that the templates will be processed in the order given by
+ * their Template ID in ascending order.
+ * \param[in] snap Snapshot to iterate over
+ * \param[in] cb   Callback function to be called for each IPFIX (Options) Template
+ * \param[in] data User defined data that will be passed to the callback function (can be NULL)
+ */
+FDS_API void
+fds_tsnapshot_for(const fds_tsnapshot_t *snap, fds_tsnapshot_for_cb cb, void *data);
+
 /**
  * @}
  */

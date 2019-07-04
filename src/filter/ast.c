@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "ast.h"
+#include "error.h"
 
 struct fds_filter_ast_node *
 ast_node_create()
 {
-    struct fds_filter_ast_node *node = malloc(sizeof(node));
+    struct fds_filter_ast_node *node = malloc(sizeof(*node));
     if (node == NULL) {
         return NULL;
     }
@@ -15,6 +17,8 @@ ast_node_create()
     node->identifier_id = 0;
     node->identifier_name = NULL;
     node->type = FDS_FILTER_TYPE_NONE;
+    node->subtype = FDS_FILTER_TYPE_NONE;
+	node->identifier_is_constant = 0;
     memset(&node->value, 0, sizeof(node->value));
     node->location.first_line = 0;
     node->location.last_line = 0;
@@ -46,60 +50,60 @@ ast_print(FILE *outstream, struct fds_filter_ast_node *node)
     for (int i = 0; i < level; i++) { 
         fprintf(outstream, "    "); 
     }
-	fprintf(outstream, "(%s, ", fds_filter_op_str[node->op]);
+	fprintf(outstream, "(%s, ", ast_op_to_str(node->op));
     if (node->op == FDS_FILTER_AST_IDENTIFIER) {
-        fprintf(outstream, "name: %s, id: %d, ", node->identifier.name, node->identifier.id, fds_filter_datatype_str[node->data.type]);
+        fprintf(outstream, "name: %s, id: %d, ", node->identifier_name, node->identifier_id, type_to_str(node->type));
 	}
-	fprintf(outstream, "type: %s, ", fds_filter_datatype_str[node->data.type]);
-	fprintf(outstream, "value: ", fds_filter_datatype_str[node->data.type]);
-	switch (node->data.type) {
+	fprintf(outstream, "type: %s, ", type_to_str(node->type));
+	fprintf(outstream, "value: ", type_to_str(node->type));
+	switch (node->type) {
 	case FDS_FILTER_TYPE_BOOL:
-		fprintf(outstream, "%s", node->data.value.int_ != 0 ? "true" : "false");
+		fprintf(outstream, "%s", node->value.int_ != 0 ? "true" : "false");
 		break;
 	case FDS_FILTER_TYPE_STR:
-		fprintf(outstream, "%*s", node->data.value.string.length, node->data.value.string.chars);
+		fprintf(outstream, "%*s", node->value.string.length, node->value.string.chars);
 		break;
 	case FDS_FILTER_TYPE_INT:
-		fprintf(outstream, "%d", node->data.value.int_);
+		fprintf(outstream, "%d", node->value.int_);
 		break;
 	case FDS_FILTER_TYPE_UINT:
-		fprintf(outstream, "%u", node->data.value.uint_);
+		fprintf(outstream, "%u", node->value.uint_);
 		break;
 	case FDS_FILTER_TYPE_IP_ADDRESS:
-		if (node->data.value.ip_address.version == 4) {
+		if (node->value.ip_address.version == 4) {
 			fprintf(outstream, "%d.%d.%d.%d", 
-					node->data.value.ip_address.bytes[0], 
-					node->data.value.ip_address.bytes[1], 
-					node->data.value.ip_address.bytes[2], 
-					node->data.value.ip_address.bytes[3]);
+					node->value.ip_address.bytes[0], 
+					node->value.ip_address.bytes[1], 
+					node->value.ip_address.bytes[2], 
+					node->value.ip_address.bytes[3]);
 		} else {
 			fprintf(outstream, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
-					node->data.value.ip_address.bytes[0], 
-					node->data.value.ip_address.bytes[1], 
-					node->data.value.ip_address.bytes[2], 
-					node->data.value.ip_address.bytes[3], 
-					node->data.value.ip_address.bytes[4], 
-					node->data.value.ip_address.bytes[5], 
-					node->data.value.ip_address.bytes[6], 
-					node->data.value.ip_address.bytes[7], 
-					node->data.value.ip_address.bytes[8], 
-					node->data.value.ip_address.bytes[9], 
-					node->data.value.ip_address.bytes[10], 
-					node->data.value.ip_address.bytes[11], 
-					node->data.value.ip_address.bytes[12], 
-					node->data.value.ip_address.bytes[13], 
-					node->data.value.ip_address.bytes[14], 
-					node->data.value.ip_address.bytes[15]);
+					node->value.ip_address.bytes[0], 
+					node->value.ip_address.bytes[1], 
+					node->value.ip_address.bytes[2], 
+					node->value.ip_address.bytes[3], 
+					node->value.ip_address.bytes[4], 
+					node->value.ip_address.bytes[5], 
+					node->value.ip_address.bytes[6], 
+					node->value.ip_address.bytes[7], 
+					node->value.ip_address.bytes[8], 
+					node->value.ip_address.bytes[9], 
+					node->value.ip_address.bytes[10], 
+					node->value.ip_address.bytes[11], 
+					node->value.ip_address.bytes[12], 
+					node->value.ip_address.bytes[13], 
+					node->value.ip_address.bytes[14], 
+					node->value.ip_address.bytes[15]);
 		}
 		break;
 	case FDS_FILTER_TYPE_MAC_ADDRESS:
 		fprintf(outstream, "%02x:%02x:%02x:%02x:%02x:%02x", 
-				node->data.value.mac_address[0], 
-				node->data.value.mac_address[1], 
-				node->data.value.mac_address[2], 
-				node->data.value.mac_address[3], 
-				node->data.value.mac_address[4], 
-				node->data.value.mac_address[5]);
+				node->value.mac_address[0], 
+				node->value.mac_address[1], 
+				node->value.mac_address[2], 
+				node->value.mac_address[3], 
+				node->value.mac_address[4], 
+				node->value.mac_address[5]);
 		break;
 	}
 	fprintf(outstream, ")\n");

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 static char *
 str_vprintf(char *str, const char *format, va_list args) 
@@ -20,6 +21,7 @@ str_vprintf(char *str, const char *format, va_list args)
     return new_str;
 }
 
+#if 0
 static char *
 str_printf(char *str, const char *format, ...) 
 {
@@ -29,9 +31,10 @@ str_printf(char *str, const char *format, ...)
     va_end(args);
     return new_str;
 }
+#endif
 
 
-static const struct fds_filter_error_s OUT_OF_MEMORY_ERROR = { "out of memory", { 0, 0, 0, 0 } };
+static const struct error OUT_OF_MEMORY_ERROR = { "out of memory", { -1, -1, -1, -1 } };
 
 void
 error_init(struct fds_filter *filter)
@@ -41,9 +44,9 @@ error_init(struct fds_filter *filter)
 }
 
 void
-error_location_message(struct fds_filter *filter, struct fds_filter_ast_node *node, const char *format, ...)
+error_location_message(struct fds_filter *filter, struct fds_filter_location location, const char *format, ...)
 {
-    struct error *new_errors = realloc(filter->errors, (filter->error_count + 1) * sizeof(new_errors));
+    struct error *new_errors = realloc(filter->errors, (filter->error_count + 1) * sizeof(*new_errors));
     if (new_errors == NULL) {
         error_no_memory(filter);
         return;
@@ -51,11 +54,8 @@ error_location_message(struct fds_filter *filter, struct fds_filter_ast_node *no
     filter->error_count++;
     filter->errors = new_errors;
     struct error *error = &filter->errors[filter->error_count - 1];
-    error->first_line = node->first_line;
-    error->last_line = node->last_line;
-    error->first_column = node->first_line;
-    error->last_column = node->last_column;
-    
+    error->location = location;
+
     va_list args;
     va_start(args, format);
     error->message = str_vprintf(NULL, format, args);
@@ -77,11 +77,8 @@ error_message(struct fds_filter *filter, const char *format, ...)
     filter->error_count++;
     filter->errors = new_errors;
     struct error *error = &filter->errors[filter->error_count - 1];
-    error->first_line = -1;
-    error->last_line = -1;
-    error->first_column = -1;
-    error->last_column = -1;
-    
+    error->location = (struct fds_filter_location) { -1, -1, -1, -1 };
+
     va_list args;
     va_start(args, format);
     error->message = str_vprintf(NULL, format, args);
@@ -117,15 +114,15 @@ const char *
 type_to_str(int type)
 {
     switch (type) {
-        case FDS_FILTER_TYPE_NONE:        return "NONE";
-        case FDS_FILTER_TYPE_STR:         return "STR";
-        case FDS_FILTER_TYPE_UINT:        return "UINT";
-        case FDS_FILTER_TYPE_INT:         return "INT";
-        case FDS_FILTER_TYPE_FLOAT:       return "FLOAT";
-        case FDS_FILTER_TYPE_BOOL:        return "BOOL";
-        case FDS_FILTER_TYPE_IP_ADDRESS:  return "IP_ADDRESS";
-        case FDS_FILTER_TYPE_MAC_ADDRESS: return "MAC_ADDRESS";
-        default:                          assert(0);
+    case FDS_FILTER_TYPE_NONE:        return "NONE";
+    case FDS_FILTER_TYPE_STR:         return "STR";
+    case FDS_FILTER_TYPE_UINT:        return "UINT";
+    case FDS_FILTER_TYPE_INT:         return "INT";
+    case FDS_FILTER_TYPE_FLOAT:       return "FLOAT";
+    case FDS_FILTER_TYPE_BOOL:        return "BOOL";
+    case FDS_FILTER_TYPE_IP_ADDRESS:  return "IP_ADDRESS";
+    case FDS_FILTER_TYPE_MAC_ADDRESS: return "MAC_ADDRESS";
+    default:                          assert(0);
     }
 }
 
@@ -156,6 +153,7 @@ ast_op_to_str(int op)
     case FDS_FILTER_AST_CONST:      return "CONST";
     case FDS_FILTER_AST_IDENTIFIER: return "IDENTIFIER";
     case FDS_FILTER_AST_LIST:       return "LIST";
+    case FDS_FILTER_AST_LIST_ITEM:  return "LIST_ITEM";
     case FDS_FILTER_AST_IN:         return "IN";
     case FDS_FILTER_AST_CONTAINS:   return "CONTAINS";
     case FDS_FILTER_AST_CAST:       return "CAST";

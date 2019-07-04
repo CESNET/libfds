@@ -1,8 +1,14 @@
 #ifndef FDS_FILTER_EVALUATE_H
 #define FDS_FILTER_EVALUATE_H
 
-#include "api.h"
-#include "filter.h"
+#include <libfds.h>
+#include <string.h>
+#include <stdlib.h>
+
+// #include "filter.h"
+struct fds_filter;
+// Fix for a circular dependency
+// TODO: solve this a better way
 
 enum opcode {
     NONE = 0,
@@ -38,7 +44,6 @@ enum opcode {
     CMP_LT_INT,
     CMP_GE_INT,
     CMP_LE_INT,
-    CMP_EQ_INT,
 
     ADD_FLOAT,
     SUB_FLOAT,
@@ -86,5 +91,14 @@ struct evaluate_context {
     int instructions_count;
     struct instruction *instructions;
 };
+
+void
+evaluate_context_init(struct evaluate_context *ec);
+
+void
+evaluate_context_destroy(struct evaluate_context *ec);
+
+int
+evaluate(struct fds_filter *filter, struct evaluate_context *ec, void *data);
 
 #endif // FDS_FILTER_EVALUATE_H

@@ -1,7 +1,8 @@
 #ifndef FDS_FILTER_AST_H
 #define FDS_FILTER_AST_H
 
-#include "api.h"
+#include <libfds.h>
+#include <stdio.h>
 
 struct fds_filter_ast_node *
 ast_node_create();

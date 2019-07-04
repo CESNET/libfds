@@ -64,8 +64,8 @@
 [ \t]                      { /* do nothing */ }
 
 ((src|dst|in|out|ingress|egress)\s+)?[a-zA-Z][a-zA-Z0-9@:\-\.]* { 
-    yylval_param->ast.value.string.chars = strdup(yytext);
-    if (yylval_param->ast.value.string.chars == NULL) {
+    yylval_param->ast.identifier_name = strdup(yytext);
+    if (yylval_param->ast.identifier_name == NULL) {
         error_no_memory(filter);
         return ERROR_ABORT;
     }
@@ -94,11 +94,11 @@
     return STR;
 }
  
- /* uint */
+ /* int */
 [0-9]+ { 
     char *unused;
-    yylval_param->ast.type = FDS_FILTER_TYPE_UINT;
-    yylval_param->ast.value.uint_ = strtoul(yytext, &unused, 10);
+    yylval_param->ast.type = FDS_FILTER_TYPE_INT;
+    yylval_param->ast.value.int_ = strtoul(yytext, &unused, 10);
     return UINT;
 }
 

@@ -459,6 +459,14 @@ ipfix_drec::append_mac(const std::string &value)
    }
 }
 
+void ipfix_drec::append_stlist(const ipfix_stlist &stlist) {
+    const uint8_t *src = stlist.front();
+    const size_t size = stlist.size();
+
+    uint8_t *dst = mem_reserve(size);
+    std::memcpy(dst, src, size);
+}
+
 void
 ipfix_drec::append_octets(const void *data, uint16_t data_len, bool var_field)
 {

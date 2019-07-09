@@ -1433,6 +1433,7 @@ enum fds_convert_drec2json {
  * @param[in]     rec      IPFIX Data Record to convert
  * @param[in]     flags    Conversion flags (see ::fds_convert_drec2json)
  * @param[out]    str      Output buffer where the JSON string will be stored
+ * @patam[in]     ie_mgr   Information Element manager (can be NULL)
  * @param[in,out] str_size Size of the output buffer
  *
  * \return On success returns a number of characters (excluding the termination
@@ -1446,7 +1447,7 @@ enum fds_convert_drec2json {
  *   if #FDS_CD2J_ALLOW_REALLOC is set or \p str contains reference to NULL)
  */
 FDS_API int
-fds_drec2json(const struct fds_drec *rec, uint32_t flags, char **str,
+fds_drec2json(const struct fds_drec *rec, uint32_t flags, const fds_iemgr_t *ie_mgr, char **str,
     size_t *str_size);
 
 
@@ -1460,4 +1461,3 @@ fds_drec2json(const struct fds_drec *rec, uint32_t flags, char **str,
  * @}
  * @}
  */
-

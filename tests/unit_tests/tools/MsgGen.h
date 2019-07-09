@@ -16,6 +16,7 @@ class ipfix_drec;
 class ipfix_trec;
 class ipfix_set;
 class ipfix_blist;
+class ipfix_stlist;
 
 
 class ipfix_buffer {
@@ -310,6 +311,9 @@ public:
 
     void
     append_blist(const ipfix_blist &blist);
+
+    void
+    append_stlist(const ipfix_stlist &stlist);
 };
 
 class ipfix_field : public ipfix_drec {

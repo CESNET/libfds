@@ -170,7 +170,8 @@ TEST_F(Drec_basic, defaultConverter)
 
     const size_t buffer_size_orig = buffer_size;
     char *buffer_ptr = buffer_data.get();
-    int rc = fds_drec2json(&m_drec, 0, &buffer_ptr, &buffer_size);
+
+    int rc = fds_drec2json(&m_drec, 0, m_iemgr.get(), &buffer_ptr, &buffer_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(strlen(buffer_ptr), size_t(rc));
     EXPECT_EQ(buffer_size, buffer_size_orig);
@@ -200,7 +201,7 @@ TEST_F(Drec_basic, defaultConverterWithAlloc)
     char *buffer = nullptr;
     size_t buffer_size = 0;
 
-    int rc = fds_drec2json(&m_drec, 0, &buffer, &buffer_size);
+    int rc = fds_drec2json(&m_drec, 0, m_iemgr.get(), &buffer, &buffer_size);
     ASSERT_GT(rc, 0);
     ASSERT_NE(buffer, nullptr);
     EXPECT_NE(buffer_size, 0U);
@@ -221,7 +222,7 @@ TEST_F(Drec_basic, tooShortBuffer)
     size_t buffer_size = BSIZE;
 
     char *buffer_ptr = buffer_data;
-    ASSERT_EQ(fds_drec2json(&m_drec, 0, &buffer_ptr, &buffer_size), FDS_ERR_BUFFER);
+    ASSERT_EQ(fds_drec2json(&m_drec, 0, m_iemgr.get(), &buffer_ptr, &buffer_size), FDS_ERR_BUFFER);
     EXPECT_EQ(buffer_size, BSIZE);
 }
 
@@ -233,7 +234,7 @@ TEST_F(Drec_basic, allowRealloc)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     EXPECT_NE(buff_size, BSIZE);
@@ -248,7 +249,7 @@ TEST_F(Drec_basic, tcpFlag)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC | FDS_CD2J_FORMAT_TCPFLAGS;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     EXPECT_NE(buff_size, BSIZE);
@@ -345,7 +346,7 @@ TEST_F(Drec_biflow, simpleParser)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
     size_t buff_size = BSIZE;
 
-   int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+   int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
    ASSERT_GT(rc, 0);
    EXPECT_EQ(size_t(rc), strlen(buff));
    Config cfg = parse_string(buff, JSON, "drec2json");
@@ -365,7 +366,7 @@ TEST_F(Drec_biflow, numID)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC | FDS_CD2J_NUMERIC_ID;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     EXPECT_NE(buff_size, BSIZE);
@@ -409,7 +410,7 @@ TEST_F(Drec_biflow, reverseView)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC | FDS_CD2J_NUMERIC_ID | FDS_CD2J_BIFLOW_REVERSE;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     EXPECT_NE(buff_size, BSIZE);
@@ -430,7 +431,7 @@ TEST_F(Drec_biflow, errorBuff)
     uint32_t def_flags = FDS_CD2J_ALLOW_REALLOC;
     size_t def_buff_size = BSIZE;
 
-    int def_rc = fds_drec2json(&m_drec, def_flags, &def_buff, &def_buff_size);
+    int def_rc = fds_drec2json(&m_drec, def_flags, m_iemgr.get(), &def_buff, &def_buff_size);
     ASSERT_GT(def_rc, 0);
     EXPECT_EQ(size_t(def_rc), strlen(def_buff));
     EXPECT_NE(def_buff_size, BSIZE);
@@ -440,7 +441,7 @@ TEST_F(Drec_biflow, errorBuff)
         char*  new_buff= (char*) malloc(i);
         uint32_t new_flags = 0;
         size_t new_buff_size = i;
-        int new_rc = fds_drec2json(&m_drec, new_flags, &new_buff, &new_buff_size);
+        int new_rc = fds_drec2json(&m_drec, new_flags, m_iemgr.get(), &new_buff, &new_buff_size);
         EXPECT_EQ(new_rc, FDS_ERR_BUFFER);
         free(new_buff);
     }
@@ -454,7 +455,7 @@ TEST_F(Drec_biflow, timeFormat)
     char* buff = NULL;
     uint32_t flags = FDS_CD2J_TS_FORMAT_MSEC;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     Config cfg = parse_string(buff, JSON, "drec2json");
     EXPECT_EQ( cfg["iana:flowStartNanoseconds"], "2018-04-02T11:59:22.000Z");
@@ -471,7 +472,7 @@ TEST_F(Drec_biflow, protoFormat)
     uint32_t flags = FDS_CD2J_FORMAT_PROTO;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     Config cfg = parse_string(buff, JSON, "drec2json");
     EXPECT_EQ( cfg["iana:protocolIdentifier"], "UDP");
@@ -487,7 +488,7 @@ TEST_F(Drec_biflow, nonPrint)
     uint32_t flags = FDS_CD2J_NON_PRINTABLE;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     Config cfg = parse_string(buff, JSON, "drec2json");
 
@@ -589,9 +590,9 @@ TEST_F(Drec_extra, testTypes)
     constexpr size_t BSIZE = 10U;
     char* buff = (char*) malloc(BSIZE);
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
-    size_t buff_size = BSIZE;
+    size_t buff_size = BSIZE;//
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     Config cfg = parse_string(buff, JSON, "drec2json");
@@ -612,7 +613,7 @@ TEST_F(Drec_extra, nonPrintable)
     uint32_t flags = FDS_CD2J_NON_PRINTABLE | FDS_CD2J_ALLOW_REALLOC;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     Config cfg = parse_string(buff, JSON, "drec2json");
@@ -629,7 +630,7 @@ TEST_F(Drec_extra, printableChar)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     Config cfg = parse_string(buff, JSON, "drec2json");
@@ -647,7 +648,7 @@ TEST_F(Drec_extra, extraValue)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     EXPECT_NE(buff_size, BSIZE);
@@ -670,7 +671,7 @@ TEST_F(Drec_extra, otherChar)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     EXPECT_NE(buff_size, BSIZE);
@@ -688,7 +689,7 @@ TEST_F(Drec_extra, macAdr)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     EXPECT_NE(buff_size, BSIZE);
@@ -706,7 +707,7 @@ TEST_F(Drec_extra, octVal)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_NE(buff_size, BSIZE);
     Config cfg = parse_string(buff, JSON, "drec2json");
@@ -723,7 +724,7 @@ TEST_F(Drec_extra, forLoop)
     uint32_t def_flags = FDS_CD2J_ALLOW_REALLOC;
     size_t def_buff_size = BSIZE;
 
-    int def_rc = fds_drec2json(&m_drec, def_flags, &def_buff, &def_buff_size);
+    int def_rc = fds_drec2json(&m_drec, def_flags, m_iemgr.get(), &def_buff, &def_buff_size);
     ASSERT_GT(def_rc, 0);
     EXPECT_NE(def_buff_size, BSIZE);
     EXPECT_EQ(size_t(def_rc), strlen(def_buff));
@@ -736,7 +737,7 @@ TEST_F(Drec_extra, forLoop)
         uint32_t new_flags = FDS_CD2J_ALLOW_REALLOC;
         size_t new_buff_size = i;
 
-        int new_rc = fds_drec2json(&m_drec, new_flags, &new_buff, &new_buff_size);
+        int new_rc = fds_drec2json(&m_drec, new_flags, m_iemgr.get(), &new_buff, &new_buff_size);
         EXPECT_GT(new_rc, 0);
         free(new_buff);
     }
@@ -751,7 +752,7 @@ TEST_F(Drec_extra, flagSize2)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC | FDS_CD2J_FORMAT_TCPFLAGS;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     EXPECT_NE(buff_size, BSIZE);
@@ -806,10 +807,6 @@ protected:
     uint16_t    VALUE_DST_PORT   = 80;
     bool        VALUE_MY_BOOL    = true;
 
-    // drec.append_datetime(VALUE_TS_FST, FDS_ET_DATE_TIME_NANOSECONDS);
-
-    // uint64_t    VALUE_TS_FST   = 1522670362000ULL;
-
 };
 
 //  Test for adding null in case of unvalid field
@@ -820,7 +817,7 @@ TEST_F(Drec_unvalid, unvalidField)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
     size_t buff_size = BSIZE;
 
-   int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+   int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
    ASSERT_GT(rc, 0);
    EXPECT_EQ(size_t(rc), strlen(buff));
    Config cfg = parse_string(buff, JSON, "drec2json");
@@ -846,7 +843,7 @@ TEST_F(Drec_unvalid, nullInMulti)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
     size_t buff_size = BSIZE;
 
-    int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     Config cfg = parse_string(buff, JSON, "drec2json");
@@ -868,7 +865,7 @@ TEST_F(Drec_unvalid, zeroSizeStr)
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
     size_t buff_size = BSIZE;
 
-   int rc = fds_drec2json(&m_drec, flags, &buff, &buff_size);
+   int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
    ASSERT_GT(rc, 0);
    EXPECT_EQ(size_t(rc), strlen(buff));
    Config cfg = parse_string(buff, JSON, "drec2json");
@@ -881,7 +878,792 @@ TEST_F(Drec_unvalid, zeroSizeStr)
    free(buff);
 }
 
+// -------------------------------------------------------------------------------------------------
+/// IPFIX Data Record with basicList
+class Drec_basicLists : public Drec_base {
+protected:
+    /// Before each Test case
+    void SetUp() override {
+        Drec_base::SetUp();
+
+        // Prepare an IPFIX Template
+        ipfix_trec trec{256};
+        trec.add_field(  8, 4);             // sourceIPv4Address
+        trec.add_field( 12, 4);             // destinationIPv4Address
+        trec.add_field(  7, 2);             // sourceTransportPort
+        trec.add_field( 11, 2);             // destinationTransportPort
+        trec.add_field(  4, 1);             // protocolIdentifier
+        trec.add_field(484, ipfix_trec::SIZE_VAR); // bgpSourceCommunityList (empty)
+        trec.add_field(485, ipfix_trec::SIZE_VAR); // bgpDestinationCommunityList (non-empty)
+        trec.add_field(291, ipfix_trec::SIZE_VAR); // basicList (of observationDomainName strings)
+        trec.add_field(487, ipfix_trec::SIZE_VAR); // bgpSourceExtendedCommunityList (empty)
+        trec.add_field(488, ipfix_trec::SIZE_VAR); // bgpDestinationExtendedCommunityList (empty)
+        trec.add_field(490, ipfix_trec::SIZE_VAR); // bgpSourceLargeCommunityList (empty)
+        trec.add_field(491, ipfix_trec::SIZE_VAR); // bgpDestinationLargeCommunityList (empty)
+
+        // Prepare an empty basicList (i.e. bgpSourceCommunityList of bgpCommunity)
+        ipfix_blist blist_empty;
+        blist_empty.header_short(FDS_IPFIX_LIST_NONE_OF, 483, 4);
+
+        // Prepare a single element basicList (i.e. bgpDestinationCommunityList of bgpCommunity)
+        ipfix_field fields_one;
+        fields_one.append_uint(VALUE_BGP_DST, 4);
+        ipfix_blist blist_one;
+        blist_one.header_short(FDS_IPFIX_LIST_ALL_OF, 483, 4);
+        blist_one.append_field(fields_one);
+
+        // Prepare a basicList of strings (i.e. basicList of observationDomainName)
+        ipfix_field fields_multi;
+        fields_multi.append_string(VALUE_BLIST_STR1);
+        fields_multi.var_header(VALUE_BLIST_STR2.length(), false); // empty string (only header)
+        fields_multi.append_string(VALUE_BLIST_STR3);
+        ipfix_blist blist_multi;
+        blist_multi.header_short(FDS_IPFIX_LIST_UNDEFINED, 300, FDS_IPFIX_VAR_IE_LEN);
+        blist_multi.append_field(fields_multi);
+
+        //
+        ipfix_field fields_oneof;
+        fields_oneof.append_uint(VALUE_MY_BOOL, 4);
+        ipfix_blist blist_oneof;
+        blist_oneof.header_short(FDS_IPFIX_LIST_EXACTLY_ONE_OF, 1001, 4);
+        blist_oneof.append_field(fields_oneof);
+
+        ipfix_blist blist_one_or_more;
+        blist_one_or_more.header_short(FDS_IPFIX_LIST_ONE_OR_MORE_OF, 488, 4);
+
+        ipfix_blist blist_order;
+        blist_order.header_short(FDS_IPFIX_LIST_ORDERED, 490, 4);
+
+        ipfix_field fields_octet;
+        fields_octet.append_octets(VALUE_APP_ID1.c_str(),(uint16_t)10, false);
+        fields_octet.append_octets(VALUE_APP_ID2.c_str(),(uint16_t)10, false);
+        ipfix_blist blist_octet;
+        blist_octet.header_short(FDS_IPFIX_LIST_UNDEFINED, 1110, 10);
+        blist_octet.append_field(fields_octet);
+
+        // Prepare an IPFIX Data Record
+        ipfix_drec drec{};
+        drec.append_ip(VALUE_SRC_IP4);
+        drec.append_ip(VALUE_DST_IP4);
+        drec.append_uint(VALUE_SRC_PORT, 2);
+        drec.append_uint(VALUE_DST_PORT, 2);
+        drec.append_uint(VALUE_PROTO, 1);
+        drec.var_header(blist_empty.size()); // bgpSourceCommunityList
+        drec.append_blist(blist_empty);
+        drec.var_header(blist_one.size());   // bgpDestinationCommunityList
+        drec.append_blist(blist_one);
+        drec.var_header(blist_multi.size()); // basicList
+        drec.append_blist(blist_multi);
+        drec.var_header(blist_oneof.size()); // bgpSourceExtendedCommunityList
+        drec.append_blist(blist_oneof);
+        drec.var_header(blist_one_or_more.size()); // bgpDestinationExtendedCommunityList
+        drec.append_blist(blist_one_or_more);
+        drec.var_header(blist_order.size()); // bgpSourceLargeCommunityList
+        drec.append_blist(blist_order);
+        drec.var_header(blist_octet.size()); // bgpDestinationLargeCommunityList
+        drec.append_blist(blist_octet);
+
+        register_template(trec);
+        drec_create(256, drec);
+    }
+    uint32_t    VALUE_BGP_DST    = 23;
+    std::string VALUE_UNV_STR    = "\x33";
+    std::string VALUE_BLIST_STR1 = "RandomString";
+    std::string VALUE_BLIST_STR2 = "";
+    std::string VALUE_BLIST_STR3 = "Another non-empty string";
+    std::string VALUE_SRC_IP4    = "127.0.0.1";
+    std::string VALUE_DST_IP4    = "8.8.8.8";
+    std::string VALUE_APP_ID1     = "\x33\x23\x24\x30\x31\x32\x34\x35\x36\x37"; // 3#$0124567
+    std::string VALUE_APP_ID2     = "\x33\x23\x24\x30\x31\x32\x34\x35\x36\x37"; // 3#$0124567
+    uint16_t    VALUE_SRC_PORT   = 65000;
+    uint16_t    VALUE_DST_PORT   = 80;
+    uint8_t     VALUE_PROTO      = 6; // TCP
+    bool        VALUE_MY_BOOL    = 21;
+};
+
+TEST_F(Drec_basicLists, simple)
+{
+    char *buffer = nullptr;
+    size_t buffer_size = 0;
+
+    int rc = fds_drec2json(&m_drec, 0, m_iemgr.get(), &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+
+    free(buffer);
+}
+
+TEST_F(Drec_basicLists, rightValues)
+{
+    char *buffer = nullptr;
+    size_t buffer_size = 0;
+    uint32_t flags = 0;
+
+    auto iemgr = m_iemgr.get();
+    int rc = fds_drec2json(&m_drec, flags, iemgr, &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+
+    Config cfg = parse_string(buffer, JSON, "drec2json");
+    ASSERT_TRUE(cfg["iana:bgpSourceCommunityList"].is_object());
+    ASSERT_TRUE(cfg["iana:bgpDestinationCommunityList"].is_object());
+    ASSERT_TRUE(cfg["iana:basicList"].is_object());
+
+    auto& src_obj = cfg["iana:bgpSourceCommunityList"];
+    auto& dst_obj = cfg["iana:bgpDestinationCommunityList"];
+    auto& basic_obj = cfg["iana:basicList"];
+    auto& ext_src_obj = cfg["iana:bgpSourceExtendedCommunityList"];
+    auto& octet_obj = cfg["iana:bgpDestinationLargeCommunityList"];
+
+
+    EXPECT_TRUE(src_obj["data"].is_array());
+    EXPECT_TRUE(dst_obj["data"].is_array());
+    EXPECT_TRUE(basic_obj["data"].is_array());
+    EXPECT_TRUE(octet_obj["data"].is_array());
+    EXPECT_TRUE(ext_src_obj["data"].is_array());
+
+    auto dst_data_arr = dst_obj["data"].as_array();
+    auto basic_data_arr = basic_obj["data"].as_array();
+    auto octet_data_arr = octet_obj["data"].as_array();
+    auto ext_src_data_arr = ext_src_obj["data"].as_array();
+
+    EXPECT_NE(std::find(dst_data_arr.begin(), dst_data_arr.end(), VALUE_BGP_DST), dst_data_arr.end());
+    EXPECT_NE(std::find(basic_data_arr.begin(), basic_data_arr.end(), VALUE_BLIST_STR1), basic_data_arr.end());
+    EXPECT_NE(std::find(basic_data_arr.begin(), basic_data_arr.end(), VALUE_BLIST_STR2), basic_data_arr.end());
+    EXPECT_NE(std::find(basic_data_arr.begin(), basic_data_arr.end(), VALUE_BLIST_STR3), basic_data_arr.end());
+    EXPECT_EQ(std::find(octet_data_arr.begin(), octet_data_arr.end(), VALUE_APP_ID1), octet_data_arr.end());
+    EXPECT_EQ(std::find(octet_data_arr.begin(), octet_data_arr.end(), VALUE_APP_ID2), octet_data_arr.end());
+    EXPECT_NE(std::find(ext_src_data_arr.begin(), ext_src_data_arr.end(), nullptr), ext_src_data_arr.end());
+
+    free(buffer);
+}
+
+TEST_F(Drec_basicLists, sematic)
+{
+    size_t buffer_size = 2U;
+    char* buffer = (char*) malloc(buffer_size);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
+
+    auto iemgr = m_iemgr.get();
+    int rc = fds_drec2json(&m_drec, flags, iemgr, &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+    Config cfg = parse_string(buffer, JSON, "drec2json");
+
+    auto& src_obj = cfg["iana:bgpSourceCommunityList"];
+    auto& dst_obj = cfg["iana:bgpDestinationCommunityList"];
+    auto& basic_obj = cfg["iana:basicList"];
+    auto& ext_src_obj = cfg["iana:bgpSourceExtendedCommunityList"];
+    auto& ext_dst_obj = cfg["iana:bgpDestinationExtendedCommunityList"];
+    auto& lrg_src_obj = cfg["iana:bgpSourceLargeCommunityList"];
+
+
+    EXPECT_EQ(src_obj["semantic"], "noneOf");
+    EXPECT_EQ(dst_obj["semantic"], "allOf");
+    EXPECT_EQ(basic_obj["semantic"], "undefined");
+    EXPECT_EQ(ext_src_obj["semantic"], "exactlyOneOf");
+    EXPECT_EQ(ext_dst_obj["semantic"], "oneOrMoreOf");
+    EXPECT_EQ(lrg_src_obj["semantic"], "ordered");
+
+    free(buffer);
+}
+
+TEST_F(Drec_basicLists, allocLoop)
+{
+    size_t buffer_size = 2U;
+    char* buffer = (char*) malloc(buffer_size);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
+
+    auto iemgr = m_iemgr.get();
+    int rc = fds_drec2json(&m_drec, flags, iemgr, &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+    Config cfg = parse_string(buffer, JSON, "drec2json");
+
+
+    for (int i = 0; i < rc; i++){
+        size_t new_buff_size = i;
+        char*  new_buff= (char *) malloc(new_buff_size);
+        uint32_t new_flags = FDS_CD2J_ALLOW_REALLOC;
+
+        int new_rc = fds_drec2json(&m_drec, new_flags, m_iemgr.get(), &new_buff, &new_buff_size);
+        ASSERT_GT(new_rc, 0);
+
+        free(new_buff);
+    }
+
+    free(buffer);
+}
+
+// -------------------------------------------------------------------------------------------------
+/// IPFIX Data Record with subTemplateList
+class Drec_subTemplateList : public Drec_base {
+protected:
+    /// Before each Test case
+    void SetUp() override {
+        Drec_base::SetUp();
+
+        // Prepare an IPFIX Template
+        ipfix_trec trec{256};
+        trec.add_field(  7, 2);                    // sourceTransportPort
+        trec.add_field( 27, 16);                   // sourceIPv6Address
+        trec.add_field( 11, 2);                    // destinationTransportPort
+        trec.add_field( 28, 16);                   // destinationIPv6Address
+        trec.add_field(  4, 1);                    // protocolIdentifier
+        trec.add_field(292, ipfix_trec::SIZE_VAR); // subTemplateList
+
+        // Prepare an IPFIX Template for the subTemplateList
+        ipfix_trec sub_trec{257};
+        sub_trec.add_field(459, ipfix_trec::SIZE_VAR); // httpRequestMethod (string)
+        sub_trec.add_field(461, ipfix_trec::SIZE_VAR); // httpRequestTarget (string)
+        sub_trec.add_field(1001, 1);                   // myBool
+
+        // Prepare few Data Records based on the subTemplateList
+        ipfix_drec sub_rec_v1;
+        sub_rec_v1.append_string(VALUE_HTTP_METHOD1);
+        sub_rec_v1.append_string(VALUE_HTTP_TARGET1);
+        sub_rec_v1.append_uint(VALUE_MY_BOLL, 1);
+        ipfix_drec sub_rec_v2;
+        sub_rec_v2.append_string(VALUE_HTTP_METHOD2);
+        sub_rec_v2.append_string(VALUE_HTTP_TARGET2);
+        sub_rec_v2.append_uint(VALUE_MY_BOLL, 1);
+
+        // Prepare a subTemplate field with "sub" Data Records
+        ipfix_stlist st_list;
+        st_list.subTemp_header(FDS_IPFIX_LIST_ALL_OF, 257U);
+        st_list.append_data_record(sub_rec_v1);
+        st_list.append_data_record(sub_rec_v2);
+
+        // Prepare an IPFIX Data Record
+        ipfix_drec drec{};
+        drec.append_uint(VALUE_SRC_PORT, 2);
+        drec.append_ip(VALUE_SRC_IP6);
+        drec.append_uint(VALUE_DST_PORT, 2);
+        drec.append_ip(VALUE_DST_IP6);
+        drec.append_uint(VALUE_PROTO, 1);
+        drec.var_header(st_list.size());
+        drec.append_stlist(st_list);
+
+        register_template(trec);
+        register_template(sub_trec);
+        drec_create(256, drec);
+    }
+
+    std::string VALUE_SRC_IP6  = "2001:db8::2:1";
+    std::string VALUE_DST_IP6  = "fe80::fea9:6fc4:2e98:cdb2";
+    uint16_t    VALUE_SRC_PORT = 1234;
+    uint16_t    VALUE_DST_PORT = 8754;
+    uint8_t     VALUE_PROTO    = 17; // UDP
+    bool        VALUE_MY_BOLL  = 10;
+
+    std::string VALUE_HTTP_METHOD1 = "GET";
+    std::string VALUE_HTTP_METHOD2 = "POST";
+    std::string VALUE_HTTP_TARGET1 = "/api/example/";
+    std::string VALUE_HTTP_TARGET2 = "/api/article/";
+};
+
+// TODO
+TEST_F(Drec_subTemplateList, simple)
+{
+    size_t buffer_size = 2U;
+    char* buffer = (char*) malloc(buffer_size);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
+
+    auto iemgr = m_iemgr.get();
+    int rc = fds_drec2json(&m_drec, flags, iemgr, &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+
+    free(buffer);
+}
+
+TEST_F(Drec_subTemplateList, values)
+{
+    size_t buffer_size = 2U;
+    char* buffer = (char*) malloc(buffer_size);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
+
+    auto iemgr = m_iemgr.get();
+    int rc = fds_drec2json(&m_drec, flags, iemgr, &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+    Config cfg = parse_string(buffer, JSON, "drec2json");
+
+    ASSERT_TRUE(cfg["iana:subTemplateList"].is_object());
+    auto& stlist_obj = cfg["iana:subTemplateList"];
+
+    EXPECT_TRUE(stlist_obj["data"].is_array());
+    auto stlist_arr = stlist_obj["data"].as_array();
+    ASSERT_EQ(stlist_arr.size(),2U);
+
+    for (int i = 0; i < 2; i++){
+        ASSERT_TRUE(stlist_arr[i].is_object());
+    }
+
+    auto& obj0 = stlist_arr[0];
+    EXPECT_EQ(obj0["iana:httpRequestMethod"], VALUE_HTTP_METHOD1);
+    EXPECT_EQ(obj0["iana:httpRequestTarget"], VALUE_HTTP_TARGET1);
+
+    auto& obj1 = stlist_arr[1];
+    EXPECT_EQ(obj1["iana:httpRequestMethod"], VALUE_HTTP_METHOD2);
+    EXPECT_EQ(obj1["iana:httpRequestTarget"], VALUE_HTTP_TARGET2);
+
+    free(buffer);
+}
+
+// -------------------------------------------------------------------------------------------------
+/// IPFIX Data Record with subTemplateMultiList
+class Drec_subTemplateMultiList : public Drec_base{
+protected:
+        /// Before each Test case
+        void SetUp() override {
+            Drec_base::SetUp();
+
+            // Prepare an IPFIX Template
+            ipfix_trec trec{256};
+            trec.add_field( 8, 4); // sourceIPv4Address
+            trec.add_field( 7, 2); // sourceTransportPort
+            trec.add_field(11, 2); // destinationTransportPort
+            trec.add_field( 82, ipfix_trec::SIZE_VAR); // interfaceName
+            trec.add_field(293, ipfix_trec::SIZE_VAR); // subTemplateMultiList
+
+            // Prepare 1. templeta
+            ipfix_trec sub_trec1{257};
+            sub_trec1.add_field(1002, 8); // myInt
+            sub_trec1.add_field(1004, 8); // myMInf
+            // Prepare 2. templeta
+            ipfix_trec sub_trec2{258};
+            sub_trec2.add_field(56, 6); // sourceMacAddress
+            sub_trec2.add_field(94, ipfix_trec::SIZE_VAR);// applicationDescription (string)
+
+            // Prepare first record
+            ipfix_drec sub_drec1;
+            sub_drec1.append_uint(VALUE_MY_INT1, 8);
+            sub_drec1.append_float(VALUE_MY_PINF,8);
+            // Prepare second record
+            ipfix_drec sub_drec2;
+            sub_drec2.append_uint(VALUE_MY_INT2, 8);
+            sub_drec2.append_float(VALUE_MY_PINF,8);
+            ipfix_drec sub_drec3;
+            sub_drec3.append_mac(VALUE_SRC_MAC);
+            sub_drec3.append_string(VALUE_APP_DES);
+
+            // Prepare a subTemplteMultiList field with subTemplateList
+            ipfix_stlist stm_list;
+            stm_list.subTempMulti_header(FDS_IPFIX_LIST_ALL_OF);
+            stm_list.subTempMulti_data_hdr(257, sub_drec1.size() + sub_drec2.size() );
+            stm_list.append_data_record(sub_drec1);
+            stm_list.append_data_record(sub_drec2);
+            stm_list.subTempMulti_data_hdr(258, sub_drec3.size());
+            stm_list.append_data_record(sub_drec3);
+
+            ipfix_drec drec{};
+            drec.append_ip(VALUE_SRC_IP4);
+            drec.append_uint(VALUE_SRC_PORT, 2);
+            drec.append_uint(VALUE_DST_PORT, 2);
+            drec.append_string(VALUE_INF_NAME);
+            drec.var_header(stm_list.size());
+            drec.append_stlist(stm_list);
+
+            register_template(trec);
+            register_template(sub_trec1);
+            register_template(sub_trec2);
+            drec_create(256, drec);
+
+        }
+
+        signed      VALUE_MY_INT1     = 1006;
+        signed      VALUE_MY_INT2     = 10000006;
+        double      VALUE_MY_PINF    = std::numeric_limits<double>::infinity();
+        std::string VALUE_SRC_MAC    = "01:12:1F:13:11:8A";
+        std::string VALUE_APP_DES    = "web\\\nclose\t\"open\bdog\fcat\r\"\x13";
+        std::string VALUE_SRC_IP4    = "127.0.0.1";
+        std::string VALUE_INF_NAME   = "enp0s31f6";
+        uint16_t    VALUE_SRC_PORT   = 1234;
+        uint16_t    VALUE_DST_PORT   = 4321;
+
+};
+
+TEST_F(Drec_subTemplateMultiList, simple)
+{
+    size_t buffer_size = 2U;
+    char* buffer = (char*) malloc(buffer_size);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
+
+    auto iemgr = m_iemgr.get();
+    int rc = fds_drec2json(&m_drec, flags, iemgr, &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+
+    free(buffer);
+}
+
+TEST_F(Drec_subTemplateMultiList, values)
+{
+    size_t buffer_size = 2U;
+    char* buffer = (char*) malloc(buffer_size);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
+
+    auto iemgr = m_iemgr.get();
+    int rc = fds_drec2json(&m_drec, flags, iemgr, &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+    Config cfg = parse_string(buffer, JSON, "drec2json");
+
+    EXPECT_TRUE(cfg["iana:subTemplateMultiList"].is_object());
+
+    auto& cfg_obj = cfg["iana:subTemplateMultiList"];
+    ASSERT_TRUE(cfg_obj["data"].is_array());
+    auto cfg_arr = cfg_obj["data"].as_array();
+
+    for (int i = 0; i < 2; i++){
+        ASSERT_TRUE(cfg_arr[i].is_array());
+    }
+
+    auto main_arr1 = cfg_arr[0].as_array();
+
+    auto& obj1_1 = main_arr1[0];
+    EXPECT_EQ(obj1_1["iana:myInt"], VALUE_MY_INT1);
+    EXPECT_EQ(obj1_1["iana:myPInf"], "Infinity");
+
+    auto& obj1_2 = main_arr1[1];
+    EXPECT_EQ(obj1_2["iana:myInt"], VALUE_MY_INT2);
+    EXPECT_EQ(obj1_2["iana:myPInf"], "Infinity");
+
+    auto main_arr2 = cfg_arr[1].as_array();
+    auto& obj2_1 = main_arr2[0];
+    EXPECT_EQ(obj2_1["iana:sourceMacAddress"], VALUE_SRC_MAC);
+    EXPECT_EQ(obj2_1["iana:applicationDescription"], VALUE_APP_DES);
+
+    free(buffer);
+}
+
+// -------------------------------------------------------------------------------------------------
+/// IPFIX Data Record with subTemplateMultiList
+class Drec_nested_stList_in_blist : public Drec_base{
+protected:
+        /// Before each Test case
+        void SetUp() override {
+            Drec_base::SetUp();
+
+            // Prepare an IPFIX Template
+            ipfix_trec trec{256};
+            trec.add_field( 8, 4); // sourceIPv4Address
+            trec.add_field( 7, 2); // sourceTransportPort
+            trec.add_field(11, 2); // destinationTransportPort
+            trec.add_field(484, ipfix_trec::SIZE_VAR); // bgpSourceCommunityList
+
+            // Prepare 1. templeta
+            ipfix_trec sub_trec1{257};
+            sub_trec1.add_field(82, ipfix_trec::SIZE_VAR); // interfaceName
+            sub_trec1.add_field(1004, 8); // myMInf
+            // Prepare 1.1 data record
+            ipfix_drec rec_1_1;
+            rec_1_1.append_string(VALUE_IFC_NAME1);
+            rec_1_1.append_float(VALUE_MY_PINF,8);
+            // Prepare 1.2 data record
+            ipfix_drec rec_1_2;
+            rec_1_2.append_string(VALUE_IFC_NAME2);
+            rec_1_2.append_float(VALUE_MY_PINF,8);
+            // Prepare 2. templeta
+            ipfix_trec sub_trec2{258};
+            sub_trec2.add_field(56, 6); // sourceMacAddress
+            sub_trec2.add_field(94, ipfix_trec::SIZE_VAR);// applicationDescription (string)
+            // Prepare 2.1 data record
+            ipfix_drec rec_2_1;
+            rec_2_1.append_mac(VALUE_SRC_MAC1);
+            rec_2_1.append_string(VALUE_APP_DES1);
+            // Prepare 2.2 data record
+            ipfix_drec rec_2_2;
+            rec_2_2.append_mac(VALUE_SRC_MAC2);
+            rec_2_2.append_string(VALUE_APP_DES2);
+
+
+            // Prepare 1. subTemplateList
+            ipfix_stlist stlist_1;
+            stlist_1.subTemp_header(FDS_IPFIX_LIST_ALL_OF, 257U);
+            stlist_1.append_data_record(rec_1_1);
+            stlist_1.append_data_record(rec_1_2);
+            // Prepare 2. subTemplateList
+            ipfix_stlist stlist_2;
+            stlist_2.subTemp_header(FDS_IPFIX_LIST_ALL_OF, 258U);
+            stlist_2.append_data_record(rec_2_1);
+            stlist_2.append_data_record(rec_2_2);
+
+            // Prepare basicList (i.e. bgpSourceCommunityList of bgpCommunity)
+            ipfix_field stlist_field_1;
+            stlist_field_1.var_header(stlist_1.size());
+            stlist_field_1.append_stlist(stlist_1);
+            ipfix_field stlist_field_2;
+            stlist_field_2.var_header(stlist_2.size());
+            stlist_field_2.append_stlist(stlist_2);
+
+            ipfix_blist blist;
+            blist.header_short(FDS_IPFIX_LIST_ALL_OF, 292, ipfix_trec::SIZE_VAR);
+            blist.append_field(stlist_field_1);
+            blist.append_field(stlist_field_2);
+
+            ipfix_drec drec{};
+            drec.append_ip(VALUE_SRC_IP4);
+            drec.append_uint(VALUE_SRC_PORT, 2);
+            drec.append_uint(VALUE_DST_PORT, 2);
+            drec.var_header(blist.size());
+            drec.append_blist(blist);
+
+            register_template(trec);
+            register_template(sub_trec1);
+            register_template(sub_trec2);
+            drec_create(256, drec);
+        }
+
+        double      VALUE_MY_PINF    = std::numeric_limits<double>::infinity();
+        std::string VALUE_IFC_NAME1  = "ONE";
+        std::string VALUE_IFC_NAME2  = "TWO";
+        std::string VALUE_SRC_MAC1   = "01:12:1F:13:11:8A";
+        std::string VALUE_APP_DES1   = "web\\\nclose\t\"open\bdog\fcat\r\"\x13";
+        std::string VALUE_SRC_MAC2   = "21:01:4A:31:20:8C";
+        std::string VALUE_APP_DES2   = "small\\\nbig\t\"mam\bdoor\fcat";
+        std::string VALUE_SRC_IP4    = "127.0.0.1";
+        std::string VALUE_INF_NAME   = "enp0s31f6";
+        uint16_t    VALUE_SRC_PORT   = 1234;
+        uint16_t    VALUE_DST_PORT   = 4321;
+
+};
+
+TEST_F(Drec_nested_stList_in_blist, simple)
+{
+    size_t buffer_size = 2U;
+    char* buffer = (char*) malloc(buffer_size);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
+
+    auto iemgr = m_iemgr.get();
+    int rc = fds_drec2json(&m_drec, flags, iemgr, &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+
+    free(buffer);
+}
+
+TEST_F(Drec_nested_stList_in_blist, values)
+{
+    size_t buffer_size = 2U;
+    char* buffer = (char*) malloc(buffer_size);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
+
+    auto iemgr = m_iemgr.get();
+    int rc = fds_drec2json(&m_drec, flags, iemgr, &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+
+    Config cfg = parse_string(buffer, JSON, "drec2json");
+    ASSERT_TRUE(cfg["iana:bgpSourceCommunityList"].is_object());
+    auto& src_obj = cfg["iana:bgpSourceCommunityList"];
+
+    EXPECT_TRUE(src_obj["data"].is_array());
+    auto src_data_arr = src_obj["data"].as_array();
+
+    /* From blist data (1. layer) get all objects
+       basicList (data) -> obj0
+                 -> obj1
+    */
+    auto& obj0 = src_data_arr[0];
+    ASSERT_TRUE(obj0.is_object());
+    auto& obj1 = src_data_arr[1];
+    ASSERT_TRUE(obj1.is_object());
+
+    /* From each object from 1. layer get array with data (2. layer)
+       basicList -> obj0 -> arr0 (data)
+                 -> obj1 -> arr1 (data)
+    */
+    ASSERT_TRUE(obj0["data"].is_array());
+    auto arr0 = obj0["data"].as_array();
+    ASSERT_TRUE(obj1["data"].is_array());
+    auto arr1 = obj1["data"].as_array();
+
+    /* From each array from 2. layer get every obejct (3. layer)
+       basicList -> obj0 -> arr0 -> obj0_0
+                                 -> obj0_1
+                 -> obj1 -> arr1 -> obj1_0
+                                 -> obj1_1
+    */
+    ASSERT_TRUE(arr0[0].is_object());
+    auto& obj0_0 = arr0[0];
+    ASSERT_TRUE(arr0[1].is_object());
+    auto& obj0_1 = arr0[1];
+
+    ASSERT_TRUE(arr1[0].is_object());
+    auto& obj1_0 = arr1[0];
+    ASSERT_TRUE(arr1[1].is_object());
+    auto& obj1_1 = arr1[1];
+
+    // Check values in each object from 3. layer
+
+    EXPECT_EQ(obj0_0["iana:interfaceName"],VALUE_IFC_NAME1);
+    EXPECT_EQ(obj0_0["iana:myPInf"],"Infinity");
+
+    EXPECT_EQ(obj0_1["iana:interfaceName"],VALUE_IFC_NAME2);
+    EXPECT_EQ(obj0_1["iana:myPInf"],"Infinity");
+
+    EXPECT_EQ(obj1_0["iana:sourceMacAddress"],VALUE_SRC_MAC1);
+    EXPECT_EQ(obj1_0["iana:applicationDescription"],VALUE_APP_DES1);
+
+    EXPECT_EQ(obj1_1["iana:sourceMacAddress"],VALUE_SRC_MAC2);
+    EXPECT_EQ(obj1_1["iana:applicationDescription"],VALUE_APP_DES2);
+
+    free(buffer);
+}
+
+// -------------------------------------------------------------------------------------------------
+/// IPFIX Data Record with subTemplateMultiList
+class Drec_nested_blist_in_stlist : public Drec_base{
+protected:
+    /// Before each Test case
+    void SetUp() override {
+        Drec_base::SetUp();
+        // Prepare an IPFIX Template
+        ipfix_trec trec{256};
+        trec.add_field( 8, 4); // sourceIPv4Address
+        trec.add_field( 7, 2); // sourceTransportPort
+        trec.add_field(11, 2); // destinationTransportPort
+        trec.add_field(292, ipfix_trec::SIZE_VAR); // subTemplateList
+
+        //  Prepare IPFIX subTempate
+        ipfix_trec sub_trec{257};
+        sub_trec.add_field(459, ipfix_trec::SIZE_VAR); // httpRequestMethod (string)
+        sub_trec.add_field(484, ipfix_trec::SIZE_VAR); // basicList
+
+        // Prepare empty blists
+        ipfix_field field_1;
+        field_1.append_float(VALUE_FLOAT_1, 4);
+        ipfix_blist blist_1;
+        blist_1.header_short(FDS_IPFIX_LIST_ORDERED, 1003, 4);
+        blist_1.append_field(field_1);
+
+        ipfix_field field_2;
+        field_2.append_float(VALUE_FLOAT_2, 4);
+        ipfix_blist blist_2;
+        blist_2.header_short(FDS_IPFIX_LIST_ORDERED, 1003, 4);
+        blist_2.append_field(field_2);
+
+        // Prepare IPFIX subrecords
+        ipfix_drec sub_drec1;
+        sub_drec1.append_string(VALUE_HTTP_METHOD1);
+        sub_drec1.var_header(blist_1.size()); // bgpSourceCommunityList
+        sub_drec1.append_blist(blist_1);
+        ipfix_drec sub_drec2;
+        sub_drec2.append_string(VALUE_HTTP_METHOD2);
+        sub_drec2.var_header(blist_2.size()); // bgpSourceCommunityList
+        sub_drec2.append_blist(blist_2);
+
+        ipfix_stlist st_list;
+        st_list.subTemp_header(FDS_IPFIX_LIST_ALL_OF, 257U);
+        st_list.append_data_record(sub_drec1);
+        st_list.append_data_record(sub_drec2);
+
+        // Prepare an IPFIX Data Record
+        ipfix_drec drec{};
+        drec.append_ip(VALUE_SRC_IP4);
+        drec.append_uint(VALUE_SRC_PORT, 2);
+        drec.append_uint(VALUE_DST_PORT, 2);
+        drec.var_header(st_list.size());
+        drec.append_stlist(st_list);
+
+        register_template(trec);
+        register_template(sub_trec);
+        drec_create(256, drec);
+    }
+
+    std::string VALUE_HTTP_METHOD1 = "GET";
+    std::string VALUE_HTTP_METHOD2 = "POST";
+    std::string VALUE_SRC_IP4    = "127.0.0.1";
+    uint16_t    VALUE_SRC_PORT   = 1234;
+    uint16_t    VALUE_DST_PORT   = 4321;
+    double      VALUE_FLOAT_1    = 0.12f;
+    double      VALUE_FLOAT_2    = 0.34f;
+};
+
+TEST_F(Drec_nested_blist_in_stlist, simple)
+{
+    size_t buffer_size = 2U;
+    char* buffer = (char*) malloc(buffer_size);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
+
+    auto iemgr = m_iemgr.get();
+    int rc = fds_drec2json(&m_drec, flags, iemgr, &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+
+    free(buffer);
+}
+
+TEST_F(Drec_nested_blist_in_stlist, values)
+{
+    size_t buffer_size = 2U;
+    char* buffer = (char*) malloc(buffer_size);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
+
+    auto iemgr = m_iemgr.get();
+    int rc = fds_drec2json(&m_drec, flags, iemgr, &buffer, &buffer_size);
+    ASSERT_GT(rc, 0);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_NE(buffer_size, 0U);
+    EXPECT_EQ(strlen(buffer), size_t(rc));
+
+    Config cfg = parse_string(buffer, JSON, "drec2json");
+
+    ASSERT_TRUE(cfg["iana:subTemplateList"].is_object());
+    auto& obj = cfg["iana:subTemplateList"];
+
+    ASSERT_TRUE(obj["data"].is_array());
+    auto arr = obj["data"].as_array();
+
+    ASSERT_TRUE(arr[0].is_object());
+    auto& obj0 = arr[0];
+    ASSERT_TRUE(arr[1].is_object());
+    auto& obj1 = arr[1];
+
+    EXPECT_EQ(obj0["iana:httpRequestMethod"], VALUE_HTTP_METHOD1);
+    ASSERT_TRUE(obj0["iana:bgpSourceCommunityList"].is_object());
+    auto& obj0_0 = obj0["iana:bgpSourceCommunityList"];
+    ASSERT_TRUE(obj0_0["data"].is_array());
+    auto arr_0 = obj0_0["data"].as_array();
+    EXPECT_EQ(std::find(arr_0.begin(), arr_0.end(), VALUE_FLOAT_1), arr_0.end());
+
+    EXPECT_EQ(obj1["iana:httpRequestMethod"], VALUE_HTTP_METHOD2);
+    ASSERT_TRUE(obj1["iana:bgpSourceCommunityList"].is_object());
+    auto& obj1_1 = obj1["iana:bgpSourceCommunityList"];
+    ASSERT_TRUE(obj1_1["data"].is_array());
+    auto arr_1 = obj1_1["data"].as_array();
+    EXPECT_EQ(std::find(arr_1.begin(), arr_1.end(), VALUE_FLOAT_2), arr_1.end());
+
+
+    std::cout << cfg << '\n';
+    free(buffer);
+}
+
+
 /* TODO
-    Test fds_octet_array2str
-    Test to_float, but not with +-inf, nan, float
+
 */

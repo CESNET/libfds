@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8) 
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 FIND_PACKAGE(BISON)
 FIND_PACKAGE(FLEX)
@@ -11,10 +11,10 @@ set(flex_header ${CMAKE_CURRENT_BINARY_DIR}/scanner.h)
 if (BISON_FOUND)
 	add_custom_command(
 		OUTPUT ${bison_source} ${bison_header}
-		COMMAND ${BISON_EXECUTABLE} 
-			--output-file=${bison_source} 
-			--defines=${bison_header} 
-			-t -d --warnings=all 
+		COMMAND ${BISON_EXECUTABLE}
+			--output-file=${bison_source}
+			--defines=${bison_header}
+			-t -d --warnings=all
 			${CMAKE_CURRENT_SOURCE_DIR}/parser.y
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/parser.y
 		COMMENT "Generating parser files"
@@ -24,9 +24,9 @@ endif()
 if (FLEX_FOUND)
 	add_custom_command(
 		OUTPUT ${flex_source} ${flex_header}
-		COMMAND ${FLEX_EXECUTABLE} 
+		COMMAND ${FLEX_EXECUTABLE}
 			--outfile=${flex_source}
-			--header-file=${flex_header} 
+			--header-file=${flex_header}
 			-d
 			${CMAKE_CURRENT_SOURCE_DIR}/scanner.l
 		DEPENDS ${bison_header} ${CMAKE_CURRENT_SOURCE_DIR}/scanner.l
@@ -38,11 +38,14 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_library(filter_obj OBJECT
-	filter.c filter.h
-	ast.c ast.h
-	error.c error.h
-    evaluate.c evaluate.h
-	semantic.c semantic.h
-	${flex_source} ${flex_header}	
-	${bison_source} ${bison_header}
+	filter.h
+	filter.c
+	ast.c
+	error.c
+    evaluate.c
+	semantic.c
+	${flex_header}
+	${flex_source}
+	${bison_header}
+	${bison_source}
 )

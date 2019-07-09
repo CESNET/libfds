@@ -1,22 +1,21 @@
-#include "semantic.h"
-#include "ast.h"
-#include "error.h"
+#include <libfds.h>
+#include "filter.h"
 #include <assert.h>
 
 static int
-is_binary_node(struct fds_filter_ast_node *node) 
+is_binary_node(struct fds_filter_ast_node *node)
 {
     return node->left != NULL && node->right != NULL;
 }
 
 static int
-is_unary_node(struct fds_filter_ast_node *node) 
+is_unary_node(struct fds_filter_ast_node *node)
 {
     return node->left != NULL && node->right == NULL;
 }
 
 static int
-is_leaf_node(struct fds_filter_ast_node *node) 
+is_leaf_node(struct fds_filter_ast_node *node)
 {
     return node->left == NULL && node->right == NULL;
 }
@@ -83,7 +82,7 @@ cast_list_to_same_type(struct fds_filter *filter, struct fds_filter_ast_node *no
 {
     enum fds_filter_type final_type = node->right->type;
     struct fds_filter_ast_node *list_item = node;
-    
+
     while ((list_item = list_item->left) != NULL) {
         if (is_number_type(list_item->right->type)) {
             enum fds_filter_type type = get_common_number_type(final_type, list_item->right->type);
@@ -112,7 +111,7 @@ cast_list_to_same_type(struct fds_filter *filter, struct fds_filter_ast_node *no
     return 1;
 }
 
-static int 
+static int
 cast_to_bool(struct fds_filter *filter, struct fds_filter_ast_node **node)
 {
     // TODO: Check type? Now we assume any type can be converted to bool
@@ -122,7 +121,7 @@ cast_to_bool(struct fds_filter *filter, struct fds_filter_ast_node **node)
 static int
 lookup_identifier(struct fds_filter *filter, struct fds_filter_ast_node *node)
 {
-    int ok = filter->lookup_callback(node->identifier_name, &node->identifier_id, &node->type, 
+    int ok = filter->lookup_callback(node->identifier_name, &node->identifier_id, &node->type,
                                      &node->identifier_is_constant, &node->value);
     if (!ok) {
         error_location_message(filter, node->location, "Lookup callback for identifier %s failed", node->identifier_name);
@@ -130,7 +129,7 @@ lookup_identifier(struct fds_filter *filter, struct fds_filter_ast_node *node)
     return ok;
 }
 
-static int 
+static int
 resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
 {
     if (node->op == FDS_FILTER_AST_AND || node->op == FDS_FILTER_AST_OR) {
@@ -218,7 +217,7 @@ resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
             if (!cast_list_to_same_type(filter, node->left)) {
                 return 0;
             }
-            node->subtype = node->left->right->type; // All the list items are the same type at this point 
+            node->subtype = node->left->right->type; // All the list items are the same type at this point
         } else {
             node->subtype = FDS_FILTER_TYPE_NONE;
         }
@@ -235,10 +234,10 @@ resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
 
 invalid_operation:
     if (is_binary_node(node)) {
-        error_location_message(filter, node->location, "Invalid operation %s for values of type %s and %s", 
+        error_location_message(filter, node->location, "Invalid operation %s for values of type %s and %s",
                                ast_op_to_str(node->op), type_to_str(node->left->type), type_to_str(node->right->type));
     } else if (is_unary_node(node)) {
-        error_location_message(filter, node->location, "Invalid operation %s for value of type %s", 
+        error_location_message(filter, node->location, "Invalid operation %s for value of type %s",
                                ast_op_to_str(node->op), type_to_str(node->left->type));
     } else if (is_leaf_node(node)) {
         error_location_message(filter, node->location, "Invalid operation %s", ast_op_to_str(node->op));
@@ -247,15 +246,15 @@ invalid_operation:
 }
 
 int
-prepare_nodes(struct fds_filter *filter, struct fds_filter_ast_node *node)
+prepare_ast_nodes(struct fds_filter *filter, struct fds_filter_ast_node *node)
 {
     if (node == NULL) {
         return 0;
     }
 
     // Process children first and then parent
-    prepare_nodes(filter, node->left); // TODO: Do something with return code
-    prepare_nodes(filter, node->right); // TODO: Do something with return code
+    prepare_ast_nodes(filter, node->left); // TODO: Do something with return code
+    prepare_ast_nodes(filter, node->right); // TODO: Do something with return code
     resolve_types(filter, node); // TODO: Do something with return code
-    
 }
+

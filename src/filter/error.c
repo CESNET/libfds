@@ -2,17 +2,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <assert.h>
+#include "filter.h"
 
 static char *
-str_vprintf(char *str, const char *format, va_list args) 
+str_vprintf(char *str, const char *format, va_list args)
 {
 	va_list args_;
 	va_copy(args_, args);
     int size_needed = vsnprintf(NULL, 0, format, args_) + 1; // + 1 for the terminating null byte
-    int size_now = str != NULL ? strlen(str) : 0; 
+    int size_now = str != NULL ? strlen(str) : 0;
     char *new_str = realloc(str, size_now + size_needed);
-    if (new_str == NULL) { 
+    if (new_str == NULL) {
         free(str);
         return NULL;
     }
@@ -23,7 +25,7 @@ str_vprintf(char *str, const char *format, va_list args)
 
 #if 0
 static char *
-str_printf(char *str, const char *format, ...) 
+str_printf(char *str, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -64,7 +66,7 @@ error_location_message(struct fds_filter *filter, struct fds_filter_location loc
         return;
     }
     va_end(args);
-}   
+}
 
 void
 error_message(struct fds_filter *filter, const char *format, ...)
@@ -87,7 +89,7 @@ error_message(struct fds_filter *filter, const char *format, ...)
         return;
     }
     va_end(args);
-}   
+}
 
 void
 error_no_memory(struct fds_filter *filter)
@@ -97,9 +99,9 @@ error_no_memory(struct fds_filter *filter)
     filter->errors = &OUT_OF_MEMORY_ERROR;
 }
 
-void 
+void
 error_destroy(struct fds_filter *filter)
-{   
+{
     if (filter->errors != &OUT_OF_MEMORY_ERROR) {
         for (int i = 0; i < filter->error_count; i++) {
             free(filter->errors[i].message);
@@ -159,4 +161,78 @@ ast_op_to_str(int op)
     case FDS_FILTER_AST_CAST:       return "CAST";
     default:                        assert(0);
     }
+}
+
+void
+ast_print(FILE *outstream, struct fds_filter_ast_node *node)
+{
+    if (node == NULL) {
+        return;
+    }
+    static int level = 0;
+    for (int i = 0; i < level; i++) {
+        fprintf(outstream, "    ");
+    }
+	fprintf(outstream, "(%s, ", ast_op_to_str(node->op));
+    if (node->op == FDS_FILTER_AST_IDENTIFIER) {
+        fprintf(outstream, "name: %s, id: %d, ", node->identifier_name, node->identifier_id, type_to_str(node->type));
+	}
+	fprintf(outstream, "type: %s, ", type_to_str(node->type));
+	fprintf(outstream, "value: ", type_to_str(node->type));
+	switch (node->type) {
+	case FDS_FILTER_TYPE_BOOL:
+		fprintf(outstream, "%s", node->value.int_ != 0 ? "true" : "false");
+		break;
+	case FDS_FILTER_TYPE_STR:
+		fprintf(outstream, "%*s", node->value.string.length, node->value.string.chars);
+		break;
+	case FDS_FILTER_TYPE_INT:
+		fprintf(outstream, "%d", node->value.int_);
+		break;
+	case FDS_FILTER_TYPE_UINT:
+		fprintf(outstream, "%u", node->value.uint_);
+		break;
+	case FDS_FILTER_TYPE_IP_ADDRESS:
+		if (node->value.ip_address.version == 4) {
+			fprintf(outstream, "%d.%d.%d.%d",
+					node->value.ip_address.bytes[0],
+					node->value.ip_address.bytes[1],
+					node->value.ip_address.bytes[2],
+					node->value.ip_address.bytes[3]);
+		} else {
+			fprintf(outstream, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+					node->value.ip_address.bytes[0],
+					node->value.ip_address.bytes[1],
+					node->value.ip_address.bytes[2],
+					node->value.ip_address.bytes[3],
+					node->value.ip_address.bytes[4],
+					node->value.ip_address.bytes[5],
+					node->value.ip_address.bytes[6],
+					node->value.ip_address.bytes[7],
+					node->value.ip_address.bytes[8],
+					node->value.ip_address.bytes[9],
+					node->value.ip_address.bytes[10],
+					node->value.ip_address.bytes[11],
+					node->value.ip_address.bytes[12],
+					node->value.ip_address.bytes[13],
+					node->value.ip_address.bytes[14],
+					node->value.ip_address.bytes[15]);
+		}
+		break;
+	case FDS_FILTER_TYPE_MAC_ADDRESS:
+		fprintf(outstream, "%02x:%02x:%02x:%02x:%02x:%02x",
+				node->value.mac_address[0],
+				node->value.mac_address[1],
+				node->value.mac_address[2],
+				node->value.mac_address[3],
+				node->value.mac_address[4],
+				node->value.mac_address[5]);
+		break;
+	}
+	fprintf(outstream, ")\n");
+    level++;
+    ast_print(outstream, node->left);
+    ast_print(outstream, node->right);
+
+    level--;
 }

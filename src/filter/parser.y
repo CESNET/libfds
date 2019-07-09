@@ -12,8 +12,7 @@ extern int yyparse();
 %code requires {
 
 #include <libfds.h>
-#include "ast.h"
-#include "error.h"
+#include "filter.h"
 #define YYDEBUG 1
 extern int yydebug;
 #define YY_DECL int yylex(YYSTYPE *yylval_param, YYLTYPE *yylloc_param, struct fds_filter *filter, yyscan_t yyscanner)
@@ -77,7 +76,7 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
 
 %locations
 %define api.pure full
-%param {struct fds_filter *filter} {void *scanner} 
+%param {struct fds_filter *filter} {void *scanner}
 
 %union {
     struct fds_filter_ast_node ast;
@@ -93,14 +92,14 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
 %token AMPERSAND "&" PIPE "|" CARET "^" TILDE "~" ASTERISK "!"
 %token COMMA "," END "end"
 
-%token <ast> IDENTIFIER STR UINT INT FLOAT BOOL IP_ADDRESS MAC_ADDRESS TIMESTAMP TIMEDELTA 
+%token <ast> IDENTIFIER STR UINT INT FLOAT BOOL IP_ADDRESS MAC_ADDRESS TIMESTAMP TIMEDELTA
 %token ERROR_ABORT
 %type <ast_ptr> expr term comparsion condition filter list_items list
 
 %left "|" "&" "^"
 %precedence "~"
 %left "+" "-"
-%left "*" "/" "%" 
+%left "*" "/" "%"
 %precedence UMINUS
 
 %left "and" "or"
@@ -119,8 +118,8 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
 
 %%
 
-/* TODO: Implicit cast to bool? */ 
-filter: condition { filter->ast = $1; } 
+/* TODO: Implicit cast to bool? */
+filter: condition { filter->ast = $1; }
 
 condition: condition "and" condition  { AST_NODE_($$, FDS_FILTER_AST_AND, $1, $3, @$) }
          | condition "or" condition  { AST_NODE_($$, FDS_FILTER_AST_OR, $1, $3, @$) }
@@ -159,7 +158,7 @@ list_items: list_items "," expr { AST_NODE_($$, FDS_FILTER_AST_LIST_ITEM, $1, $3
 
 list: "[" "]" { AST_NODE_($$, FDS_FILTER_AST_LIST, NULL, NULL, @$) }
     | "[" list_items "]" { AST_NODE_($$, FDS_FILTER_AST_LIST, $2, NULL, @$) }
-   
+
 term: UINT { AST_CONST_($$, $1, @$) }
     | INT { AST_CONST_($$, $1, @$) }
     | FLOAT { AST_CONST_($$, $1, @$) }

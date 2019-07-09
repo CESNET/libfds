@@ -2,13 +2,12 @@
 #include "filter.h"
 #include "parser.h"
 #include "scanner.h"
-#include "evaluate.h"
 
-// TODO: clean this up, this is for debugging purposes for now 
+// TODO: clean this up, this is for debugging purposes for now
 typedef void *yyscan_t;
 extern int yydebug;
 
-int 
+int
 fds_filter_create(const char *input, fds_filter_lookup_func_t lookup_callback, fds_filter_data_func_t data_callback, fds_filter_t **out_filter)
 {
     struct fds_filter *filter = malloc(sizeof(*filter));
@@ -19,14 +18,14 @@ fds_filter_create(const char *input, fds_filter_lookup_func_t lookup_callback, f
     }
 
     filter->ast = NULL;
+    filter->eval_tree = NULL;
     filter->lookup_callback = lookup_callback;
     filter->data_callback = data_callback;
 	filter->error_count = 0;
     filter->errors = NULL;
-    evaluate_context_init(&filter->evaluate_context);
 
     // TODO: clean this mess up
-    yyscan_t scanner; 
+    yyscan_t scanner;
     yydebug = 1;
     yylex_init(&scanner);
     YY_BUFFER_STATE buffer = yy_scan_string(input, scanner);
@@ -39,38 +38,47 @@ fds_filter_create(const char *input, fds_filter_lookup_func_t lookup_callback, f
         pdebug("Parsing failed", 0);
         return 0;
     }
-
-
     pdebug("Filter compiled - input: %s", input);
     ast_print(stderr, filter->ast);
 
-    prepare_nodes(filter, filter->ast);
+    if (!prepare_ast_nodes(filter, filter->ast)) {
+        pdebug("Prepare nodes failed", 0);;
+        return 0;
+    }
     pdebug("After semantic", 0);
     ast_print(stderr, filter->ast);
 
+    pdebug("After generate", 0);
+    struct eval_node *eval_tree = generate_eval_tree_from_ast(filter, filter->ast);
+    if (!eval_tree) {
+        pdebug("Generate eval tree from ast failed", 0);
+        return 0;
+    }
+    print_eval_tree(stderr, eval_tree);
+    filter->eval_tree = eval_tree;
     return 1;
 }
 
-int 
+int
 fds_filter_evaluate(fds_filter_t *filter, void *data)
 {
-    int result = evaluate(filter, &filter->evaluate_context, data);
-    return result;
+    filter->data = data;
+    evaluate_eval_tree(filter, filter->eval_tree);
+    return filter->eval_tree->value.uint_ != 0;
 }
 
-void 
-fds_filter_destroy(struct fds_filter *filter) 
+void
+fds_filter_destroy(struct fds_filter *filter)
 {
     if (filter == NULL) {
         return;
     }
     ast_destroy(filter->ast);
     error_destroy(filter);
-    evaluate_context_destroy(&filter->evaluate_context);
     free(filter);
 }
 
-int 
+int
 fds_filter_get_error_count(struct fds_filter *filter)
 {
     return filter->error_count;

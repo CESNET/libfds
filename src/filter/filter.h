@@ -23,6 +23,8 @@ struct eval_node {
     struct eval_node *right;
     unsigned char is_defined;
     unsigned char is_more;
+    enum fds_filter_type type;
+    enum fds_filter_type subtype;
     int identifier_id;
     union fds_filter_value value;
 };
@@ -34,6 +36,7 @@ struct fds_filter {
     fds_filter_data_func_t data_callback;
     void *data; // The raw data
     void *data_context; // To be filled and operated on by the user
+    unsigned char reset_context;
 
     struct eval_node *eval_tree;
 

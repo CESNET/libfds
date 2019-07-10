@@ -118,8 +118,7 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
 
 %%
 
-/* TODO: Implicit cast to bool? */
-filter: condition { filter->ast = $1; }
+filter: condition { AST_NODE_(filter->ast, FDS_FILTER_AST_ROOT, $1, NULL, @$) }
 
 condition: condition "and" condition  { AST_NODE_($$, FDS_FILTER_AST_AND, $1, $3, @$) }
          | condition "or" condition  { AST_NODE_($$, FDS_FILTER_AST_OR, $1, $3, @$) }

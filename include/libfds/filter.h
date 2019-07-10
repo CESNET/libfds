@@ -86,6 +86,8 @@ enum fds_filter_ast_op {
     FDS_FILTER_AST_IN,
     FDS_FILTER_AST_CONTAINS,
     FDS_FILTER_AST_CAST,
+    FDS_FILTER_AST_ANY,
+    FDS_FILTER_AST_ROOT,
     FDS_FILTER_AST_COUNT
 };
 
@@ -124,13 +126,14 @@ struct fds_filter_ast_node {
  * TODO: explain more in detail
  *
  * @param       name         The name of the identifier that is being looked up
+ * @param       data_context The data context provided by the user
  * @param[out]  id           The id of the identifier that will later be passed to data function calls
  * @param[out]  type         The data type of the identifier
  * @param[out]  is_constant  Whether the identifier value changes or not
  * @param[out]  value        The value of the identifier - only to be set if the identifier is constant!
  * @return TODO
  */
-typedef int (*fds_filter_lookup_func_t)(const char *name, int *id, enum fds_filter_type *type, int *is_constant, union fds_filter_value *value);
+typedef int (*fds_filter_lookup_func_t)(const char *name, void *data_context, int *id, enum fds_filter_type *type, int *is_constant, union fds_filter_value *value);
 
 /**
  * @brief The data (getter) callback function type
@@ -153,13 +156,14 @@ typedef int (*fds_filter_data_func_t)(int id, void *data_context, int reset_cont
  * else you can check what went wrong using the error functions.
  *
  * @param      input            The input expression
+ * @param      data_context     The data context
  * @param      lookup_callback  The lookup callback function
  * @param      data_callback    The data callback function
  * @param[out] filter           The compiled filter
  * @return 1 if the filter compiled successfully, 0 if any errors happened
  */
 FDS_API int
-fds_filter_create(const char *input, fds_filter_lookup_func_t lookup_callback, fds_filter_data_func_t data_callback, fds_filter_t **filter);
+fds_filter_create(const char *input, fds_filter_lookup_func_t lookup_callback, fds_filter_data_func_t data_callback, void *data_context, fds_filter_t **filter);
 
 /**
  * @brief Evaluates the filter using the provided data

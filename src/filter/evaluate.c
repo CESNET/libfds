@@ -121,7 +121,7 @@ static void f_or(struct fds_filter *filter, struct eval_node *node) {
 
 static void f_not(struct fds_filter *filter, struct eval_node *node) {
     node->left->evaluate(filter, node->left);
-    node->value.uint_ = node->left->value.uint_;
+    node->value.uint_ = node->left->value.uint_ == 0;
 }
 
 static void f_const(struct fds_filter *filter, struct eval_node *node) {
@@ -129,19 +129,33 @@ static void f_const(struct fds_filter *filter, struct eval_node *node) {
 }
 
 static void f_identifier(struct fds_filter *filter, struct eval_node *node) {
-    int rc = filter->data_callback(node->identifier_id, filter->data_context, 1, filter->data, &node->value);
+    int rc = filter->data_callback(node->identifier_id, filter->data_context, filter->reset_context, filter->data, &node->value);
+    filter->reset_context = 0;
     if (rc == FDS_FILTER_MORE) {
+        pdebug("more", 0);
         node->is_defined = 1;
         node->is_more = 1;
     } else if (rc == FDS_FILTER_END) {
+        pdebug("end", 0);
         node->is_defined = 1;
         node->is_more = 0;
     } else if (rc == FDS_FILTER_NOT_FOUND) {
+        pdebug("not found", 0);
         node->is_defined = 0;
         node->is_more = 0;
     } else {
         assert(0);
     }
+}
+
+static void f_any(struct fds_filter *filter, struct eval_node *node) {
+    do {
+        node->left->evaluate(filter, node->left);
+    } while (node->left->is_defined && node->left->value.uint_ == 0 && node->left->is_more);
+    node->value.uint_ = node->left->is_defined && node->left->value.uint_;
+    node->is_more = 0;
+    node->is_defined = 1;
+    filter->reset_context = 1;
 }
 
 struct eval_node *
@@ -152,6 +166,11 @@ eval_node_from_ast_node(struct fds_filter *filter, struct fds_filter_ast_node *a
         error_no_memory(filter);
         return NULL;
     }
+    eval_node->is_defined = 0;
+    eval_node->is_more = 0;
+    eval_node->type = ast_node->type;
+    eval_node->subtype = ast_node->subtype;
+    eval_node->value = ast_node->value;
 
     switch (ast_node->op) {
     case FDS_FILTER_AST_ADD:
@@ -338,21 +357,28 @@ eval_node_from_ast_node(struct fds_filter *filter, struct fds_filter_ast_node *a
     case FDS_FILTER_AST_AND:
         assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL && ast_node->right->type == FDS_FILTER_TYPE_BOOL && ast_node->type == FDS_FILTER_TYPE_BOOL);
         eval_node->evaluate = f_and;
+        eval_node->is_defined = 1; // Always defined because of ANY node
+        eval_node->is_more = 0; // Can never have more because of ANY node
         break;
 
     case FDS_FILTER_AST_OR:
         assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL && ast_node->right->type == FDS_FILTER_TYPE_BOOL && ast_node->type == FDS_FILTER_TYPE_BOOL);
         eval_node->evaluate = f_or;
+        eval_node->is_defined = 1; // Always defined because of ANY node
+        eval_node->is_more = 0; // Can never have more because of ANY node
         break;
 
     case FDS_FILTER_AST_NOT:
         assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL && ast_node->right == NULL && ast_node->type == FDS_FILTER_TYPE_BOOL);
         eval_node->evaluate = f_not;
+        eval_node->is_defined = 1; // Always defined because of ANY node
+        eval_node->is_more = 0; // Can never have more because of ANY node
         break;
 
     case FDS_FILTER_AST_CONST:
         assert(ast_node->left == NULL && ast_node->right == NULL);
         eval_node->evaluate = f_const;
+        eval_node->is_defined = 1;
         break;
 
     case FDS_FILTER_AST_IDENTIFIER:
@@ -383,7 +409,7 @@ eval_node_from_ast_node(struct fds_filter *filter, struct fds_filter_ast_node *a
         break;
 
     case FDS_FILTER_AST_UMINUS:
-        assert(ast_node->right == NULL && ast_node->left->type == ast_node->right->type);
+        assert(ast_node->right == NULL && ast_node->type == ast_node->left->type);
         switch (ast_node->left->type) {
         case FDS_FILTER_TYPE_INT:
             eval_node->evaluate = f_minus_int;
@@ -393,6 +419,15 @@ eval_node_from_ast_node(struct fds_filter *filter, struct fds_filter_ast_node *a
             break;
         default: assert(0);
         }
+        break;
+
+    case FDS_FILTER_AST_ANY:
+        assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL && ast_node->left->type == FDS_FILTER_TYPE_BOOL && ast_node->right == NULL);
+        eval_node->evaluate = f_any;
+        eval_node->is_defined = 1;
+        break;
+
+    case FDS_FILTER_AST_ROOT:
         break;
 
     default: assert(0);
@@ -422,6 +457,12 @@ generate_eval_tree_from_ast(struct fds_filter *filter, struct fds_filter_ast_nod
         }
     }
 
+    if (ast_node->op == FDS_FILTER_AST_ROOT) {
+        // Ignore this node for the eval tree and just propagate the child
+        assert(right == NULL);
+        return left;
+    }
+
     struct eval_node *parent = eval_node_from_ast_node(filter, ast_node);
     if (parent == NULL) {
         return NULL;
@@ -434,7 +475,10 @@ generate_eval_tree_from_ast(struct fds_filter *filter, struct fds_filter_ast_nod
 int
 evaluate_eval_tree(struct fds_filter *filter, struct eval_node *eval_tree)
 {
+    filter->reset_context = 1;
     eval_tree->evaluate(filter, eval_tree);
+    pdebug("After evaluation", 0);
+    print_eval_tree(stderr, eval_tree);
     return 1;
 }
 
@@ -503,45 +547,66 @@ eval_func_to_str(const eval_func_t *eval_func)
     else if (eval_func == f_not) { return "f_not"; }
     else if (eval_func == f_const) { return "f_const"; }
     else if (eval_func == f_identifier) { return "f_identifier"; }
+    else if (eval_func == f_any) { return "f_any"; }
     else { assert(0); }
 }
 
 static void
-print_value(FILE *outstream, const union fds_filter_value value)
+print_value(FILE *outstream, enum fds_filter_type type, enum fds_filter_type subtype, const union fds_filter_value value)
 {
-    fprintf(outstream, "BOOL %s, ", value.int_ != 0 ? "true" : "false");
-    fprintf(outstream, "STR %*s, ", value.string.length, value.string.chars);
-    fprintf(outstream, "INT %d, ", value.int_);
-    fprintf(outstream, "UINT %u, ", value.uint_);
-    fprintf(outstream, "IPv4 %d.%d.%d.%d, ",
-            value.ip_address.bytes[0],
-            value.ip_address.bytes[1],
-            value.ip_address.bytes[2],
-            value.ip_address.bytes[3]);
-    fprintf(outstream, "IPv6 %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, ",
-            value.ip_address.bytes[0],
-            value.ip_address.bytes[1],
-            value.ip_address.bytes[2],
-            value.ip_address.bytes[3],
-            value.ip_address.bytes[4],
-            value.ip_address.bytes[5],
-            value.ip_address.bytes[6],
-            value.ip_address.bytes[7],
-            value.ip_address.bytes[8],
-            value.ip_address.bytes[9],
-            value.ip_address.bytes[10],
-            value.ip_address.bytes[11],
-            value.ip_address.bytes[12],
-            value.ip_address.bytes[13],
-            value.ip_address.bytes[14],
-            value.ip_address.bytes[15]);
-    fprintf(outstream, "MAC %02x:%02x:%02x:%02x:%02x:%02x",
-            value.mac_address[0],
-            value.mac_address[1],
-            value.mac_address[2],
-            value.mac_address[3],
-            value.mac_address[4],
-            value.mac_address[5]);
+    switch (type) {
+    case FDS_FILTER_TYPE_BOOL:
+        fprintf(outstream, "BOOL %s", value.int_ != 0 ? "true" : "false");
+        break;
+    case FDS_FILTER_TYPE_STR:
+        fprintf(outstream, "STR %*s", value.string.length, value.string.chars);
+        break;
+    case FDS_FILTER_TYPE_INT:
+        fprintf(outstream, "INT %d", value.int_);
+        break;
+    case FDS_FILTER_TYPE_UINT:
+        fprintf(outstream, "UINT %u", value.uint_);
+        break;
+    case FDS_FILTER_TYPE_IP_ADDRESS:
+        if (value.ip_address.version == 4) {
+            fprintf(outstream, "IPv4 %d.%d.%d.%d",
+                value.ip_address.bytes[0],
+                value.ip_address.bytes[1],
+                value.ip_address.bytes[2],
+                value.ip_address.bytes[3]);
+        } else if (value.ip_address.version == 6) {
+            fprintf(outstream, "IPv6 %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+                    value.ip_address.bytes[0],
+                    value.ip_address.bytes[1],
+                    value.ip_address.bytes[2],
+                    value.ip_address.bytes[3],
+                    value.ip_address.bytes[4],
+                    value.ip_address.bytes[5],
+                    value.ip_address.bytes[6],
+                    value.ip_address.bytes[7],
+                    value.ip_address.bytes[8],
+                    value.ip_address.bytes[9],
+                    value.ip_address.bytes[10],
+                    value.ip_address.bytes[11],
+                    value.ip_address.bytes[12],
+                    value.ip_address.bytes[13],
+                    value.ip_address.bytes[14],
+                    value.ip_address.bytes[15]);
+        } else {
+            fprintf(outstream, "<invalid ip address value>");
+        }
+        break;
+    case FDS_FILTER_TYPE_MAC_ADDRESS:
+        fprintf(outstream, "MAC %02x:%02x:%02x:%02x:%02x:%02x",
+                value.mac_address[0],
+                value.mac_address[1],
+                value.mac_address[2],
+                value.mac_address[3],
+                value.mac_address[4],
+                value.mac_address[5]);
+        break;
+    default: fprintf(outstream, "<invalid value>");
+    };
 }
 
 void
@@ -554,7 +619,9 @@ print_eval_tree(FILE *outstream, struct eval_node *node)
     for (int i = 0; i < level; i++) {
         fprintf(outstream, "    ");
     }
-    fprintf(outstream, "(%s)\n", eval_func_to_str(node->evaluate));
+    fprintf(outstream, "(%s) more:%d defined:%d value:", eval_func_to_str(node->evaluate), node->is_more, node->is_defined);
+    print_value(outstream, node->type, node->subtype, node->value);
+    fprintf(outstream, "\n");
     level++;
     print_eval_tree(outstream, node->left);
     print_eval_tree(outstream, node->right);

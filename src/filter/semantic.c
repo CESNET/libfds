@@ -121,7 +121,7 @@ cast_to_bool(struct fds_filter *filter, struct fds_filter_ast_node **node)
 static int
 lookup_identifier(struct fds_filter *filter, struct fds_filter_ast_node *node)
 {
-    int ok = filter->lookup_callback(node->identifier_name, &node->identifier_id, &node->type,
+    int ok = filter->lookup_callback(node->identifier_name, filter->data_context, &node->identifier_id, &node->type,
                                      &node->identifier_is_constant, &node->value);
     if (!ok) {
         error_location_message(filter, node->location, "Lookup callback for identifier %s failed", node->identifier_name);
@@ -137,7 +137,7 @@ resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
             return 0;
         }
         node->type = FDS_FILTER_TYPE_BOOL;
-    } else if (node->op == FDS_FILTER_AST_NOT) {
+    } else if (node->op == FDS_FILTER_AST_NOT || node->op == FDS_FILTER_AST_ROOT || node->op == FDS_FILTER_AST_ANY) {
         if (!cast_to_bool(filter, &node->left)) {
             return 0;
         }
@@ -253,8 +253,39 @@ prepare_ast_nodes(struct fds_filter *filter, struct fds_filter_ast_node *node)
     }
 
     // Process children first and then parent
+    if (node->op == FDS_FILTER_AST_NOT || node->op == FDS_FILTER_AST_ROOT) {
+        struct fds_filter_ast_node *new_node = ast_node_create();
+        if (new_node == NULL) {
+            error_no_memory(filter);
+            return 0;
+        }
+        new_node->op = FDS_FILTER_AST_ANY;
+        new_node->left = node->left;
+        node->left = new_node;
+
+    } else if (node->op == FDS_FILTER_AST_AND || node->op == FDS_FILTER_AST_OR) {
+        struct fds_filter_ast_node *new_node_left = ast_node_create();
+        if (new_node_left == NULL) {
+            error_no_memory(filter);
+            return 0;
+        }
+        new_node_left->op = FDS_FILTER_AST_ANY;
+        new_node_left->left = node->left;
+        node->left = new_node_left;
+
+        struct fds_filter_ast_node *new_node_right = ast_node_create();
+        if (new_node_right == NULL) {
+            error_no_memory(filter);
+            return 0;
+        }
+        new_node_right->op = FDS_FILTER_AST_ANY;
+        new_node_right->left = node->right;
+        node->right = new_node_right;
+    }
+
     prepare_ast_nodes(filter, node->left); // TODO: Do something with return code
     prepare_ast_nodes(filter, node->right); // TODO: Do something with return code
+
     resolve_types(filter, node); // TODO: Do something with return code
 }
 

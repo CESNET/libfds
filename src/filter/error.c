@@ -159,6 +159,8 @@ ast_op_to_str(int op)
     case FDS_FILTER_AST_IN:         return "IN";
     case FDS_FILTER_AST_CONTAINS:   return "CONTAINS";
     case FDS_FILTER_AST_CAST:       return "CAST";
+    case FDS_FILTER_AST_ANY:        return "ANY";
+    case FDS_FILTER_AST_ROOT:       return "ROOT";
     default:                        assert(0);
     }
 }

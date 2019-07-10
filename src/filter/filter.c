@@ -8,7 +8,7 @@ typedef void *yyscan_t;
 extern int yydebug;
 
 int
-fds_filter_create(const char *input, fds_filter_lookup_func_t lookup_callback, fds_filter_data_func_t data_callback, fds_filter_t **out_filter)
+fds_filter_create(const char *input, fds_filter_lookup_func_t lookup_callback, fds_filter_data_func_t data_callback, void *data_context, fds_filter_t **out_filter)
 {
     struct fds_filter *filter = malloc(sizeof(*filter));
     *out_filter = filter;
@@ -23,10 +23,11 @@ fds_filter_create(const char *input, fds_filter_lookup_func_t lookup_callback, f
     filter->data_callback = data_callback;
 	filter->error_count = 0;
     filter->errors = NULL;
+    filter->data_context = data_context;
 
     // TODO: clean this mess up
     yyscan_t scanner;
-    yydebug = 1;
+    yydebug = 0;
     yylex_init(&scanner);
     YY_BUFFER_STATE buffer = yy_scan_string(input, scanner);
     yyparse(filter, scanner);

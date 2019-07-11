@@ -32,10 +32,10 @@ struct eval_node {
 struct fds_filter {
     struct fds_filter_ast_node *ast;
 
-    fds_filter_lookup_func_t lookup_callback;
-    fds_filter_data_func_t data_callback;
+    fds_filter_lookup_callback_t lookup_callback;
+    fds_filter_data_callback_t data_callback;
     void *data; // The raw data
-    void *data_context; // To be filled and operated on by the user
+    void *context; // To be filled and operated on by the user
     unsigned char reset_context;
 
     struct eval_node *eval_tree;

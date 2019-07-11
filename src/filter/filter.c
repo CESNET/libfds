@@ -7,29 +7,64 @@
 typedef void *yyscan_t;
 extern int yydebug;
 
-int
-fds_filter_create(const char *input, fds_filter_lookup_func_t lookup_callback, fds_filter_data_func_t data_callback, void *data_context, fds_filter_t **out_filter)
+fds_filter_t *
+fds_filter_create()
 {
-    struct fds_filter *filter = malloc(sizeof(*filter));
-    *out_filter = filter;
+    struct fds_filter *filter = malloc(sizeof(struct fds_filter));
     if (filter == NULL) {
-        pdebug("Cannot create filter - out of memory when allocating filter instance", 0);
-        return 0;
+        return NULL;
     }
-
+    filter->lookup_callback = NULL;
+    filter->data_callback = NULL;
     filter->ast = NULL;
     filter->eval_tree = NULL;
-    filter->lookup_callback = lookup_callback;
-    filter->data_callback = data_callback;
-	filter->error_count = 0;
+    filter->reset_context = 0;
+    filter->context = NULL;
+    filter->data = NULL;
+    filter->error_count = 0;
     filter->errors = NULL;
-    filter->data_context = data_context;
+    return filter;
+}
+
+void
+fds_filter_set_lookup_callback(fds_filter_t *filter, fds_filter_lookup_callback_t lookup_callback)
+{
+    assert(filter != NULL);
+    filter->lookup_callback = lookup_callback;
+}
+
+void
+fds_filter_set_data_callback(fds_filter_t *filter, fds_filter_data_callback_t data_callback)
+{
+    assert(filter != NULL);
+    filter->data_callback = data_callback;
+}
+
+void
+fds_filter_set_context(fds_filter_t *filter, void *context)
+{
+    assert(filter != NULL);
+    filter->context = context;
+}
+
+void *
+fds_filter_get_context(fds_filter_t *filter)
+{
+    assert(filter != NULL);
+    return filter->context;
+}
+
+int
+fds_filter_compile(fds_filter_t *filter, const char *filter_expression)
+{
+    assert(filter != NULL);
+    assert(filter->lookup_callback != NULL);
 
     // TODO: clean this mess up
     yyscan_t scanner;
     yydebug = 0;
     yylex_init(&scanner);
-    YY_BUFFER_STATE buffer = yy_scan_string(input, scanner);
+    YY_BUFFER_STATE buffer = yy_scan_string(filter_expression, scanner);
     yyparse(filter, scanner);
     pdebug("Finished parsing", 0);
     yy_delete_buffer(buffer, scanner);
@@ -39,7 +74,7 @@ fds_filter_create(const char *input, fds_filter_lookup_func_t lookup_callback, f
         pdebug("Parsing failed", 0);
         return 0;
     }
-    pdebug("Filter compiled - input: %s", input);
+    pdebug("Filter compiled - input: %s", filter_expression);
     ast_print(stderr, filter->ast);
 
     if (!prepare_ast_nodes(filter, filter->ast)) {
@@ -57,26 +92,23 @@ fds_filter_create(const char *input, fds_filter_lookup_func_t lookup_callback, f
     }
     print_eval_tree(stderr, eval_tree);
     filter->eval_tree = eval_tree;
+
     return 1;
 }
 
 int
-fds_filter_evaluate(fds_filter_t *filter, void *data)
+fds_filter_evaluate(fds_filter_t *filter, void *input_data)
 {
-    filter->data = data;
-    evaluate_eval_tree(filter, filter->eval_tree);
-    return filter->eval_tree->value.uint_ != 0;
-}
+    assert(filter != NULL);
+    assert(filter->lookup_callback != NULL);
+    assert(filter->data_callback != NULL);
+    assert(filter->ast != NULL);
+    assert(filter->eval_tree != NULL);
 
-void
-fds_filter_destroy(struct fds_filter *filter)
-{
-    if (filter == NULL) {
-        return;
-    }
-    ast_destroy(filter->ast);
-    error_destroy(filter);
-    free(filter);
+    filter->data = input_data;
+    evaluate_eval_tree(filter, filter->eval_tree);
+    // TODO: error handling
+    return filter->eval_tree->value.uint_ != 0;
 }
 
 int
@@ -105,18 +137,6 @@ fds_filter_get_error_location(struct fds_filter *filter, int index, struct fds_f
     }
     *location = filter->errors[index].location;
     return 1;
-}
-
-void
-fds_filter_set_data_context(fds_filter_t *filter, void *context)
-{
-    filter->data_context = context;
-}
-
-void *
-fds_filter_get_data_context(fds_filter_t *filter)
-{
-    return filter->data_context;
 }
 
 struct fds_filter_ast_node *

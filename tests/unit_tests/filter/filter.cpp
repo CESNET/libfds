@@ -23,59 +23,48 @@ struct Filter {
     const char *filter_expr;
     fds_filter_t *filter;
 
-    static int lookup_callback(const char *name, void *data_context, int *id, fds_filter_type *type, int *is_constant, fds_filter_value *value) {
-        Filter *filter = reinterpret_cast<Filter *>(data_context);
-        if (filter->identifiers.find(name) == filter->identifiers.end()) {
+    static int lookup_callback(struct fds_filter_lookup_args args) {
+        Filter *filter = reinterpret_cast<Filter *>(args.context);
+        if (filter->identifiers.find(args.name) == filter->identifiers.end()) {
             return 0;
         }
-
-        identifier_data &data = filter->identifiers[name];
-        *id = data.id;
-        *type = data.type;
-        *is_constant = data.is_constant ? 1 : 0;
+        identifier_data &data = filter->identifiers[args.name];
+        *args.id = data.id;
+        *args.type = data.type;
+        *args.is_constant = data.is_constant ? 1 : 0;
         if (data.is_constant) {
             assert(data.values.size() == 1);
-            *value = data.values[0];
+            *args.output_value = data.values[0];
         }
+        return 1;
     }
 
-    static int data_callback(int id, void *data_context, int reset_context, void *, union fds_filter_value *value) {
-        Filter *filter = reinterpret_cast<Filter *>(data_context);
-        // auto data = std::find_if(identifiers.begin(), identifiers.end(), [id](auto &p) -> bool {
-        //     return p.second.id == id;
-        // });
+    static int data_callback(struct fds_filter_data_args args) {
+        Filter *filter = reinterpret_cast<Filter *>(args.context);
         identifier_data data;
+        int found = 0;
         for (auto &p : filter->identifiers) {
-            if (p.second.id == id) {
+            if (p.second.id == args.id) {
                 data = p.second;
+                found = 1;
                 break;
             }
         }
-        assert(data.id != -1);
-        // assert(data != identifiers.end());
-        if (reset_context) {
+        assert(found);
+        if (args.reset) {
             filter->counter = 0;
         }
         int n_values = data.values.size();
-        if (filter->counter < n_values - 1) {
-            *value = data.values[filter->counter];
-            filter->counter++;
-            return FDS_FILTER_MORE;
-        } else if (filter->counter == n_values - 1) {
-            *value = data.values[filter->counter];
-            filter->counter++;
-            return FDS_FILTER_END;
-        } else {
-            return FDS_FILTER_NOT_FOUND;
+        if (filter->counter >= n_values) {
+            return 0;
         }
+        *args.output_value = data.values[filter->counter];
+        filter->counter++;
+        *args.has_more = filter->counter < n_values;
+        return 1;
     }
 
     Filter() {
-
-    }
-
-    Filter(const char *filter_expr) {
-        this->filter_expr = filter_expr;
     }
 
     void set_expression(const char *filter_expr) {
@@ -93,8 +82,14 @@ struct Filter {
     }
 
     int compile() {
-        int rc = fds_filter_create(filter_expr, lookup_callback, data_callback, this, &filter);
-        if (!rc) {
+        filter = fds_filter_create();
+        if (filter == NULL) {
+            return 0;
+        }
+        fds_filter_set_lookup_callback(filter, lookup_callback);
+        fds_filter_set_data_callback(filter, data_callback);
+        fds_filter_set_context(filter, this);
+        if (!fds_filter_compile(filter, filter_expr)) {
             return 0;
         }
         return 1;

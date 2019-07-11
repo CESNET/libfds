@@ -129,23 +129,19 @@ static void f_const(struct fds_filter *filter, struct eval_node *node) {
 }
 
 static void f_identifier(struct fds_filter *filter, struct eval_node *node) {
-    int rc = filter->data_callback(node->identifier_id, filter->data_context, filter->reset_context, filter->data, &node->value);
-    filter->reset_context = 0;
-    if (rc == FDS_FILTER_MORE) {
-        pdebug("more", 0);
+    struct fds_filter_data_args args;
+    node->is_more = 0; // Assume there is only one value by default.
+    node->is_defined = 0; // Assume the value is undefined unless the data callback succeeds.
+    args.id = node->identifier_id;
+    args.input_data = filter->data;
+    args.context = filter->context;
+    args.reset = filter->reset_context;
+    args.output_value = &node->value;
+    args.has_more = &node->is_more;
+    if (filter->data_callback(args)) {
         node->is_defined = 1;
-        node->is_more = 1;
-    } else if (rc == FDS_FILTER_END) {
-        pdebug("end", 0);
-        node->is_defined = 1;
-        node->is_more = 0;
-    } else if (rc == FDS_FILTER_NOT_FOUND) {
-        pdebug("not found", 0);
-        node->is_defined = 0;
-        node->is_more = 0;
-    } else {
-        assert(0);
     }
+    filter->reset_context = 0; // If the context should reset this is set to 1 by one of the parent nodes.
 }
 
 static void f_any(struct fds_filter *filter, struct eval_node *node) {

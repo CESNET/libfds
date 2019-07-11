@@ -121,12 +121,19 @@ cast_to_bool(struct fds_filter *filter, struct fds_filter_ast_node **node)
 static int
 lookup_identifier(struct fds_filter *filter, struct fds_filter_ast_node *node)
 {
-    int ok = filter->lookup_callback(node->identifier_name, filter->data_context, &node->identifier_id, &node->type,
-                                     &node->identifier_is_constant, &node->value);
-    if (!ok) {
+    struct fds_filter_lookup_args args;
+    args.context = filter->context;
+    args.name = node->identifier_name;
+    args.id = &node->identifier_id;
+    args.type = &node->type;
+    args.subtype = &node->subtype;
+    args.is_constant = &node->identifier_is_constant;
+    args.output_value = &node->value;
+    if (!filter->lookup_callback(args)) {
         error_location_message(filter, node->location, "Lookup callback for identifier %s failed", node->identifier_name);
+        return 0;
     }
-    return ok;
+    return 1;
 }
 
 static int

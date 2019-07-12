@@ -11,6 +11,7 @@ ast_node_create()
         return NULL;
     }
     node->op = FDS_FILTER_AST_NONE;
+    node->parent = NULL;
     node->left = NULL;
     node->right = NULL;
     node->identifier_id = 0;

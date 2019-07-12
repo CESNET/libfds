@@ -96,8 +96,28 @@ BINARY_NODE_FUNC(f_eq_ip_address, node->value.uint_ = node->left->value.ip_addre
 BINARY_NODE_FUNC(f_ne_ip_address, node->value.uint_ = node->left->value.ip_address.version == node->right->value.ip_address.version &&
     memcmp(node->left->value.ip_address.bytes, node->right->value.ip_address.bytes, node->left->value.ip_address.version == 4 ? 4 : 16) != 0)
 
-BINARY_NODE_FUNC(f_eq_mac_address, node->value.uint_ = memcmp(node->left->value.mac_address, node->right->value.ip_address.bytes, 6) == 0)
-BINARY_NODE_FUNC(f_ne_mac_address, node->value.uint_ = memcmp(node->left->value.mac_address, node->right->value.ip_address.bytes, 6) != 0)
+BINARY_NODE_FUNC(f_eq_mac_address, node->value.uint_ = memcmp(node->left->value.mac_address, node->right->value.mac_address, 6) == 0)
+BINARY_NODE_FUNC(f_ne_mac_address, node->value.uint_ = memcmp(node->left->value.mac_address, node->right->value.mac_address, 6) != 0)
+
+#define LIST_IN_FUNC(FUNC_NAME, COMPARE_STATEMENT) \
+    BINARY_NODE_FUNC(FUNC_NAME, { \
+        for (uint64_t i = 0; i < node->right->value.list.length; i++) { \
+            if (COMPARE_STATEMENT) { \
+                node->value.uint_ = 1; \
+            } \
+            return; \
+        } \
+        node->value.uint_ = 0; \
+    })
+
+LIST_IN_FUNC(f_in_uint, node->left->value.uint_ == node->right->value.list.items[i].uint_)
+LIST_IN_FUNC(f_in_int, node->left->value.uint_ == node->right->value.list.items[i].int_)
+LIST_IN_FUNC(f_in_float, node->left->value.float_ == node->right->value.list.items[i].float_)
+LIST_IN_FUNC(f_in_str, node->left->value.string.length == node->right->value.list.items[i].string.length &&
+    strncmp(node->left->value.string.chars, node->right->value.list.items[i].string.chars, node->left->value.string.length) == 0)
+LIST_IN_FUNC(f_in_mac_address, memcmp(node->left->value.mac_address, node->right->value.list.items[i].mac_address, 6) == 0)
+LIST_IN_FUNC(f_in_ip_address, node->left->value.ip_address.version == node->right->value.list.items[i].ip_address.version &&
+    memcmp(node->left->value.ip_address.bytes, node->right->value.list.items[i].ip_address.bytes, node->left->value.ip_address.version == 4 ? 4 : 16) == 0) // TODO: use trie
 
 static void f_and(struct fds_filter *filter, struct eval_node *node) {
     node->left->evaluate(filter, node->left);
@@ -154,14 +174,16 @@ static void f_any(struct fds_filter *filter, struct eval_node *node) {
     filter->reset_context = 1;
 }
 
-struct eval_node *
-eval_node_from_ast_node(struct fds_filter *filter, struct fds_filter_ast_node *ast_node)
+static int
+eval_node_from_ast_node(struct fds_filter *filter, struct fds_filter_ast_node *ast_node,
+                        struct eval_node **out_eval_node)
 {
     struct eval_node *eval_node = malloc(sizeof(struct eval_node));
     if (eval_node == NULL) {
         error_no_memory(filter);
-        return NULL;
+        return 0;
     }
+    *out_eval_node = eval_node;
     eval_node->is_defined = 0;
     eval_node->is_more = 0;
     eval_node->type = ast_node->type;
@@ -351,21 +373,27 @@ eval_node_from_ast_node(struct fds_filter *filter, struct fds_filter_ast_node *a
         break;
 
     case FDS_FILTER_AST_AND:
-        assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL && ast_node->right->type == FDS_FILTER_TYPE_BOOL && ast_node->type == FDS_FILTER_TYPE_BOOL);
+        assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL
+               && ast_node->right->type == FDS_FILTER_TYPE_BOOL
+               && ast_node->type == FDS_FILTER_TYPE_BOOL);
         eval_node->evaluate = f_and;
         eval_node->is_defined = 1; // Always defined because of ANY node
         eval_node->is_more = 0; // Can never have more because of ANY node
         break;
 
     case FDS_FILTER_AST_OR:
-        assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL && ast_node->right->type == FDS_FILTER_TYPE_BOOL && ast_node->type == FDS_FILTER_TYPE_BOOL);
+        assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL
+               && ast_node->right->type == FDS_FILTER_TYPE_BOOL
+               && ast_node->type == FDS_FILTER_TYPE_BOOL);
         eval_node->evaluate = f_or;
         eval_node->is_defined = 1; // Always defined because of ANY node
         eval_node->is_more = 0; // Can never have more because of ANY node
         break;
 
     case FDS_FILTER_AST_NOT:
-        assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL && ast_node->right == NULL && ast_node->type == FDS_FILTER_TYPE_BOOL);
+        assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL
+               && ast_node->right == NULL
+               && ast_node->type == FDS_FILTER_TYPE_BOOL);
         eval_node->evaluate = f_not;
         eval_node->is_defined = 1; // Always defined because of ANY node
         eval_node->is_more = 0; // Can never have more because of ANY node
@@ -379,8 +407,15 @@ eval_node_from_ast_node(struct fds_filter *filter, struct fds_filter_ast_node *a
 
     case FDS_FILTER_AST_IDENTIFIER:
         assert(ast_node->left == NULL && ast_node->right == NULL);
-        eval_node->evaluate = f_identifier;
         eval_node->identifier_id = ast_node->identifier_id;
+        if (ast_node->identifier_is_constant) {
+            eval_node->is_defined = 1;
+            eval_node->is_more = 0;
+            eval_node->value = ast_node->value;
+            eval_node->evaluate = f_const;
+        } else {
+            eval_node->evaluate = f_identifier;
+        }
         break;
 
     case FDS_FILTER_AST_CAST:
@@ -418,16 +453,49 @@ eval_node_from_ast_node(struct fds_filter *filter, struct fds_filter_ast_node *a
         break;
 
     case FDS_FILTER_AST_ANY:
-        assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL && ast_node->left->type == FDS_FILTER_TYPE_BOOL && ast_node->right == NULL);
+        assert(ast_node->left->type == FDS_FILTER_TYPE_BOOL
+               && ast_node->left->type == FDS_FILTER_TYPE_BOOL
+               && ast_node->right == NULL);
         eval_node->evaluate = f_any;
         eval_node->is_defined = 1;
         break;
 
     case FDS_FILTER_AST_ROOT:
+        // TODO: Solve this a better way that doesn't unnecessarily allocate only to free it right away.
+        free(eval_node);
+        *out_eval_node = NULL;
+        break;
+
+    case FDS_FILTER_AST_IN:
+        assert(ast_node->left->type == ast_node->right->subtype
+               && ast_node->right->type == FDS_FILTER_TYPE_LIST);
+        switch (ast_node->left->type) {
+        case FDS_FILTER_TYPE_UINT:
+            eval_node->evaluate = f_in_uint;
+            break;
+        case FDS_FILTER_TYPE_INT:
+            eval_node->evaluate = f_in_int;
+            break;
+        case FDS_FILTER_TYPE_FLOAT:
+            eval_node->evaluate = f_in_float;
+            break;
+        case FDS_FILTER_TYPE_STR:
+            eval_node->evaluate = f_in_str;
+            break;
+        case FDS_FILTER_TYPE_IP_ADDRESS:
+            eval_node->evaluate = f_in_ip_address;
+            break;
+        case FDS_FILTER_TYPE_MAC_ADDRESS:
+            eval_node->evaluate = f_in_mac_address;
+            break;
+        default: assert(0);
+        }
         break;
 
     default: assert(0);
     }
+
+    return 1;
 }
 
 struct eval_node *
@@ -459,8 +527,8 @@ generate_eval_tree_from_ast(struct fds_filter *filter, struct fds_filter_ast_nod
         return left;
     }
 
-    struct eval_node *parent = eval_node_from_ast_node(filter, ast_node);
-    if (parent == NULL) {
+    struct eval_node *parent;
+    if (!eval_node_from_ast_node(filter, ast_node, &parent)) {
         return NULL;
     }
     parent->left = left;
@@ -492,63 +560,35 @@ destroy_eval_tree(struct eval_node *eval_tree)
 static const char *
 eval_func_to_str(const eval_func_t *eval_func)
 {
-    if (eval_func == f_add_uint) { return "f_add_uint"; }
-    else if (eval_func == f_sub_uint) { return "f_sub_uint"; }
-    else if (eval_func == f_mul_uint) { return "f_mul_uint"; }
-    else if (eval_func == f_div_uint) { return "f_div_uint"; }
-    else if (eval_func == f_eq_uint) { return "f_eq_uint"; }
-    else if (eval_func == f_ne_uint) { return "f_ne_uint"; }
-    else if (eval_func == f_lt_uint) { return "f_lt_uint"; }
-    else if (eval_func == f_gt_uint) { return "f_gt_uint"; }
-    else if (eval_func == f_le_uint) { return "f_le_uint"; }
-    else if (eval_func == f_ge_uint) { return "f_ge_uint"; }
-    else if (eval_func == f_cast_uint_to_float) { return "f_cast_uint_to_float"; }
-    else if (eval_func == f_cast_uint_to_bool) { return "f_cast_uint_to_bool"; }
-    else if (eval_func == f_add_int) { return "f_add_int"; }
-    else if (eval_func == f_sub_int) { return "f_sub_int"; }
-    else if (eval_func == f_mul_int) { return "f_mul_int"; }
-    else if (eval_func == f_div_int) { return "f_div_int"; }
-    else if (eval_func == f_eq_int) { return "f_eq_int"; }
-    else if (eval_func == f_ne_int) { return "f_ne_int"; }
-    else if (eval_func == f_lt_int) { return "f_lt_int"; }
-    else if (eval_func == f_gt_int) { return "f_gt_int"; }
-    else if (eval_func == f_le_int) { return "f_le_int"; }
-    else if (eval_func == f_ge_int) { return "f_ge_int"; }
-    else if (eval_func == f_minus_int) { return "f_minus_int"; }
-    else if (eval_func == f_cast_int_to_uint) { return "f_cast_int_to_uint"; }
-    else if (eval_func == f_cast_int_to_float) { return "f_cast_int_to_float"; }
-    else if (eval_func == f_cast_int_to_bool) { return "f_cast_int_to_bool"; }
-    else if (eval_func == f_add_float) { return "f_add_float"; }
-    else if (eval_func == f_sub_float) { return "f_sub_float"; }
-    else if (eval_func == f_mul_float) { return "f_mul_float"; }
-    else if (eval_func == f_div_float) { return "f_div_float"; }
-    else if (eval_func == f_eq_float) { return "f_eq_float"; }
-    else if (eval_func == f_ne_float) { return "f_ne_float"; }
-    else if (eval_func == f_lt_float) { return "f_lt_float"; }
-    else if (eval_func == f_gt_float) { return "f_gt_float"; }
-    else if (eval_func == f_le_float) { return "f_le_float"; }
-    else if (eval_func == f_ge_float) { return "f_ge_float"; }
-    else if (eval_func == f_minus_float) { return "f_minus_float"; }
-    else if (eval_func == f_cast_float_to_bool) { return "f_cast_float_to_bool"; }
-    else if (eval_func == f_concat_str) { return "f_concat_str"; }
-    else if (eval_func == f_eq_str) { return "f_eq_str"; }
-    else if (eval_func == f_ne_str) { return "f_ne_str"; }
-    else if (eval_func == f_cast_str_to_bool) { return "f_cast_str_to_bool"; }
-    else if (eval_func == f_eq_ip_address) { return "f_eq_ip_address"; }
-    else if (eval_func == f_ne_ip_address) { return "f_ne_ip_address"; }
-    else if (eval_func == f_eq_mac_address) { return "f_eq_mac_address"; }
-    else if (eval_func == f_ne_mac_address) { return "f_ne_mac_address"; }
-    else if (eval_func == f_and) { return "f_and"; }
-    else if (eval_func == f_or) { return "f_or"; }
-    else if (eval_func == f_not) { return "f_not"; }
-    else if (eval_func == f_const) { return "f_const"; }
-    else if (eval_func == f_identifier) { return "f_identifier"; }
-    else if (eval_func == f_any) { return "f_any"; }
-    else { assert(0); }
+    #define F(FUNC_NAME)    if (eval_func == FUNC_NAME) { return #FUNC_NAME; }
+    F(f_add_uint) F(f_sub_uint) F(f_mul_uint) F(f_div_uint)
+    F(f_eq_uint) F(f_ne_uint) F(f_lt_uint) F(f_gt_uint) F(f_le_uint) F(f_ge_uint)
+    F(f_cast_uint_to_float) F(f_cast_uint_to_bool)
+
+    F(f_add_int) F(f_sub_int) F(f_mul_int) F(f_div_int)
+    F(f_eq_int) F(f_ne_int) F(f_lt_int) F(f_gt_int) F(f_le_int) F(f_ge_int)
+    F(f_minus_int) F(f_cast_int_to_uint) F(f_cast_int_to_float) F(f_cast_int_to_bool)
+
+    F(f_add_float) F(f_sub_float) F(f_mul_float) F(f_div_float)
+    F(f_eq_float) F(f_ne_float) F(f_lt_float) F(f_gt_float) F(f_le_float) F(f_ge_float)
+    F(f_minus_float) F(f_cast_float_to_bool)
+
+    F(f_concat_str) F(f_eq_str) F(f_ne_str) F(f_cast_str_to_bool)
+
+    F(f_eq_ip_address) F(f_ne_ip_address)
+
+    F(f_eq_mac_address) F(f_ne_mac_address)
+
+    F(f_and) F(f_or) F(f_not) F(f_const) F(f_identifier) F(f_any)
+
+    F(f_in_uint) F(f_in_int) F(f_in_float) F(f_in_str) F(f_in_ip_address) F(f_in_mac_address)
+    #undef F
+    assert(0);
 }
 
 static void
-print_value(FILE *outstream, enum fds_filter_type type, enum fds_filter_type subtype, const union fds_filter_value value)
+print_value(FILE *outstream, enum fds_filter_type type,
+            enum fds_filter_type subtype, const union fds_filter_value value)
 {
     switch (type) {
     case FDS_FILTER_TYPE_BOOL:
@@ -615,7 +655,8 @@ print_eval_tree(FILE *outstream, struct eval_node *node)
     for (int i = 0; i < level; i++) {
         fprintf(outstream, "    ");
     }
-    fprintf(outstream, "(%s) more:%d defined:%d value:", eval_func_to_str(node->evaluate), node->is_more, node->is_defined);
+    fprintf(outstream, "(%s) more:%d defined:%d value:",
+            eval_func_to_str(node->evaluate), node->is_more, node->is_defined);
     print_value(outstream, node->type, node->subtype, node->value);
     fprintf(outstream, "\n");
     level++;

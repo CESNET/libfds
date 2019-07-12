@@ -8,7 +8,7 @@ extern "C" {
 typedef struct fds_filter fds_filter_t;
 
 /**
- * @brief All the possible data types of a filter value
+ * All the possible data types of a filter value
  *
  * FDS_FILTER_TYPE_NONE and FDS_FILTER_TYPE_COUNT are special values that are not valid filter data types
  */
@@ -26,7 +26,7 @@ enum fds_filter_type {
 };
 
 /**
- * @brief Union representing all the possible values a filter can use
+ * Union representing all the possible values a filter can use
  */
 union fds_filter_value {
     struct {
@@ -35,7 +35,7 @@ union fds_filter_value {
     } string;
     struct {
         int length;
-        void *items; // TODO: come up with better names?
+        union fds_filter_value *items; // TODO: come up with better names?
     } list;
     unsigned long uint_;
     long int_;
@@ -52,7 +52,7 @@ union fds_filter_value {
 typedef union fds_filter_value fds_filter_value_t;
 
 /**
- * @brief Possible AST node operations
+ * Possible AST node operations
  */
 enum fds_filter_ast_op {
     FDS_FILTER_AST_NONE,
@@ -88,7 +88,7 @@ enum fds_filter_ast_op {
 };
 
 /**
- * @brief The location of a node in the input text
+ * The location of a node in the input text
  */
 struct fds_filter_location {
     int first_line;
@@ -98,11 +98,12 @@ struct fds_filter_location {
 };
 
 /**
- * @brief Node of an abstract syntax tree of the filter
+ * Node of an abstract syntax tree of the filter
  */
 struct fds_filter_ast_node {
     enum fds_filter_ast_op op;
 
+    struct fds_filter_ast_node *parent;
     struct fds_filter_ast_node *left;
     struct fds_filter_ast_node *right;
 
@@ -117,7 +118,7 @@ struct fds_filter_ast_node {
 };
 
 /**
- * @brief The lookup callback function type
+ * The lookup callback function type
  *
  * TODO: explain more in detail
  *
@@ -259,7 +260,7 @@ FDS_API int
 fds_filter_evaluate(fds_filter_t *filter, void *input_data);
 
 /**
- * @brief Gets the abstract syntax tree of a compiled filter
+ * Gets the abstract syntax tree of a compiled filter
  *
  * @param   filter   The filter instance.
  * @return  A pointer to the root of the abstract syntax tree.
@@ -268,26 +269,26 @@ FDS_API struct fds_filter_ast_node *
 fds_filter_get_ast(fds_filter_t *filter);
 
 /**
- * @brief Gets the number of errors
+ * Gets the number of errors
  *
  * @param   filter  The filter instance.
  * @return  The error count.
  */
 FDS_API int
-fds_filter_get_error_count(struct fds_filter *filter);
+fds_filter_get_error_count(fds_filter_t *filter);
 
 /**
- * @brief Gets the error message of the Nth error
+ * Gets the error message of the Nth error
  *
  * @param filter    The filter instance.
  * @param index     The index of the error.
  * @return  The error message if the error exists, else NULL.
  */
 FDS_API const char *
-fds_filter_get_error_message(struct fds_filter *filter, int index);
+fds_filter_get_error_message(fds_filter_t *filter, int index);
 
 /**
- * @brief Gets the location in the input text of the Nth error
+ * Gets the location in the input text of the Nth error
  *
  * @param      filter       The filter instance.
  * @param      index        The index of the error.
@@ -295,7 +296,17 @@ fds_filter_get_error_message(struct fds_filter *filter, int index);
  * @return  1 if the error exists and has a location set, else 0.
  */
 FDS_API int
-fds_filter_get_error_location(struct fds_filter *filter, int index, struct fds_filter_location *location);
+fds_filter_get_error_location(fds_filter_t *filter, int index, struct fds_filter_location *location);
+
+/**
+ * Print errors, return the number of errors printed.
+ *
+ * @param   filter      The filter instance.
+ * @param   out_stream  The output stream to print the errors to.
+ * @return  Number of errors printed.
+ */
+FDS_API int
+fds_filter_print_errors(fds_filter_t *filter, FILE *out_stream);
 
 #ifdef __cplusplus
 }

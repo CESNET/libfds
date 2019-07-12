@@ -89,14 +89,15 @@ struct Filter {
         fds_filter_set_lookup_callback(filter, lookup_callback);
         fds_filter_set_data_callback(filter, data_callback);
         fds_filter_set_context(filter, this);
-        if (!fds_filter_compile(filter, filter_expr)) {
-            return 0;
-        }
-        return 1;
+        int rc = fds_filter_compile(filter, filter_expr);
+        fds_filter_print_errors(filter, stderr);
+        return rc;
     }
 
     int evaluate() {
-        return fds_filter_evaluate(filter, NULL);
+        int rc = fds_filter_evaluate(filter, NULL);
+        fds_filter_print_errors(filter, stderr);
+        return rc;
     }
 
     int error_count() {
@@ -227,4 +228,60 @@ TEST(Filter, ip_port_undefined_field)
     // Does not contain ip 192.168.0.1 or does not contain port 443
     filter.set_expression("not ip 192.168.0.1 or not port 443");
     EXPECT_TRUE(filter.compile_and_evaluate());
+}
+
+TEST(Filter, arithmetic)
+{
+    Filter filter;
+    filter.set_identifier("a", FDS_FILTER_TYPE_UINT, true, // Const
+                          { (fds_filter_value) { .uint_ = 10 } });
+    filter.set_identifier("b", FDS_FILTER_TYPE_UINT, true, // Const
+                          { (fds_filter_value) { .uint_ = 20 } });
+    filter.set_identifier("c", FDS_FILTER_TYPE_UINT, false, // Not const
+                          { (fds_filter_value) { .uint_ = 30 } });
+
+    filter.set_expression("10 + 20 == 30");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+
+    filter.set_expression("(10 * 20) + 30 > 100");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+
+    filter.set_expression("a + b == c");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+
+    filter.set_expression("(a * b) + c > 100");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+
+    filter.set_expression("60 * (a * b) + c > 100");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+
+    filter.set_expression("60 * ((a * b) + c) > 100");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+}
+
+TEST(Filter, list)
+{
+    Filter filter;
+    filter.set_identifier("a", FDS_FILTER_TYPE_UINT, true, // Const
+                          { (fds_filter_value) { .uint_ = 10 } });
+    filter.set_identifier("b", FDS_FILTER_TYPE_UINT, true, // Const
+                          { (fds_filter_value) { .uint_ = 20 } });
+    filter.set_identifier("c", FDS_FILTER_TYPE_UINT, false, // Not const
+                          { (fds_filter_value) { .uint_ = 30 } });
+
+    filter.set_expression("10 in [10, 20, 30]");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+
+    filter.set_expression("10 in [20, 10, 30]");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+
+    filter.set_expression("10 in [20, 30, 10]");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+
+    filter.set_expression("10 in [a, b, c]");
+    EXPECT_FALSE(filter.compile());
+
+    filter.set_expression("10 in [a, b]");
+    EXPECT_FALSE(filter.compile_and_evaluate());
+
 }

@@ -10,7 +10,7 @@ extern int yydebug;
 fds_filter_t *
 fds_filter_create()
 {
-    struct fds_filter *filter = malloc(sizeof(struct fds_filter));
+    fds_filter_t *filter = malloc(sizeof(fds_filter_t));
     if (filter == NULL) {
         return NULL;
     }
@@ -112,24 +112,24 @@ fds_filter_evaluate(fds_filter_t *filter, void *input_data)
 }
 
 int
-fds_filter_get_error_count(struct fds_filter *filter)
+fds_filter_get_error_count(fds_filter_t *filter)
 {
     return filter->error_count;
 }
 
 const char *
-fds_filter_get_error_message(struct fds_filter *filter, int index)
+fds_filter_get_error_message(fds_filter_t *filter, int index)
 {
-    if (index < filter->error_count) {
+    if (index >= filter->error_count) {
         return NULL;
     }
     return filter->errors[index].message;
 }
 
 int
-fds_filter_get_error_location(struct fds_filter *filter, int index, struct fds_filter_location *location)
+fds_filter_get_error_location(fds_filter_t *filter, int index, struct fds_filter_location *location)
 {
-    if (index < filter->error_count) {
+    if (index >= filter->error_count) {
         return 0;
     }
     if (filter->errors[index].location.first_line == -1) {
@@ -143,4 +143,22 @@ struct fds_filter_ast_node *
 fds_filter_get_ast(fds_filter_t *filter)
 {
     return filter->ast;
+}
+
+FDS_API int
+fds_filter_print_errors(fds_filter_t *filter, FILE *out_stream)
+{
+    int i;
+    pdebug("Error count: %d", fds_filter_get_error_count(filter));
+    for (i = 0; i < fds_filter_get_error_count(filter); i++) {
+        struct fds_filter_location location;
+        const char *error_message = fds_filter_get_error_message(filter, i);
+        fprintf(out_stream, "ERROR: %s", error_message);
+        if (fds_filter_get_error_location(filter, i, &location)) {
+            fprintf(out_stream, " on line %d:%d, column %d:%d",
+                    location.first_line, location.last_line, location.first_column, location.last_column);
+        }
+        fprintf(out_stream, "\n");
+    }
+    return i;
 }

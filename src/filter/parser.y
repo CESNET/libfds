@@ -36,6 +36,12 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
     node->op = op_; \
     node->left = left_; \
     node->right = right_; \
+    if (left_ != NULL) { \
+        ((struct fds_filter_ast_node *)left_)->parent = node; \
+    } \
+    if (right_ != NULL) { \
+        ((struct fds_filter_ast_node *)right_)->parent = node; \
+    } \
     node->location.first_line = location_.first_line; \
     node->location.last_line = location_.last_line; \
     node->location.first_column = location_.first_column ; \
@@ -133,8 +139,8 @@ comparsion: expr "==" expr { AST_NODE_($$, FDS_FILTER_AST_EQ, $1, $3, @$) }
           | expr ">" expr { AST_NODE_($$, FDS_FILTER_AST_GT, $1, $3, @$) }
           | expr "<=" expr { AST_NODE_($$, FDS_FILTER_AST_LE, $1, $3, @$) }
           | expr ">=" expr { AST_NODE_($$, FDS_FILTER_AST_GE, $1, $3, @$) }
-          | expr "in" expr { AST_NODE_($$, FDS_FILTER_AST_MOD, $1, $3, @$) }
-          | expr "contains" expr { AST_NODE_($$, FDS_FILTER_AST_MOD, $1, $3, @$) }
+          | expr "in" expr { AST_NODE_($$, FDS_FILTER_AST_IN, $1, $3, @$) }
+          | expr "contains" expr { AST_NODE_($$, FDS_FILTER_AST_CONTAINS, $1, $3, @$) }
           | expr expr { AST_NODE_($$, FDS_FILTER_AST_EQ, $1, $2, @$) }
           | expr { $$ = $1; }
 
@@ -153,7 +159,7 @@ expr: expr "|" expr { AST_NODE_($$, FDS_FILTER_AST_BITOR, $1, $3, @$) }
     | list { $$ = $1; }
 
 list_items: list_items "," expr { AST_NODE_($$, FDS_FILTER_AST_LIST_ITEM, $1, $3, @$) }
-          | expr { AST_NODE_($$, FDS_FILTER_AST_LIST_ITEM, $1, NULL, @$) }
+          | expr { AST_NODE_($$, FDS_FILTER_AST_LIST_ITEM, NULL, $1, @$) }
 
 list: "[" "]" { AST_NODE_($$, FDS_FILTER_AST_LIST, NULL, NULL, @$) }
     | "[" list_items "]" { AST_NODE_($$, FDS_FILTER_AST_LIST, $2, NULL, @$) }

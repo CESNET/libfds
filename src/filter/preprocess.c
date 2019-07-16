@@ -46,9 +46,10 @@ get_common_number_type(enum fds_filter_type left, enum fds_filter_type right)
 }
 
 static int
-cast_node(struct fds_filter *filter, struct fds_filter_ast_node **node, enum fds_filter_type to)
+cast_node(struct fds_filter *filter, struct fds_filter_ast_node **node,
+          enum fds_filter_type to_type, enum fds_filter_type to_subtype)
 {
-    if ((*node)->type == to) {
+    if ((*node)->type == to_type && (*node)->subtype == to_subtype) {
         return 1;
     }
 
@@ -57,7 +58,8 @@ cast_node(struct fds_filter *filter, struct fds_filter_ast_node **node, enum fds
         error_no_memory(filter);
         return 0;
     }
-    new_node->type = to;
+    new_node->type = to_type;
+    new_node->subtype = to_subtype;
     new_node->op = FDS_FILTER_AST_CAST;
     new_node->left = *node;
     *node = new_node;
@@ -73,10 +75,10 @@ cast_children_to_common_number_type(struct fds_filter *filter, struct fds_filter
                                type_to_str(node->left->type), type_to_str(node->right->type));
         return 0;
     }
-    if (!cast_node(filter, &node->left, type)) {
+    if (!cast_node(filter, &node->left, type, FDS_FILTER_TYPE_NONE)) {
         return 0;
     }
-    if (!cast_node(filter, &node->right, type)) {
+    if (!cast_node(filter, &node->right, type, FDS_FILTER_TYPE_NONE)) {
         return 0;
     }
     assert(node->left->type == node->right->type);
@@ -84,10 +86,32 @@ cast_children_to_common_number_type(struct fds_filter *filter, struct fds_filter
 }
 
 static int
+cast_all_list_items_to_type(struct fds_filter *filter, struct fds_filter_ast_node *list_node,
+                            enum fds_filter_type type)
+{
+    assert(list_node->op == FDS_FILTER_AST_LIST);
+    struct fds_filter_ast_node *list_item = list_node->left;
+    while (list_item != NULL) {
+        assert(list_item->op == FDS_FILTER_AST_LIST_ITEM);
+        if (!cast_node(filter, &list_item->right, type, FDS_FILTER_TYPE_NONE)) {
+            return 0;
+        }
+        list_item->type = list_item->right->type;
+        list_item = list_item->left;
+    }
+    list_node->subtype = type;
+    return 1;
+}
+
+static int
 cast_list_to_same_type(struct fds_filter *filter, struct fds_filter_ast_node *node)
 {
-    enum fds_filter_type final_type = node->right->type;
-    struct fds_filter_ast_node *list_item = node;
+    struct fds_filter_ast_node *list_item = node->left;
+    if (list_item == NULL) {
+        node->subtype = FDS_FILTER_TYPE_NONE;
+        return 1;
+    }
+    enum fds_filter_type final_type = list_item->right->type;
 
     while ((list_item = list_item->left) != NULL) {
         if (is_number_type(list_item->right->type)) {
@@ -106,12 +130,8 @@ cast_list_to_same_type(struct fds_filter *filter, struct fds_filter_ast_node *no
         }
     }
 
-    list_item = node;
-    while (list_item != NULL) {
-        if (!cast_node(filter, &list_item->right, final_type)) {
-            return 0;
-        }
-        list_item = list_item->left;
+    if (!cast_all_list_items_to_type(filter, node, final_type)) {
+        return 0;
     }
 
     return 1;
@@ -121,7 +141,7 @@ static int
 cast_to_bool(struct fds_filter *filter, struct fds_filter_ast_node **node)
 {
     // TODO: Check type? Now we assume any type can be converted to bool
-    return cast_node(filter, node, FDS_FILTER_TYPE_BOOL);
+    return cast_node(filter, node, FDS_FILTER_TYPE_BOOL, FDS_FILTER_TYPE_NONE);
 }
 
 static int
@@ -143,12 +163,12 @@ lookup_identifier(struct fds_filter *filter, struct fds_filter_ast_node *node)
 }
 
 static int
-resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
+resolve_types(struct fds_filter *filter, struct fds_filter_ast_node **node_ptr)
 {
+    struct fds_filter_ast_node *node = *node_ptr;
     switch (node->op) {
     case FDS_FILTER_AST_AND:
-    case FDS_FILTER_AST_OR:
-    {
+    case FDS_FILTER_AST_OR: {
         if (!cast_to_bool(filter, &node->left) || !cast_to_bool(filter, &node->right)) {
             return 0;
         }
@@ -157,16 +177,14 @@ resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
 
     case FDS_FILTER_AST_NOT:
     case FDS_FILTER_AST_ROOT:
-    case FDS_FILTER_AST_ANY:
-    {
+    case FDS_FILTER_AST_ANY: {
         if (!cast_to_bool(filter, &node->left)) {
             return 0;
         }
         node->type = FDS_FILTER_TYPE_BOOL;
     } break;
 
-    case FDS_FILTER_AST_ADD:
-    {
+    case FDS_FILTER_AST_ADD: {
         if (is_number_type(node->left->type) && is_number_type(node->right->type)) {
             if (!cast_children_to_common_number_type(filter, node)) {
                 return 0;
@@ -181,8 +199,7 @@ resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
 
     case FDS_FILTER_AST_SUB:
     case FDS_FILTER_AST_MUL:
-    case FDS_FILTER_AST_DIV:
-    {
+    case FDS_FILTER_AST_DIV: {
         if (is_number_type(node->left->type) && is_number_type(node->right->type)) {
             if (!cast_children_to_common_number_type(filter, node)) {
                 return 0;
@@ -193,11 +210,10 @@ resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
         }
     } break;
 
-    case FDS_FILTER_AST_UMINUS:
-    {
+    case FDS_FILTER_AST_UMINUS: {
         if (is_number_type(node->left->type)) {
             if (node->left->type == FDS_FILTER_TYPE_UINT) {
-                if (!cast_node(filter, &node->left, FDS_FILTER_TYPE_INT)) {
+                if (!cast_node(filter, &node->left, FDS_FILTER_TYPE_INT, FDS_FILTER_TYPE_NONE)) {
                     return 0;
                 }
             }
@@ -208,8 +224,7 @@ resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
     } break;
 
     case FDS_FILTER_AST_EQ:
-    case FDS_FILTER_AST_NE:
-    {
+    case FDS_FILTER_AST_NE: {
         if (is_number_type(node->left->type) && is_number_type(node->right->type)) {
             if (!cast_children_to_common_number_type(filter, node)) {
                 return 0;
@@ -226,8 +241,7 @@ resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
     case FDS_FILTER_AST_LT:
     case FDS_FILTER_AST_GT:
     case FDS_FILTER_AST_LE:
-    case FDS_FILTER_AST_GE:
-    {
+    case FDS_FILTER_AST_GE: {
         if (is_number_type(node->left->type) && is_number_type(node->right->type)) {
             if (!cast_children_to_common_number_type(filter, node)) {
                 return 0;
@@ -238,8 +252,7 @@ resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
         node->type = FDS_FILTER_TYPE_BOOL;
     } break;
 
-    case FDS_FILTER_AST_CONTAINS:
-    {
+    case FDS_FILTER_AST_CONTAINS: {
         if (both_children_of_type(node, FDS_FILTER_TYPE_STR)) {
             node->type = FDS_FILTER_TYPE_BOOL;
         } else {
@@ -247,45 +260,49 @@ resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
         }
     } break;
 
-    case FDS_FILTER_AST_IN:
-    {
-        // !!! TODO: Make it work with actual lists, now it assumes AST lists
-        // All the values in the list have the same type at this point
-        // node->right is the AST_LIST
-        // node->right->left is the last AST_LIST_ITEM, if it's null the list is empty
-        // node->right->left->right is the value of the last list item
-        if (node->right->type == FDS_FILTER_TYPE_LIST
-                && (!node->right->left || node->left->type == node->right->left->right->type)) {
-           node->type = FDS_FILTER_TYPE_BOOL;
+    case FDS_FILTER_AST_IN: {
+        node->type = FDS_FILTER_TYPE_BOOL;
+        if (node->right->type != FDS_FILTER_TYPE_LIST) {
+            goto invalid_operation;
+        }
+
+        if (node->left->type == node->right->subtype || node->right->subtype == FDS_FILTER_TYPE_NONE) {
+            // No need to do anything
+        } else if (is_number_type(node->left->type) && is_number_type(node->right->subtype)) {
+            enum fds_filter_type common_type = get_common_number_type(node->left->type, node->right->subtype);
+            if (common_type != FDS_FILTER_TYPE_NONE) {
+                if (!cast_node(filter, &node->left, common_type, FDS_FILTER_TYPE_NONE)) {
+                    return 0;
+                }
+                if (!cast_node(filter, &node->right, FDS_FILTER_TYPE_LIST, common_type)) {
+                    return 0;
+                }
+            } else {
+                goto invalid_operation;
+            }
         } else {
             goto invalid_operation;
         }
     } break;
 
-    case FDS_FILTER_AST_LIST:
-    {
-    // TODO: list support
+    case FDS_FILTER_AST_LIST: {
         node->type = FDS_FILTER_TYPE_LIST;
-        if (node->left) { // Empty list
-            if (!cast_list_to_same_type(filter, node->left)) {
-                return 0;
-            }
-            node->subtype = node->left->right->type; // All the list items are the same type at this point
-        } else {
-            node->subtype = FDS_FILTER_TYPE_NONE;
+        if (!cast_list_to_same_type(filter, node)) {
+            return 0;
         }
     } break;
 
-    case FDS_FILTER_AST_IDENTIFIER:
-    {
+    case FDS_FILTER_AST_IDENTIFIER: {
         if (!lookup_identifier(filter, node)) {
             return 0;
         }
     } break;
 
-    case FDS_FILTER_AST_LIST_ITEM:
-    case FDS_FILTER_AST_CONST:
-    {
+    case FDS_FILTER_AST_LIST_ITEM: {
+        node->type = node->right->type;
+    } break;
+
+    case FDS_FILTER_AST_CONST: {
         // Pass
     } break;
 
@@ -296,8 +313,9 @@ resolve_types(struct fds_filter *filter, struct fds_filter_ast_node *node)
 
 invalid_operation:
     if (is_binary_node(node)) {
-        error_location_message(filter, node->location, "Invalid operation %s for values of type %s and %s",
-                               ast_op_to_str(node->op), type_to_str(node->left->type), type_to_str(node->right->type));
+        error_location_message(filter, node->location, "Invalid operation %s for values of type %s(%s) and %s(%s)",
+                               ast_op_to_str(node->op), type_to_str(node->left->type), type_to_str(node->left->subtype),
+                               type_to_str(node->right->type), type_to_str(node->right->subtype));
     } else if (is_unary_node(node)) {
         error_location_message(filter, node->location, "Invalid operation %s for value of type %s",
                                ast_op_to_str(node->op), type_to_str(node->left->type));
@@ -357,9 +375,12 @@ optimize_node(struct fds_filter *filter, struct fds_filter_ast_node **node)
 }
 
 static int
-convert_ast_list_to_actual_list(struct fds_filter *filter, struct fds_filter_ast_node *list_node)
+convert_ast_list_to_actual_list(struct fds_filter *filter, struct fds_filter_ast_node **node_ptr)
 {
-    assert(list_node->op == FDS_FILTER_AST_LIST);
+    struct fds_filter_ast_node *list_node = *node_ptr;
+    if (list_node->op != FDS_FILTER_AST_LIST) {
+        return 1;
+    }
 
     // Walk through the list to the end and count the items along the way.
     // The list items are in reverse order in the AST.
@@ -405,8 +426,9 @@ convert_ast_list_to_actual_list(struct fds_filter *filter, struct fds_filter_ast
 }
 
 static int
-add_any_nodes(struct fds_filter *filter, struct fds_filter_ast_node *node)
+add_any_nodes(struct fds_filter *filter, struct fds_filter_ast_node **node_ptr)
 {
+    struct fds_filter_ast_node *node = *node_ptr;
     if (node->op == FDS_FILTER_AST_NOT || node->op == FDS_FILTER_AST_ROOT) {
         struct fds_filter_ast_node *new_node = ast_node_create();
         if (new_node == NULL) {
@@ -440,47 +462,45 @@ add_any_nodes(struct fds_filter *filter, struct fds_filter_ast_node *node)
     return 1;
 }
 
-int
-prepare_ast_nodes(struct fds_filter *filter, struct fds_filter_ast_node *node)
+static int
+apply_to_all_nodes(int (*function)(struct fds_filter *, struct fds_filter_ast_node **),
+                   struct fds_filter *filter, struct fds_filter_ast_node *node)
 {
     if (node == NULL) {
         return 1;
     }
+    if (!apply_to_all_nodes(function, filter, node->left)) {
+        return 0;
+    }
+    if (!apply_to_all_nodes(function, filter, node->right)) {
+        return 0;
+    }
+    if (!function(filter, &node)) {
+        return 0;
+    }
+    return 1;
+}
 
-    // Attach extra nodes.
-    // The nodes have to be added first before the children are processed,
-    // else the new nodes don't get processed.
-    if (!add_any_nodes(filter, node)) {
-        pdebug("ERROR: Add any nodes for %s failed", ast_op_to_str(node->op));
+int
+prepare_ast_nodes(struct fds_filter *filter, struct fds_filter_ast_node *node)
+{
+    if (!apply_to_all_nodes(add_any_nodes, filter, node)) {
+        pdebug("add_any_nodes failed", 0);
         return 0;
     }
 
-    // Process left subtree
-    if (!prepare_ast_nodes(filter, node->left)) {
-        pdebug("ERROR: Preparing left subtree of %s failed", ast_op_to_str(node->op));
-        return 0;
-    }
-    // Process right subtree
-    if (!prepare_ast_nodes(filter, node->right)) {
-        pdebug("ERROR: Preparing right subtree of %s failed", ast_op_to_str(node->op));
+    if (!apply_to_all_nodes(resolve_types, filter, node)) {
+        pdebug("resolve_types failed", 0);
         return 0;
     }
 
-    // Process the actual node
-    if (!resolve_types(filter, node)) {
-        pdebug("ERROR: Resolve types for %s failed", ast_op_to_str(node->op));
+    if (!apply_to_all_nodes(convert_ast_list_to_actual_list, filter, node)) {
+        pdebug("convert_ast_list_to_actual_list failed", 0);
         return 0;
     }
-    if (node->op == FDS_FILTER_AST_LIST) {
-        if (!convert_ast_list_to_actual_list(filter, node)) {
-            pdebug("ERROR: Convert AST list to actual list for %s failed", ast_op_to_str(node->op));
-            return 0;
-        }
-        assert(node->op == FDS_FILTER_AST_CONST);
-    }
-    // Optimize
-    if (!optimize_node(filter, &node)) { // &node because we may want to remove the node itself
-        pdebug("ERROR: Optimize node for %s failed", ast_op_to_str(node->op));
+
+    if (!apply_to_all_nodes(optimize_node, filter, node)) {
+        pdebug("optimize_node failed", 0);
         return 0;
     }
 

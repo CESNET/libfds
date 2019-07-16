@@ -282,6 +282,38 @@ TEST(Filter, list)
     EXPECT_FALSE(filter.compile());
 
     filter.set_expression("10 in [a, b]");
-    EXPECT_FALSE(filter.compile_and_evaluate());
+    EXPECT_TRUE(filter.compile_and_evaluate());
 
+    filter.set_expression("10 in []");
+    EXPECT_TRUE(filter.compile());
+    EXPECT_FALSE(filter.evaluate());
+
+    filter.set_expression("127.0.0.1 in [192.168.0.1, 127.0.0.1]");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+}
+
+TEST(Filter_scanner, identifiers_with_space)
+{
+    Filter filter;
+    filter.set_identifier("src ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 127, 0, 0, 1 } } },
+    });
+    filter.set_expression("src ip 127.0.0.1");
+    EXPECT_TRUE(filter.compile());
+    EXPECT_TRUE(filter.evaluate());
+
+    filter.set_expression("not src ip 127.0.0.2");
+    EXPECT_TRUE(filter.compile());
+    EXPECT_TRUE(filter.evaluate());
+}
+
+TEST(Filter, ipv4_address_with_mask)
+{
+    Filter filter;
+    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 4, .mask = 24, .bytes = { 192, 168, 0, 1 } } },
+    });
+    filter.set_expression("ip 192.168.0.0/24");
+    EXPECT_TRUE(filter.compile());
+    EXPECT_TRUE(filter.evaluate());
 }

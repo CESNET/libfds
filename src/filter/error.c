@@ -123,6 +123,7 @@ type_to_str(int type)
     case FDS_FILTER_TYPE_BOOL:        return "BOOL";
     case FDS_FILTER_TYPE_IP_ADDRESS:  return "IP_ADDRESS";
     case FDS_FILTER_TYPE_MAC_ADDRESS: return "MAC_ADDRESS";
+    case FDS_FILTER_TYPE_LIST:        return "LIST";
     default:                          assert(0);
     }
 }
@@ -179,7 +180,9 @@ ast_print(FILE *outstream, struct fds_filter_ast_node *node)
         fprintf(outstream, "name: %s, id: %d, ", node->identifier_name, node->identifier_id, type_to_str(node->type));
 	}
 	fprintf(outstream, "type: %s, ", type_to_str(node->type));
-	fprintf(outstream, "value: ", type_to_str(node->type));
+    if (node->subtype != FDS_FILTER_TYPE_NONE) {
+	    fprintf(outstream, "subtype: %s, ", type_to_str(node->subtype));
+    }
 	switch (node->type) {
 	case FDS_FILTER_TYPE_BOOL:
 		fprintf(outstream, "%s", node->value.int_ != 0 ? "true" : "false");
@@ -229,6 +232,9 @@ ast_print(FILE *outstream, struct fds_filter_ast_node *node)
 				node->value.mac_address[4],
 				node->value.mac_address[5]);
 		break;
+    case FDS_FILTER_TYPE_LIST:
+        fprintf(outstream, "<unimplemented>");
+        break;
 	}
 	fprintf(outstream, ")\n");
     level++;

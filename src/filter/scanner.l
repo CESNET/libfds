@@ -63,7 +63,7 @@
 "!"                        { return ASTERISK; }
 [ \t]                      { /* do nothing */ }
 
-((src|dst|in|out|ingress|egress)\s+)?[a-zA-Z][a-zA-Z0-9@:\-\.]* {
+((src|dst|in|out|ingress|egress)[ ]+)?[a-zA-Z][a-zA-Z0-9@:\-\.]* {
     yylval_param->ast.identifier_name = strdup(yytext);
     if (yylval_param->ast.identifier_name == NULL) {
         error_no_memory(filter);
@@ -113,7 +113,24 @@
 [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} {
     yylval_param->ast.type = FDS_FILTER_TYPE_IP_ADDRESS;
 	yylval_param->ast.value.ip_address.version = 4;
+    yylval_param->ast.value.ip_address.mask = 32;
     if (inet_pton(AF_INET, yytext, yylval_param->ast.value.ip_address.bytes) != 1) {
+        ERROR_("invalid IPv4 address");
+        return 0;
+    }
+    return IP_ADDRESS;
+}
+
+ /* IPv4 address with mask */
+[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}[/][0-9]{1,2} {
+    yylval_param->ast.type = FDS_FILTER_TYPE_IP_ADDRESS;
+	yylval_param->ast.value.ip_address.version = 4;
+    char *slash = strchr(yytext, '/');
+    *slash = '\0';
+    yylval_param->ast.value.ip_address.mask = atoi(slash);
+    int rc = inet_pton(AF_INET, yytext, yylval_param->ast.value.ip_address.bytes);
+    *slash = '/';
+    if (rc != 1) {
         ERROR_("invalid IPv4 address");
         return 0;
     }

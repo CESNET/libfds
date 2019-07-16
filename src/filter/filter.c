@@ -62,7 +62,7 @@ fds_filter_compile(fds_filter_t *filter, const char *filter_expression)
 
     // TODO: clean this mess up
     yyscan_t scanner;
-    yydebug = 0;
+    yydebug = 1;
     yylex_init(&scanner);
     YY_BUFFER_STATE buffer = yy_scan_string(filter_expression, scanner);
     yyparse(filter, scanner);

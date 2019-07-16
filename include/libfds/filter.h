@@ -30,23 +30,23 @@ enum fds_filter_type {
  */
 union fds_filter_value {
     struct {
-        int length;
+        uint64_t length;
         const char *chars; // TODO: come up with better names?
     } string;
     struct {
-        int length;
+        uint64_t length;
         union fds_filter_value *items; // TODO: come up with better names?
     } list;
-    unsigned long uint_;
-    long int_;
+    uint64_t uint_;
+    int64_t int_;
     double float_;
-    unsigned char bytes[18];
+    uint8_t bytes[18];
     struct {
-		unsigned char version; // 4 or 6
-        unsigned char mask;
-        unsigned char bytes[16];
+		uint8_t version; // 4 or 6
+        uint8_t mask;
+        uint8_t bytes[16];
     } ip_address;
-    unsigned char mac_address[6];
+    uint8_t mac_address[6];
 };
 
 typedef union fds_filter_value fds_filter_value_t;

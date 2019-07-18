@@ -458,13 +458,137 @@ to_ip(struct context *buffer, const struct fds_drec_field *field)
 }
 
 /**
- * \def ESCAPE_CHAR
- * \brief Auxiliary function for escaping characters
- * \param[in] ch Character
+ * \brief Is a UTF-8 character valid
+ * \param[in] str Pointer to the character beginning
+ * \param[in] len Maximum length of the character (in bytes)
+ * \note Parameter \p len is used to avoid access outside of the array's bounds.
+ * \warning Value of the parameter \p len MUST be at least 1.
+ * \return If the character is NOT valid, the function will return 0.
+ *   Otherwise (only valid characters) returns length of the character i.e.
+ *   number 1-4 (in bytes).
  */
-#define ESCAPE_CHAR(ch) { \
-    out_buffer[idx_output++] = '\\'; \
-    out_buffer[idx_output++] = (ch); \
+static inline int
+utf8char_is_valid(const uint8_t *str, size_t len)
+{
+    if ((str[0] & 0x80) == 0) {                // 0xxx xxxx
+        // Do nothing...
+        return 1;
+    }
+
+    if ((str[0] & 0xE0) == 0xC0 && len >= 2) { // 110x xxxx + 1 more byte
+        // Check the second byte (must be 10xx xxxx)
+        return ((str[1] & 0xC0) == 0x80) ? 2 : 0;
+    }
+
+    if ((str[0] & 0xF0) == 0xE0 && len >= 3) { // 1110 xxxx + 2 more bytes
+        // Check 2 tailing bytes (each must be 10xx xxxx)
+        uint16_t tail = *((const uint16_t *) &str[1]);
+        return ((tail & 0xC0C0) == 0x8080) ? 3 : 0;
+    }
+
+    if ((str[0] & 0xF8) == 0xF0 && len >= 4) { // 1111 0xxx + 3 more bytes
+        // Check 3 tailing bytes (each must be 10xx xxxx)
+        uint32_t tail = *((const uint32_t *) &str[0]);
+        // Change the first byte for easier comparision
+        *(uint8_t *) &tail = 0x80; // Little/big endian compatible solution
+        return ((tail & 0xC0C0C0C0) == 0x80808080) ? 4 : 0;
+    }
+
+    // Invalid character
+    return 0;
+}
+
+/**
+ *\brief Is it a '\' or '"' character
+ * \param[in] str Pointer to the character beginning
+ * \param[in] len Maximum length of the character (in bytes)
+ * \return True or false.
+*/
+static inline bool
+utf8char_is_not_esc(const uint8_t *str, size_t len, uint8_t *repl)
+{
+    (void) len;
+
+    uint8_t new_char;
+    const char old_char = (char) *str;
+
+    switch (old_char) {
+    case '\\':
+        new_char = '\\';
+        break;
+    case '\"':
+        new_char = '\"';
+        break;
+    default:
+        return false;
+    }
+
+    if(repl != NULL){
+        *repl = new_char;
+    }
+
+    return true;
+}
+
+/**
+ * \brief Is it a UTF-8 control character
+ * \param[in] str Pointer to the character beginning
+ * \param[in] len Maximum length of the character (in bytes)
+ * \note Parameter \p len is used to avoid access outside of the array's bounds.
+ * \return True or false.
+ */
+static inline bool
+utf8char_is_control(const uint8_t *str, size_t len)
+{
+    (void) len;
+
+    // Check C0 control characters
+    if (str[0] <= 0x1F || str[0] == 0x7F) {
+        return true;
+    }
+
+    // Check C1 control characters
+    if (str[0] >= 0x80 && str[0] <= 0x9F) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * \brief Is a UTF-8 character escapable
+ * \param[in]  str  Pointer to the character beginning
+ * \param[in]  len  Maximum length of the character (in bytes)
+ * \param[out] repl Replacement character (can be NULL). The variable is filled
+ *   only when the input character is escapable. The size of the character is
+ *   always only one byte.
+ * \note Parameter \p len is used to avoid access outside of the array's bounds.
+ * \return True or false.
+ */
+static inline bool
+utf8char_is_escapable(const uint8_t *str, size_t len, uint8_t *repl)
+{
+    (void) len;
+    if ((str[0] & 0x80) != 0) {
+        // Only 1 byte characters can be escapable (for now)
+        return false;
+    }
+
+    uint8_t new_char;
+    const char old_char = (char) *str;
+
+    switch (old_char) {
+        case '\n': new_char = 'n'; break;
+        case '\r': new_char = 'r'; break;
+        case '\t': new_char = 't'; break;
+        case '\b': new_char = 'b'; break;
+        case '\f': new_char = 'f'; break;
+        default: return false;
+    }
+    if (repl != NULL) {
+        *repl = new_char;
+    }
+
+    return true;
 }
 
 /**
@@ -486,87 +610,144 @@ to_string(struct context *buffer, const struct fds_drec_field *field)
      * This case contains only non-printable characters that will be replaced with string
      * "\uXXXX" (6 characters) each.
      */
-    const size_t max_size = (6 * field->size) + 3U; // '\uXXXX' + 2x "\"" + 1x '\0'
+    const size_t max_size = (6 * field->size) + 4U; // '\uXXXX' + 2x "\"" + 1x '\0'
     int ret_code = buffer_reserve(buffer,buffer_used(buffer) + max_size);
     if (ret_code != FDS_OK){
         return ret_code;
     }
 
+    size_t size = field->size;
+    unsigned int step;
+    size_t pos_copy = 0; // Start of "copy" region
+    uint8_t subst; // Replacement character for escapable characters
+
     const uint8_t *in_buffer =(const uint8_t *)(field->data);
-    char *out_buffer = buffer->write_begin;
-    uint32_t idx_output = 0;
-
-
+    uint8_t *out_buffer =(uint8_t *) buffer->write_begin;
+    uint32_t pos_out = 0;
 
     // Beginning of the string
-    out_buffer[idx_output++] = '"';
+    out_buffer[pos_out] = '"';
+    pos_out += 1;
 
-    for (uint32_t i = 0; i < field->size; ++i) {
-        // All characters from the extended part of ASCII must be escaped
-        if (in_buffer[i] > 0x7F) {
-            snprintf(&out_buffer[idx_output], 7, "\\u00%02x", in_buffer[i]);
-            idx_output += 6;
+    for (size_t pos_in = 0; pos_in < size; pos_in += step) {
+
+        const uint8_t *char_ptr = in_buffer + pos_in;
+        const size_t char_max = field->size - pos_in; // Maximum character length
+
+        int      is_valid =  utf8char_is_valid(char_ptr, char_max);
+        bool is_escapable =  utf8char_is_escapable(char_ptr, char_max, &subst);
+        bool   is_control =  utf8char_is_control(char_ptr, char_max);
+        bool   is_not_esc =  utf8char_is_not_esc(char_ptr, char_max, &subst);
+
+        // Size of the current character
+        step = (is_valid > 0) ? (unsigned int) is_valid : 1;
+
+        if (is_valid && !is_escapable && !is_control && !is_not_esc) {
+            continue;
+        }
+
+        // Interpretation of the character must be changed
+        const size_t copy_len = pos_in - pos_copy;
+        size_t out_remaining = buffer_alloc(buffer) - pos_out;
+
+        // Copy unchanged characters
+        if (copy_len > out_remaining) {
+            return FDS_ERR_BUFFER;
+        }
+        memcpy(&out_buffer[pos_out], &in_buffer[pos_copy], copy_len);
+        out_remaining -= copy_len;
+        pos_out += copy_len;
+        pos_copy = pos_in + 1; // Next time start from the next character
+
+        /*
+        * Based on RFC 4627 (Section: 2.5. Strings):
+        * Control characters '\' and '"' must be escaped
+        * using '\\' and '\"'.
+        */
+        if(is_not_esc){
+            const size_t subst_len = 2U;
+            if (out_remaining < subst_len) {
+                return FDS_ERR_BUFFER;
+            }
+
+            out_buffer[pos_out] = '\\';
+            out_buffer[pos_out + 1] = subst;
+            pos_out += subst_len;
+            continue;
+        }
+
+        //Escape characte only if flag FDS_CD2J_NON_PRINTABLE is set
+        if ((buffer->flags & FDS_CD2J_NON_PRINTABLE) != 0){
+            continue;
+        }
+
+        // Is it an escapable character?
+        if (is_escapable){
+            const size_t subst_len = 2U;
+            if (out_remaining < subst_len) {
+                return FDS_ERR_BUFFER;
+            }
+
+            out_buffer[pos_out] = '\\';
+            out_buffer[pos_out + 1] = subst;
+            pos_out += subst_len;
             continue;
         }
 
         /*
-         * Based on RFC 4627 (Section: 2.5. Strings):
-         * Control characters (i.e. 0x00 - 0x1F), '"' and  '\' must be escaped
-         * using "\"", "\\" or "\uXXXX" where "XXXX" is a hexa value.
-         */
-        if (in_buffer[i] > 0x1F && in_buffer[i] != '"' && in_buffer[i] != '\\') {
-            // Copy to the output buffer
-            out_buffer[idx_output++] = in_buffer[i];
+        * Based on RFC 4627 (Section: 2.5. Strings):
+        * Control characters (i.e. 0x00 - 0x1F) must be escaped
+        * using "\uXXXX" where "XXXX" is a hexa value.
+        */
+        // Is it a control character?
+        if (is_control) {
+            const size_t subst_len = 6U;
+            if (out_remaining < subst_len) {
+                return FDS_ERR_BUFFER;
+            }
+
+            uint8_t hex;
+            out_buffer[pos_out] = '\\';
+            out_buffer[pos_out + 1] = 'u';
+            out_buffer[pos_out + 2] = '0';
+            out_buffer[pos_out + 3] = '0';
+
+            hex = ((*char_ptr) & 0xF0) >> 4;
+            out_buffer[pos_out + 4] = (hex < 10) ? ('0' + hex) : ('A' - 10 + hex);
+            hex = (*char_ptr) & 0x0F;
+            out_buffer[pos_out + 5] = (hex < 10) ? ('0' + hex) : ('A' - 10 + hex);
+            pos_out += subst_len;
+
             continue;
         }
 
-        // Copy as escaped character
-        switch(in_buffer[i]) {
-        case '\\': // Reverse solidus
-        ESCAPE_CHAR('\\');
-            continue;
-        case '\"': // Quotation
-        ESCAPE_CHAR('\"');
-            continue;
-        default:
-            break;
+        // // Invalid character -> replace with "REPLACEMENT CHARACTER"
+        const size_t subst_len = 3U;
+        if (out_remaining < subst_len) {
+            return FDS_ERR_BUFFER;
         }
 
-        if ((buffer->flags & FDS_CD2J_NON_PRINTABLE) != 0) {
-            // Skip white space characters
-            continue;
-        }
+        // Character U+FFFD in UTF8 encoding
+        out_buffer[pos_out] = 0xEF;
+        out_buffer[pos_out + 1] = 0xBF;
+        out_buffer[pos_out + 2] = 0xBD;
+        pos_out += subst_len;
 
-        switch(in_buffer[i]) {
-        case '\t': // Tabulator
-        ESCAPE_CHAR('t');
-            break;
-        case '\n': // New line
-        ESCAPE_CHAR('n');
-            break;
-        case '\b': // Backspace
-        ESCAPE_CHAR('b');
-            break;
-        case '\f': // Form feed
-        ESCAPE_CHAR('f');
-            break;
-        case '\r': // Return
-        ESCAPE_CHAR('r');
-            break;
-        default: // "\uXXXX"
-            snprintf(&out_buffer[idx_output], 7, "\\u00%02x", in_buffer[i]);
-            idx_output += 6;
-            break;
-        }
     }
+    const size_t copy_len = size - pos_copy;
+    const size_t out_remaining = buffer_alloc(buffer) - pos_out;
 
+    if (copy_len + 1> out_remaining) {
+        return FDS_ERR_BUFFER;
+    }
+    memcpy(&out_buffer[pos_out], &in_buffer[pos_copy], copy_len);
+    pos_out += copy_len;
+    out_buffer[pos_out++] = '"';
+    
     // End of the string
-    out_buffer[idx_output++] = '"';
-    buffer->write_begin += idx_output;
+    buffer->write_begin += pos_out;
     return FDS_OK;
 }
-
-#undef ESCAPE_CHAR
 
 /**
  * \brief Convert TCP flags to JSON string
@@ -840,17 +1021,17 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
         }
 
         // If nesesary, call function for write multi fields
+        char *writer_pos = buffer->write_begin;
         if ((field_flags & FDS_TFIELD_MULTI_IE) != 0 && (field_flags & FDS_TFIELD_LAST_IE) != 0){
            ret_code = multi_fields(rec, buffer, fn, def->en, def->id);
            if (ret_code != FDS_OK){
                return ret_code;
            }
-           continue;
+        } else {
+           ret_code = fn(buffer, &iter.field);
         }
 
         // Convert the field
-        char *writer_pos = buffer->write_begin;
-        ret_code = fn(buffer, &iter.field);
 
         switch (ret_code) {
         // Recover from a conversion error
@@ -1259,7 +1440,7 @@ fds_drec2json(const struct fds_drec *rec, uint32_t flags, const fds_iemgr_t *ie_
         goto error;
     }
 
-    //update value of \p str_size
+    /*update value of \p str_size*/
     *str = record.buffer_begin;
     *str_size = buffer_alloc(&record);
 

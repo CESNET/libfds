@@ -505,9 +505,14 @@ protected:
 
         // Prepare an IPFIX Template
         ipfix_trec trec{256};
+        trec.add_field(84,ipfix_trec::SIZE_VAR); //samplerName1
+        trec.add_field(84,ipfix_trec::SIZE_VAR); //samplerName2
+        trec.add_field(84,ipfix_trec::SIZE_VAR); //samplerName3
+        trec.add_field(84,ipfix_trec::SIZE_VAR); //samplerName4
+        trec.add_field(83,ipfix_trec::SIZE_VAR); //interfaceDescription
+        trec.add_field( 94, ipfix_trec::SIZE_VAR);// applicationDescription (string)
         trec.add_field(  8, 4);             // sourceIPv4Address
         trec.add_field( 12, 4);             // destinationIPv4Address
-        trec.add_field( 94, ipfix_trec::SIZE_VAR);// applicationDescription (string)
         trec.add_field(  7, 2);             // sourceTransportPort
         trec.add_field( 11, 2);             // destinationTransportPort
         trec.add_field(  4, 1);             // protocolIdentifier
@@ -525,16 +530,20 @@ protected:
         trec.add_field(1004,8);             // myPInf
         trec.add_field(1005,8);             // myMInf
         trec.add_field(1006,8);             // myNan
-        trec.add_field(83,ipfix_trec::SIZE_VAR); //interfaceDescription
         trec.add_field(56, 6);              // sourceMacAddress
         trec.add_field(95,10);              // applicationId
 
         // Prepare an IPFIX Data Record
         ipfix_drec drec{};
-        drec.append_ip(VALUE_SRC_IP4);
-        drec.append_ip(VALUE_DST_IP4);
+        drec.append_string(VALUE_SAMP_NAME1);
+        drec.append_string(VALUE_SAMP_NAME2);
+        drec.append_string(VALUE_SAMP_NAME3);
+        drec.append_string(VALUE_SAMP_NAME4);
+        drec.append_string(VALUE_INF_DES);
         drec.append_string(VALUE_APP_DES);
         drec.append_uint(VALUE_SRC_PORT, 2);
+        drec.append_ip(VALUE_SRC_IP4);
+        drec.append_ip(VALUE_DST_IP4);
         drec.append_uint(VALUE_DST_PORT, 2);
         drec.append_uint(VALUE_PROTO, 1);
         drec.append_uint(0, 3); // Padding
@@ -551,7 +560,6 @@ protected:
         drec.append_float(VALUE_MY_PINF,8);
         drec.append_float(VALUE_MY_MINF,8);
         drec.append_float(VALUE_MY_NAN, 8);
-        drec.append_string(VALUE_INF_DES);
         drec.append_mac(VALUE_SRC_MAC);
         drec.append_octets(VALUE_APP_ID.c_str(),(uint16_t)10, false);
 
@@ -560,9 +568,13 @@ protected:
     }
 
     std::string VALUE_SRC_IP4    = "127.0.0.1";
+    std::string VALUE_SAMP_NAME1  = "\xc2\xa1\xc3\xbd";
+    std::string VALUE_SAMP_NAME2  = "\xFF\xEE"; // invalid characterss
+    std::string VALUE_SAMP_NAME3  = "\xef\xbf\xa6"; // FULLWIDTH WON SIGN (3 bytes)
+    std::string VALUE_SAMP_NAME4  = "\xf0\x90\x8e\xa0"; // OLD PERSIAN SIGN A (4 bytes)
     std::string VALUE_DST_IP4    = "8.8.8.8";
-    std::string VALUE_APP_DES    = "web\\\nclose\t\"open\bdog\fcat\r\"\x13";
-    std::string VALUE_INF_DES    = "prety=white+ cleannothing$";
+    std::string VALUE_APP_DES    = "web\\\nclose\t\"open\bdog\fcat\r\"\x23";
+    std::string VALUE_INF_DES    = "\x97\x98";
     double      VALUE_MY_PINF    = std::numeric_limits<double>::infinity();
     double      VALUE_MY_MINF    = -std::numeric_limits<double>::infinity();
     double      VALUE_MY_NAN     = NAN;
@@ -590,7 +602,7 @@ TEST_F(Drec_extra, testTypes)
     constexpr size_t BSIZE = 10U;
     char* buff = (char*) malloc(BSIZE);
     uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
-    size_t buff_size = BSIZE;//
+    size_t buff_size = BSIZE;
 
     int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
     ASSERT_GT(rc, 0);
@@ -617,7 +629,7 @@ TEST_F(Drec_extra, nonPrintable)
     ASSERT_GT(rc, 0);
     EXPECT_EQ(size_t(rc), strlen(buff));
     Config cfg = parse_string(buff, JSON, "drec2json");
-    EXPECT_EQ(cfg["iana:applicationDescription"], "web\\close\"opendogcat\"");
+    EXPECT_EQ(cfg["iana:applicationDescription"], "web\\close\"opendogcat\"#");
 
     free(buff);
 }
@@ -676,7 +688,15 @@ TEST_F(Drec_extra, otherChar)
     EXPECT_EQ(size_t(rc), strlen(buff));
     EXPECT_NE(buff_size, BSIZE);
     Config cfg = parse_string(buff, JSON, "drec2json");
-    EXPECT_EQ(cfg["iana:interfaceDescription"], VALUE_INF_DES);
+
+    EXPECT_EQ(cfg["iana:interfaceDescription"], "\u0097\u0098");
+    ASSERT_TRUE(cfg["iana:samplerName"].is_array());
+
+    auto arr = cfg["iana:samplerName"].as_array();
+    EXPECT_EQ(std::find(arr.begin(), arr.end(), "\u00C2\u00A1\u00C3\u00BD" ),arr.end());
+    EXPECT_EQ(std::find(arr.begin(), arr.end(), "\u00EF\u00BF\u00BD\u00EF\u00BF\u00BD" ),arr.end());
+    EXPECT_EQ(std::find(arr.begin(), arr.end(), "\u00f0\u0090\u008e\u00a0" ),arr.end());
+    EXPECT_EQ(std::find(arr.begin(), arr.end(), "\u00ef\u00bf\u00a6" ),arr.end());
 
     free(buff);
 }
@@ -761,6 +781,45 @@ TEST_F(Drec_extra, flagSize2)
 
     free(buff);
 }
+
+TEST_F(Drec_extra, numID)
+{
+    constexpr size_t BSIZE = 2U;
+    char* buff = (char*) malloc(BSIZE);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC | FDS_CD2J_NUMERIC_ID;
+    size_t buff_size = BSIZE;
+
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
+    ASSERT_GT(rc, 0);
+    EXPECT_EQ(size_t(rc), strlen(buff));
+    EXPECT_NE(buff_size, BSIZE);
+    Config cfg = parse_string(buff, JSON, "drec2json");
+    EXPECT_TRUE(cfg.has_key("en0:id1"));
+    EXPECT_TRUE(cfg.has_key("en0:id2"));
+    EXPECT_TRUE(cfg.has_key("en0:id6"));
+    EXPECT_TRUE(cfg.has_key("en0:id7"));
+    EXPECT_TRUE(cfg.has_key("en0:id8"));
+    EXPECT_TRUE(cfg.has_key("en0:id11"));
+    EXPECT_TRUE(cfg.has_key("en0:id12"));
+    EXPECT_TRUE(cfg.has_key("en0:id56"));
+    EXPECT_TRUE(cfg.has_key("en0:id83"));
+    EXPECT_TRUE(cfg.has_key("en0:id84"));
+    EXPECT_TRUE(cfg.has_key("en0:id94"));
+    EXPECT_TRUE(cfg.has_key("en0:id95"));
+    EXPECT_TRUE(cfg.has_key("en10000:id100"));
+    EXPECT_TRUE(cfg.has_key("en0:id152"));
+    EXPECT_TRUE(cfg.has_key("en0:id153"));
+    EXPECT_TRUE(cfg.has_key("en0:id1000"));
+    EXPECT_TRUE(cfg.has_key("en0:id1001"));
+    EXPECT_TRUE(cfg.has_key("en0:id1002"));
+    EXPECT_TRUE(cfg.has_key("en0:id1003"));
+    EXPECT_TRUE(cfg.has_key("en0:id1004"));
+    EXPECT_TRUE(cfg.has_key("en0:id1005"));
+    EXPECT_TRUE(cfg.has_key("en0:id1006"));
+
+    free(buff);
+}
+
 
 // -------------------------------------------------------------------------------------------------
 /// IPFIX Data Record for unvalid situations
@@ -1288,7 +1347,7 @@ protected:
         signed      VALUE_MY_INT2     = 10000006;
         double      VALUE_MY_PINF    = std::numeric_limits<double>::infinity();
         std::string VALUE_SRC_MAC    = "01:12:1F:13:11:8A";
-        std::string VALUE_APP_DES    = "web\\\nclose\t\"open\bdog\fcat\r\"\x13";
+        std::string VALUE_APP_DES    = "web\\\nclose\t\"open\bdog\fcat\r\"\x23";
         std::string VALUE_SRC_IP4    = "127.0.0.1";
         std::string VALUE_INF_NAME   = "enp0s31f6";
         uint16_t    VALUE_SRC_PORT   = 1234;
@@ -1436,7 +1495,7 @@ protected:
         std::string VALUE_IFC_NAME1  = "ONE";
         std::string VALUE_IFC_NAME2  = "TWO";
         std::string VALUE_SRC_MAC1   = "01:12:1F:13:11:8A";
-        std::string VALUE_APP_DES1   = "web\\\nclose\t\"open\bdog\fcat\r\"\x13";
+        std::string VALUE_APP_DES1   = "web\\\nclose\t\"open\bdog\fcat\r\"\x23";
         std::string VALUE_SRC_MAC2   = "21:01:4A:31:20:8C";
         std::string VALUE_APP_DES2   = "small\\\nbig\t\"mam\bdoor\fcat";
         std::string VALUE_SRC_IP4    = "127.0.0.1";
@@ -1659,7 +1718,6 @@ TEST_F(Drec_nested_blist_in_stlist, values)
     EXPECT_EQ(std::find(arr_1.begin(), arr_1.end(), VALUE_FLOAT_2), arr_1.end());
 
 
-    std::cout << cfg << '\n';
     free(buffer);
 }
 

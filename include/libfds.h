@@ -63,5 +63,6 @@
 #include <libfds/template_mgr.h>
 #include <libfds/xml_parser.h>
 #include <libfds/filter.h>
+#include <libfds/trie.h>
 
 #endif /* LIBFDS_H */

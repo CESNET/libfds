@@ -95,7 +95,7 @@ error_no_memory(struct fds_filter *filter)
 {
     error_destroy(filter);
     filter->error_count = 1;
-    filter->errors = &OUT_OF_MEMORY_ERROR;
+    filter->errors = (struct error *)&OUT_OF_MEMORY_ERROR;
 }
 
 void
@@ -177,13 +177,19 @@ ast_print(FILE *outstream, struct fds_filter_ast_node *node)
     }
 	fprintf(outstream, "(%s, ", ast_op_to_str(node->op));
     if (node->op == FDS_FILTER_AST_IDENTIFIER) {
-        fprintf(outstream, "name: %s, id: %d, ", node->identifier_name, node->identifier_id, type_to_str(node->type));
+        fprintf(outstream, "name: %s, id: %d, ", node->identifier_name, node->identifier_id);
 	}
 	fprintf(outstream, "type: %s, ", type_to_str(node->type));
     if (node->subtype != FDS_FILTER_TYPE_NONE) {
 	    fprintf(outstream, "subtype: %s, ", type_to_str(node->subtype));
     }
+    if (node->is_trie) {
+        fprintf(outstream, "is trie, ");
+    }
 	switch (node->type) {
+    case FDS_FILTER_AST_NONE:
+        fprintf(outstream, "<NONE>");
+        break;
 	case FDS_FILTER_TYPE_BOOL:
 		fprintf(outstream, "%s", node->value.int_ != 0 ? "true" : "false");
 		break;
@@ -191,10 +197,13 @@ ast_print(FILE *outstream, struct fds_filter_ast_node *node)
 		fprintf(outstream, "%*s", node->value.string.length, node->value.string.chars);
 		break;
 	case FDS_FILTER_TYPE_INT:
-		fprintf(outstream, "%d", node->value.int_);
+		fprintf(outstream, "%li", node->value.int_);
 		break;
 	case FDS_FILTER_TYPE_UINT:
-		fprintf(outstream, "%u", node->value.uint_);
+		fprintf(outstream, "%lu", node->value.uint_);
+		break;
+    case FDS_FILTER_TYPE_FLOAT:
+		fprintf(outstream, "%lf", node->value.float_);
 		break;
 	case FDS_FILTER_TYPE_IP_ADDRESS:
 		if (node->value.ip_address.version == 4) {
@@ -233,7 +242,7 @@ ast_print(FILE *outstream, struct fds_filter_ast_node *node)
 				node->value.mac_address[5]);
 		break;
     case FDS_FILTER_TYPE_LIST:
-        fprintf(outstream, "<unimplemented>");
+        fprintf(outstream, "<UNIMPLEMENTED>");
         break;
 	}
 	fprintf(outstream, ")\n");

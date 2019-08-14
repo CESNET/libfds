@@ -63,18 +63,10 @@
 "!"                        { return ASTERISK; }
 [ \t]                      { /* do nothing */ }
 
-((src|dst|in|out|ingress|egress)[ ]+)?[a-zA-Z][a-zA-Z0-9@:\-\.]* {
-    yylval_param->ast.identifier_name = strdup(yytext);
-    if (yylval_param->ast.identifier_name == NULL) {
-        error_no_memory(filter);
-        return ERROR_ABORT;
-    }
-    return IDENTIFIER;
-}
 
 \"(\\.|[^\\"])*\" {
     /* copy without surrounding quotes */
-    char len = yyleng - 2; /* without the surrounding quotes */
+    int len = yyleng - 2; /* without the surrounding quotes */
     char *str = malloc(len + 1); /* + 1 for the terminating null byte */
     if (str == NULL) {
         error_no_memory(filter);
@@ -109,6 +101,19 @@
     return FLOAT;
 }
 
+ /* MAC address */
+[0-9a-zA-Z]{2}(:[0-9a-zA-Z]{2}){5} {
+	yylval_param->ast.type = FDS_FILTER_TYPE_MAC_ADDRESS;
+    sscanf(yytext, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+           &yylval_param->ast.value.mac_address[0],
+           &yylval_param->ast.value.mac_address[1],
+           &yylval_param->ast.value.mac_address[2],
+           &yylval_param->ast.value.mac_address[3],
+           &yylval_param->ast.value.mac_address[4],
+           &yylval_param->ast.value.mac_address[5]);
+    return MAC_ADDRESS;
+}
+
  /* IPv4 address */
 [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} {
     yylval_param->ast.type = FDS_FILTER_TYPE_IP_ADDRESS;
@@ -138,10 +143,10 @@
 }
 
  /* IPv6 address */
- /* TODO: shortened IPv6 addresses */
-[0-9a-zA-Z]{0,2}(:[0-9a-zA-Z]{0,2}){15} {
+[0-9a-fA-F]{0,4}(:[0-9a-fA-F]{0,4})+ {
     yylval_param->ast.type = FDS_FILTER_TYPE_IP_ADDRESS;
 	yylval_param->ast.value.ip_address.version = 6;
+	yylval_param->ast.value.ip_address.mask = 128;
     if (inet_pton(AF_INET6, yytext, yylval_param->ast.value.ip_address.bytes) != 1) {
         ERROR_("invalid IPv6 address");
         return 0;
@@ -149,17 +154,20 @@
     return IP_ADDRESS;
 }
 
- /* MAC address */
-[0-9a-zA-Z]{2}(:[0-9a-zA-Z]{2}){5} {
-	yylval_param->ast.type = FDS_FILTER_TYPE_MAC_ADDRESS;
-    sscanf(yytext, "%x:%x:%x:%x:%x:%x",
-           &yylval_param->ast.value.mac_address[0],
-           &yylval_param->ast.value.mac_address[1],
-           &yylval_param->ast.value.mac_address[2],
-           &yylval_param->ast.value.mac_address[3],
-           &yylval_param->ast.value.mac_address[4],
-           &yylval_param->ast.value.mac_address[5]);
-    return MAC_ADDRESS;
+ /* IPv6 address with prefix */
+[0-9a-fA-F]{0,4}(:[0-9a-fA-F]{0,4})+[/][0-9]{1,3} {
+    yylval_param->ast.type = FDS_FILTER_TYPE_IP_ADDRESS;
+	yylval_param->ast.value.ip_address.version = 6;
+    char *slash = strchr(yytext, '/');
+    *slash = '\0';
+    yylval_param->ast.value.ip_address.mask = atoi(slash);
+    int rc = inet_pton(AF_INET6, yytext, yylval_param->ast.value.ip_address.bytes);
+    *slash = '/';
+    if (rc != 1) {
+        ERROR_("invalid IPv6 address");
+        return 0;
+    }
+    return IP_ADDRESS;
 }
 
  /* ISO time */
@@ -177,7 +185,7 @@
 [0-9]+(\.[0-9]+)?(h|m|s|ms|us|ns)? {
     char suffix[3] = { '\0' };
     double value;
-    sscanf(yytext, "%lf%2s", &value, &suffix);
+    sscanf(yytext, "%lf%2s", &value, suffix);
     if      (strcmp(suffix, "h" ) == 0) { value *= 3600000000000; }
     else if (strcmp(suffix, "m" ) == 0) { value *= 60000000000;   }
     else if (strcmp(suffix, "s" ) == 0) { value *= 1000000000;    }
@@ -188,6 +196,16 @@
     yylval_param->ast.type = FDS_FILTER_TYPE_UINT;
     yylval_param->ast.value.uint_ = value;
     return TIMEDELTA;
+}
+
+ /* !!! problem v gramatice, mozny prefix in/out a zaroven operator in !!! */
+((src|dst|ingress|egress)[ ]+)?[a-zA-Z][a-zA-Z0-9@:\-\.]* {
+    yylval_param->ast.identifier_name = strdup(yytext);
+    if (yylval_param->ast.identifier_name == NULL) {
+        error_no_memory(filter);
+        return ERROR_ABORT;
+    }
+    return IDENTIFIER;
 }
 
 . { return yytext[0]; }

@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 struct Filter {
     struct identifier_data {
         int id = -1;
-        fds_filter_type type = FDS_FILTER_TYPE_NONE;
+        fds_filter_data_type type = FDS_FILTER_TYPE_NONE;
         bool is_constant;
         std::vector<fds_filter_value> values;
     };
@@ -23,45 +23,61 @@ struct Filter {
     const char *filter_expr;
     fds_filter_t *filter;
 
-    static int lookup_callback(struct fds_filter_lookup_args args) {
-        Filter *filter = reinterpret_cast<Filter *>(args.context);
-        if (filter->identifiers.find(args.name) == filter->identifiers.end()) {
-            return 0;
+    static int
+    lookup_callback(const char *name, void *user_context, struct fds_filter_identifier_attributes *attributes)
+    {
+        Filter *filter = reinterpret_cast<Filter *>(user_context);
+        if (filter->identifiers.find(name) == filter->identifiers.end()) {
+            return FDS_FILTER_FAIL;
         }
-        identifier_data &data = filter->identifiers[args.name];
-        *args.id = data.id;
-        *args.type = data.type;
-        *args.is_constant = data.is_constant ? 1 : 0;
-        if (data.is_constant) {
-            assert(data.values.size() == 1);
-            *args.output_value = data.values[0];
-        }
-        return 1;
+        identifier_data &data = filter->identifiers[name];
+        attributes->id = data.id;
+        attributes->type = data.type;
+        attributes->identifier_type = data.is_constant ? FDS_FILTER_IDENTIFIER_CONST : FDS_FILTER_IDENTIFIER_FIELD;
+        return FDS_FILTER_OK;
     }
 
-    static int data_callback(struct fds_filter_data_args args) {
-        Filter *filter = reinterpret_cast<Filter *>(args.context);
+    static void
+    const_callback(int id, void *user_context, union fds_filter_value *value)
+    {
+        Filter *filter = reinterpret_cast<Filter *>(user_context);
         identifier_data data;
-        int found = 0;
+        bool found = false;
         for (auto &p : filter->identifiers) {
-            if (p.second.id == args.id) {
+            if (p.second.id == id) {
                 data = p.second;
-                found = 1;
+                found = true;
                 break;
             }
         }
         assert(found);
-        if (args.reset) {
+        *value = data.values[0];
+    }
+
+    static int
+    field_callback(int id, void *user_context, int reset_flag, void *input_data, union fds_filter_value *value)
+    {
+        Filter *filter = reinterpret_cast<Filter *>(user_context);
+        identifier_data data;
+        bool found = false;
+        for (auto &p : filter->identifiers) {
+            if (p.second.id == id) {
+                data = p.second;
+                found = true;
+                break;
+            }
+        }
+        assert(found);
+        if (reset_flag) {
             filter->counter = 0;
         }
         int n_values = data.values.size();
         if (filter->counter >= n_values) {
-            return 0;
+            return FDS_FILTER_FAIL;
         }
-        *args.output_value = data.values[filter->counter];
+        *value = data.values[filter->counter];
         filter->counter++;
-        *args.has_more = filter->counter < n_values;
-        return 1;
+        return filter->counter == n_values ? FDS_FILTER_OK : FDS_FILTER_OK_MORE;
     }
 
     Filter() {
@@ -71,7 +87,7 @@ struct Filter {
         this->filter_expr = filter_expr;
     }
 
-    void set_identifier(const char *name, fds_filter_type type, bool is_constant, std::vector<fds_filter_value> values) {
+    void set_identifier(const char *name, fds_filter_data_type type, bool is_constant, std::vector<fds_filter_value> values) {
         identifier_data data;
         identifier_count++;
         data.id = identifier_count;
@@ -87,8 +103,9 @@ struct Filter {
             return 0;
         }
         fds_filter_set_lookup_callback(filter, lookup_callback);
-        fds_filter_set_data_callback(filter, data_callback);
-        fds_filter_set_context(filter, this);
+        fds_filter_set_const_callback(filter, const_callback);
+        fds_filter_set_field_callback(filter, field_callback);
+        fds_filter_set_user_context(filter, this);
         int rc = fds_filter_compile(filter, filter_expr);
         fds_filter_print_errors(filter, stderr);
         return rc;
@@ -292,7 +309,7 @@ TEST(Filter, list)
     EXPECT_TRUE(filter.compile_and_evaluate());
 }
 
-TEST(Filter_scanner, identifiers_with_space)
+TEST(Filter, identifiers_with_space)
 {
     Filter filter;
     filter.set_identifier("src ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
@@ -315,5 +332,65 @@ TEST(Filter, ipv4_address_with_mask)
     });
     filter.set_expression("ip 192.168.0.0/24");
     EXPECT_TRUE(filter.compile());
+}
+
+TEST(Filter, ipv6_address_shortened)
+{
+    Filter filter;
+    filter.set_expression("::1");
+    EXPECT_TRUE(filter.compile());
+    filter.set_expression("1::");
+    EXPECT_TRUE(filter.compile());
+    filter.set_expression("f::f");
+    EXPECT_TRUE(filter.compile());
+    filter.set_expression("f::a::f");
+    EXPECT_FALSE(filter.compile());
+    filter.set_expression("f::1:2:3:4:56");
+    EXPECT_TRUE(filter.compile());
+}
+
+TEST(Filter, ipv6_address_with_mask)
+{
+    Filter filter;
+    filter.set_expression("1:2:3:4::/64");
+    EXPECT_TRUE(filter.compile());
+    filter.set_expression("::f/120");
+    EXPECT_TRUE(filter.compile());
+}
+
+TEST(Filter, ipv6_address_basic)
+{
+    Filter filter;
+    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0xaa, 0xbb, 0xcc, 0xdd, 0x00 } } },
+        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0x11, 0x22, 0x33, 0x44, 0x55 } } },
+        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0xff, 0xff, 0xff, 0xff, 0xff } } },
+    });
+
+    filter.set_expression("ip aabb:ccdd::");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+    filter.set_expression("not ip 0011:2233:4455:6677:8899:aabb:ccdd:eeff");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+}
+
+TEST(Filter, ip_address_list_trie_optimization)
+{
+    Filter filter;
+
+    filter.set_expression("127.0.0.1 in [127.0.0.1, 192.168.1.25, 85.132.197.60, 1.1.1.1, 8.8.8.8, 4.4.4.4, 0011:2233:4455::]");
+    EXPECT_TRUE(filter.compile_and_evaluate());
+
+    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0xaa, 0xbb, 0xcc, 0xdd, 0x00 } } },
+        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0x11, 0x22, 0x33, 0x44, 0x55 } } },
+        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0xff, 0xff, 0xff, 0xff, 0xff } } },
+    });
+
+    filter.set_expression("ip in [127.0.0.1, 192.168.1.25, 85.132.197.60, 1.1.1.1, 8.8.8.8, 4.4.4.4, 0011:2233:4455::]");
+    EXPECT_TRUE(filter.compile());
+    EXPECT_FALSE(filter.evaluate());
+    filter.set_expression("ip in [127.0.0.1, 192.168.1.25, aabb:ccdd::, 85.132.197.60, 1.1.1.1, 8.8.8.8, 4.4.4.4, 0011:2233:4455::]");
+    EXPECT_TRUE(filter.compile());
     EXPECT_TRUE(filter.evaluate());
+
 }

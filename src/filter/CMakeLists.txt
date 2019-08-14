@@ -43,7 +43,7 @@ add_library(filter_obj OBJECT
 	ast.c
 	error.c
     evaluate.c
-	semantic.c
+	preprocess.c
 	${flex_header}
 	${flex_source}
 	${bison_header}

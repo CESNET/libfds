@@ -180,6 +180,7 @@ filter: ERROR_ABORT { YYABORT; }
 %%
 
 void yyerror(YYLTYPE *location, struct fds_filter *filter, void *scanner, char *error_message) {
+    (void)scanner;
     struct fds_filter_location location_;
     location_.first_line = location->first_line;
     location_.last_line = location->last_line;

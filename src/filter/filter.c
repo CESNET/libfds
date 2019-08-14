@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <libfds.h>
 #include "filter.h"
 #include "parser.h"
@@ -15,15 +16,24 @@ fds_filter_create()
         return NULL;
     }
     filter->lookup_callback = NULL;
-    filter->data_callback = NULL;
+    filter->const_callback = NULL;
+    filter->field_callback = NULL;
     filter->ast = NULL;
     filter->eval_tree = NULL;
-    filter->reset_context = 0;
-    filter->context = NULL;
+    filter->reset_context = false;
+    filter->user_context = NULL;
     filter->data = NULL;
     filter->error_count = 0;
     filter->errors = NULL;
     return filter;
+}
+
+void
+fds_filter_destroy(fds_filter_t *filter)
+{
+    ast_destroy(filter->ast);
+    destroy_eval_tree(filter->eval_tree);
+    free(filter);
 }
 
 void
@@ -34,24 +44,31 @@ fds_filter_set_lookup_callback(fds_filter_t *filter, fds_filter_lookup_callback_
 }
 
 void
-fds_filter_set_data_callback(fds_filter_t *filter, fds_filter_data_callback_t data_callback)
+fds_filter_set_const_callback(fds_filter_t *filter, fds_filter_const_callback_t const_callback)
 {
     assert(filter != NULL);
-    filter->data_callback = data_callback;
+    filter->const_callback = const_callback;
 }
 
 void
-fds_filter_set_context(fds_filter_t *filter, void *context)
+fds_filter_set_field_callback(fds_filter_t *filter, fds_filter_field_callback_t field_callback)
 {
     assert(filter != NULL);
-    filter->context = context;
+    filter->field_callback = field_callback;
+}
+
+void
+fds_filter_set_user_context(fds_filter_t *filter, void *user_context)
+{
+    assert(filter != NULL);
+    filter->user_context = user_context;
 }
 
 void *
-fds_filter_get_context(fds_filter_t *filter)
+fds_filter_get_user_context(fds_filter_t *filter)
 {
     assert(filter != NULL);
-    return filter->context;
+    return filter->user_context;
 }
 
 int
@@ -62,32 +79,33 @@ fds_filter_compile(fds_filter_t *filter, const char *filter_expression)
 
     // TODO: clean this mess up
     yyscan_t scanner;
-    yydebug = 1;
+    yydebug = 0;
     yylex_init(&scanner);
+    pdebug("Parsing %s", filter_expression);
     YY_BUFFER_STATE buffer = yy_scan_string(filter_expression, scanner);
     yyparse(filter, scanner);
-    pdebug("Finished parsing", 0);
+    pdebug("Finished parsing");
     yy_delete_buffer(buffer, scanner);
     yylex_destroy(scanner);
 
     if (fds_filter_get_error_count(filter) != 0) {
-        pdebug("Parsing failed", 0);
+        pdebug("Parsing failed");
         return 0;
     }
     pdebug("Filter compiled - input: %s", filter_expression);
     ast_print(stderr, filter->ast);
 
-    if (!prepare_ast_nodes(filter, filter->ast)) {
-        pdebug("Prepare nodes failed", 0);;
+    if (!prepare_ast_nodes(filter, &filter->ast)) {
+        pdebug("Prepare nodes failed");;
         return 0;
     }
-    pdebug("After semantic", 0);
+    pdebug("After semantic");
     ast_print(stderr, filter->ast);
 
-    pdebug("After generate", 0);
+    pdebug("After generate");
     struct eval_node *eval_tree = generate_eval_tree_from_ast(filter, filter->ast);
     if (!eval_tree) {
-        pdebug("Generate eval tree from ast failed", 0);
+        pdebug("Generate eval tree from ast failed");
         return 0;
     }
     print_eval_tree(stderr, eval_tree);
@@ -101,7 +119,8 @@ fds_filter_evaluate(fds_filter_t *filter, void *input_data)
 {
     assert(filter != NULL);
     assert(filter->lookup_callback != NULL);
-    assert(filter->data_callback != NULL);
+    assert(filter->const_callback != NULL);
+    assert(filter->field_callback != NULL);
     assert(filter->ast != NULL);
     assert(filter->eval_tree != NULL);
 
@@ -139,7 +158,7 @@ fds_filter_get_error_location(fds_filter_t *filter, int index, struct fds_filter
     return 1;
 }
 
-struct fds_filter_ast_node *
+const struct fds_filter_ast_node *
 fds_filter_get_ast(fds_filter_t *filter)
 {
     return filter->ast;

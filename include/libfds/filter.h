@@ -5,6 +5,10 @@
 extern "C" {
 #endif
 
+#define FDS_FILTER_FAIL    0
+#define FDS_FILTER_OK      1
+#define FDS_FILTER_OK_MORE 2
+
 typedef struct fds_filter fds_filter_t;
 
 /**
@@ -12,8 +16,8 @@ typedef struct fds_filter fds_filter_t;
  *
  * FDS_FILTER_TYPE_NONE and FDS_FILTER_TYPE_COUNT are special values that are not valid filter data types
  */
-enum fds_filter_type {
-    FDS_FILTER_TYPE_NONE,
+enum fds_filter_data_type {
+    FDS_FILTER_TYPE_NONE = 0,
     FDS_FILTER_TYPE_STR,
     FDS_FILTER_TYPE_UINT,
     FDS_FILTER_TYPE_INT,
@@ -31,12 +35,13 @@ enum fds_filter_type {
 union fds_filter_value {
     struct {
         uint64_t length;
-        const char *chars; // TODO: come up with better names?
+        char *chars;
     } string;
     struct {
         uint64_t length;
-        union fds_filter_value *items; // TODO: come up with better names?
+        union fds_filter_value *items;
     } list;
+    uint8_t bool_;
     uint64_t uint_;
     int64_t int_;
     double float_;
@@ -47,6 +52,7 @@ union fds_filter_value {
         uint8_t bytes[16];
     } ip_address;
     uint8_t mac_address[6];
+    void *pointer;
 };
 
 typedef union fds_filter_value fds_filter_value_t;
@@ -55,7 +61,7 @@ typedef union fds_filter_value fds_filter_value_t;
  * Possible AST node operations
  */
 enum fds_filter_ast_op {
-    FDS_FILTER_AST_NONE,
+    FDS_FILTER_AST_NONE = 0,
     FDS_FILTER_AST_ADD,
     FDS_FILTER_AST_MUL,
     FDS_FILTER_AST_SUB,
@@ -87,6 +93,17 @@ enum fds_filter_ast_op {
     FDS_FILTER_AST_COUNT
 };
 
+enum fds_filter_value_match_mode {
+    FDS_FILTER_MATCH_MODE_NONE = 0,
+    FDS_FILTER_MATCH_MODE_FULL,
+    FDS_FILTER_MATCH_MODE_PARTIAL
+};
+
+enum fds_filter_identifier_type {
+    FDS_FILTER_IDENTIFIER_FIELD,
+    FDS_FILTER_IDENTIFIER_CONST
+};
+
 /**
  * The location of a node in the input text
  */
@@ -104,78 +121,41 @@ struct fds_filter_ast_node {
     enum fds_filter_ast_op op;
 
     struct fds_filter_ast_node *parent;
+
     struct fds_filter_ast_node *left;
     struct fds_filter_ast_node *right;
 
     const char *identifier_name;
     int identifier_id;
-    unsigned char identifier_is_constant;
-    enum fds_filter_type type;
-    enum fds_filter_type subtype; // In case of list
+    enum fds_filter_identifier_type identifier_type;
+
+    bool is_constant;
+    bool is_trie;
+
+    enum fds_filter_data_type type;
+    enum fds_filter_data_type subtype; // In case of list
+    enum fds_filter_value_match_mode match_mode;
     union fds_filter_value value;
 
     struct fds_filter_location location;
 };
 
-/**
- * The lookup callback function type
- *
- * TODO: explain more in detail
- *
- * @param       name         The name of the identifier that is being looked up
- * @param       data_context The data context provided by the user
- * @param[out]  id           The id of the identifier that will later be passed to data function calls
- * @param[out]  type         The data type of the identifier
- * @param[out]  is_constant  Whether the identifier value changes or not
- * @param[out]  value        The value of the identifier - only to be set if the identifier is constant!
- * @return TODO
- */
-typedef int (*fds_filter_lookup_func_t)(const char *name, void *data_context, int *id, enum fds_filter_type *type, int *is_constant, union fds_filter_value *value);
-
-/**
- * A structure to pass the lookup function arguments
- */
-struct fds_filter_lookup_args {
-    const char *name;                     /**< [in] The name of the identifier that is being looked up. */
-    void *context;                        /**< [in] The context set by the user. */
-    int *id;                              /**< [out] The id of the identifier that will be passed to subsequent calls to the data function. */
-    enum fds_filter_type *type;           /**< [out] The data type of the identifier. */
-    enum fds_filter_type *subtype;        /**< [out] In case type is a list, this is the data type of the elements of the list. */
-    unsigned char *is_constant;           /**< [out] Whether the identifier has a constant value. If output value is set this has to be set to 1. */
-    union fds_filter_value *output_value; /**< [out] The value of the identifier if the identifier is a constant. */
+struct fds_filter_identifier_attributes {
+    int id;
+    enum fds_filter_identifier_type identifier_type;
+    enum fds_filter_data_type type;
+    enum fds_filter_data_type subtype;
+    enum fds_filter_value_match_mode match_mode;
 };
 
-/**
- * The lookup callback function type
- *
- * TODO: explain more in detail
- *
- * @param[in,out]   args    The lookup function arguments.
- * @return 1 on success, 0 on failure
- */
-typedef int (*fds_filter_lookup_callback_t)(struct fds_filter_lookup_args args);
+typedef int (*fds_filter_lookup_callback_t)
+(const char *name, void *user_context, struct fds_filter_identifier_attributes *attributes);
 
-/**
- * A structure to pass the data function arguments
- */
-struct fds_filter_data_args {
-    int id;                               /**< [in] The id of the identifier */
-    void *context;                        /**< [in] The context set by the user */
-    unsigned char reset;                  /**< [in] Indicates whether the context should reset */
-    void *input_data;                     /**< [in] The input data to parse */
-    union fds_filter_value *output_value; /**< [out] The parsed output data */
-    unsigned char *has_more;              /**< [out] Whether the identifier has more values */
-};
+typedef void (*fds_filter_const_callback_t)
+(int id, void *user_context, union fds_filter_value *value);
 
-/**
- * The data (getter) callback function type
- *
- * TODO: explain more in detail
- *
- * @param[in,out]   args    The data function arguments.
- * @return  1 if the data was found, else 0
- */
-typedef int (*fds_filter_data_callback_t)(struct fds_filter_data_args args);
+typedef int (*fds_filter_field_callback_t)
+(int id, void *user_context, int reset_flag, void *data, union fds_filter_value *value);
 
 /**
  * Create an instance of a filter.
@@ -203,16 +183,25 @@ FDS_API void
 fds_filter_set_lookup_callback(fds_filter_t *filter, fds_filter_lookup_callback_t lookup_callback);
 
 /**
- * Set the data callback of a filter.
+ * Set the const callback of a filter.
  *
  * @param   filter          The filter instance.
- * @param   data_callback   The data callback.
+ * @param   const_callback  The const callback.
  */
 FDS_API void
-fds_filter_set_data_callback(fds_filter_t *filter, fds_filter_data_callback_t data_callback);
+fds_filter_set_const_callback(fds_filter_t *filter, fds_filter_const_callback_t const_callback);
 
 /**
- * Set the context of a filter.
+ * Set the field callback of a filter.
+ *
+ * @param   filter          The filter instance.
+ * @param   field_callback  The field callback.
+ */
+FDS_API void
+fds_filter_set_field_callback(fds_filter_t *filter, fds_filter_field_callback_t field_callback);
+
+/**
+ * Set the user context of a filter.
  *
  * The context is an arbitary value that is set by the user by this function, and is then passed as a parameter
  * to any subsequent calls of the data callback function. The purpose of this is to allow the user to store additional information
@@ -220,20 +209,20 @@ fds_filter_set_data_callback(fds_filter_t *filter, fds_filter_data_callback_t da
  * have already been returned and which have not. This will most likely be a pointer to a struct that is to be defined, allocated
  * and then freed by the user.
  *
- * @param   filter  The filter instance.
- * @param   context The context.
+ * @param   filter       The filter instance.
+ * @param   user_context The context.
  */
 FDS_API void
-fds_filter_set_context(fds_filter_t *filter, void *context);
+fds_filter_set_user_context(fds_filter_t *filter, void *user_context);
 
 /**
- * Get the context of a filter.
+ * Get the user context of a filter.
  *
  * @param   filter  The filter instance.
  * @return The context as set by the user or NULL if no context was set.
  */
 FDS_API void *
-fds_filter_get_context(fds_filter_t *filter);
+fds_filter_get_user_context(fds_filter_t *filter);
 
 /**
  * Compile a filter from the filter expression.
@@ -265,7 +254,7 @@ fds_filter_evaluate(fds_filter_t *filter, void *input_data);
  * @param   filter   The filter instance.
  * @return  A pointer to the root of the abstract syntax tree.
  */
-FDS_API struct fds_filter_ast_node *
+FDS_API const struct fds_filter_ast_node *
 fds_filter_get_ast(fds_filter_t *filter);
 
 /**

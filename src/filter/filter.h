@@ -1,19 +1,30 @@
 #ifndef FDS_FILTER_FILTER_H
 #define FDS_FILTER_FILTER_H
 
+#include <stdbool.h>
 #include <libfds.h>
 
 #ifndef NDEBUG
 #define pdebug(fmt, ...) \
-        do { fprintf(stderr, "%s:%d:%s(): " fmt "\n", __FILE__, __LINE__, __func__, __VA_ARGS__); } while (0)
+        do { fprintf(stderr, "%s:%d:%s(): " fmt "\n", __FILE__, __LINE__, __func__,##__VA_ARGS__); } while (0)
 #else
 #define pdebug(fmt, ...) /* nothing */
 #endif
 
+#define CHECK_ERROR(x) \
+    {  \
+        int return_code = x; \
+        if (return_code != FDS_FILTER_OK) { \
+            return return_code; \
+        } \
+    }
+
 struct error {
-    const char *message;
+    char *message;
     struct fds_filter_location location;
 };
+
+struct eval_node;
 
 typedef void (*eval_func_t)(struct fds_filter *filter, struct eval_node *node);
 
@@ -21,10 +32,11 @@ struct eval_node {
     eval_func_t evaluate;
     struct eval_node *left;
     struct eval_node *right;
-    unsigned char is_defined;
-    unsigned char is_more;
-    enum fds_filter_type type;
-    enum fds_filter_type subtype;
+    bool is_defined;
+    bool is_more;
+    bool is_trie;
+    enum fds_filter_data_type type;
+    enum fds_filter_data_type subtype;
     int identifier_id;
     union fds_filter_value value;
 };
@@ -33,10 +45,11 @@ struct fds_filter {
     struct fds_filter_ast_node *ast;
 
     fds_filter_lookup_callback_t lookup_callback;
-    fds_filter_data_callback_t data_callback;
+    fds_filter_const_callback_t const_callback;
+    fds_filter_field_callback_t field_callback;
     void *data; // The raw data
-    void *context; // To be filled and operated on by the user
-    unsigned char reset_context;
+    void *user_context; // To be filled and operated on by the user
+    bool reset_context;
 
     struct eval_node *eval_tree;
 
@@ -72,7 +85,7 @@ void
 ast_destroy(struct fds_filter_ast_node *node);
 
 int
-prepare_ast_nodes(struct fds_filter *filter, struct fds_filter_ast_node *node);
+prepare_ast_nodes(struct fds_filter *filter, struct fds_filter_ast_node **node);
 
 struct eval_node *
 generate_eval_tree_from_ast(struct fds_filter *filter, struct fds_filter_ast_node *ast_node);
@@ -83,7 +96,7 @@ evaluate_eval_tree(struct fds_filter *filter, struct eval_node *eval_tree);
 void
 print_eval_tree(FILE *outstream, struct eval_node *node);
 
-int
+void
 destroy_eval_tree(struct eval_node *eval_tree);
 
 

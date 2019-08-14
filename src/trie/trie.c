@@ -103,6 +103,17 @@ find_differing_bit(uint32_t a, uint32_t b)
     return bit_scan_right(a ^ b);
 }
 
+static void
+ip_address_bytes_to_words(int ip_version, uint8_t *bytes, uint32_t *words)
+{
+    words[0] = bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3];
+    if (ip_version == 6) {
+        words[1] = bytes[4] << 24 | bytes[5] << 16 | bytes[6] << 8 | bytes[7];
+        words[2] = bytes[8] << 24 | bytes[9] << 16 | bytes[10] << 8 | bytes[11];
+        words[3] = bytes[12] << 24 | bytes[13] << 16 | bytes[14] << 8 | bytes[15];
+    }
+}
+
 void
 dump_trie_node(struct trie_node *node, int level, const char *name, int limit)
 {
@@ -282,13 +293,16 @@ trie_node_find_add(struct trie_node **node, struct bit_array *address)
  * Find where a new node should be added added, split nodes along the way.
  */
 int
-fds_trie_add(struct fds_trie *trie, int ip_version, uint32_t *address_, int bit_length)
+fds_trie_add(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int bit_length)
 {
     assert((ip_version == 4 && bit_length <= 32) || (ip_version == 6 && bit_length <= 128));
     assert(bit_length > 0);
 
+    uint32_t address_words[4] = { 0 };
+    ip_address_bytes_to_words(ip_version, address_bytes, address_words);
+
     struct trie_node **node = ip_version == 4 ? &trie->ipv4_root : &trie->ipv6_root;
-    struct bit_array address = bit_array_create(address_, bit_length);
+    struct bit_array address = bit_array_create(address_words, bit_length);
 
 	node = trie_node_find_add(node, &address);
 
@@ -369,10 +383,14 @@ fds_trie_add(struct fds_trie *trie, int ip_version, uint32_t *address_, int bit_
  * Find if an ip address is in a trie
  */
 int
-fds_trie_find(struct fds_trie *trie, int ip_version, uint32_t *address, int bit_length)
+fds_trie_find(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int bit_length)
 {
     assert((ip_version == 4 && bit_length <= 32) || (ip_version == 6 && bit_length <= 128));
     assert(bit_length > 0);
+
+    uint32_t address_words[4] = { 0 };
+    ip_address_bytes_to_words(ip_version, address_bytes, address_words);
+    uint32_t *address = address_words;
 
     struct trie_node *node = ip_version == 4 ? trie->ipv4_root : trie->ipv6_root;
     int bit_offset = 0;

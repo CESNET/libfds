@@ -16,9 +16,10 @@ ast_node_create()
     node->right = NULL;
     node->identifier_id = 0;
     node->identifier_name = NULL;
+    node->identifier_type = FDS_FILTER_TYPE_NONE;
+    node->match_mode = FDS_FILTER_MATCH_MODE_NONE;
     node->type = FDS_FILTER_TYPE_NONE;
     node->subtype = FDS_FILTER_TYPE_NONE;
-	node->identifier_is_constant = 0;
     memset(&node->value, 0, sizeof(node->value));
     node->location.first_line = 0;
     node->location.last_line = 0;

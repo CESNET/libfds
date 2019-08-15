@@ -33,7 +33,6 @@ if (fds_filter_evaluate(filter, data)) {
 ```
 
 ## TODO
-- Support for shortened IPv6 addresses (scanner)
 - Correct support for ISO timestamps
 - "Left side context" when looking up constant identifier?
 - Consider mask when comparing ip addresses
@@ -42,5 +41,5 @@ if (fds_filter_evaluate(filter, data)) {
 - Correctly free allocated fds_filter_values in ast and eval tree
 - Arithmetic operations POW and MOD
 - Bitwise operations &, |, ^ (what about types?)
-- Support prefix for IPv6 addresses (scanner)
+- Better regex for IPv6 addresses - might match too much now as identifiers can contain :
 - ...

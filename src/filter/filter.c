@@ -32,7 +32,7 @@ void
 fds_filter_destroy(fds_filter_t *filter)
 {
     ast_destroy(filter->ast);
-    destroy_eval_tree(filter->eval_tree);
+    eval_tree_destroy(filter->eval_tree);
     free(filter);
 }
 
@@ -90,28 +90,44 @@ fds_filter_compile(fds_filter_t *filter, const char *filter_expression)
 
     if (fds_filter_get_error_count(filter) != 0) {
         pdebug("Parsing failed");
-        return 0;
+        return FDS_FILTER_FAIL;
     }
     pdebug("Filter compiled - input: %s", filter_expression);
     ast_print(stderr, filter->ast);
 
-    if (!prepare_ast_nodes(filter, &filter->ast)) {
-        pdebug("Prepare nodes failed");;
-        return 0;
-    }
-    pdebug("After semantic");
-    ast_print(stderr, filter->ast);
+    int return_code;
 
-    pdebug("After generate");
-    struct eval_node *eval_tree = generate_eval_tree_from_ast(filter, filter->ast);
-    if (!eval_tree) {
-        pdebug("Generate eval tree from ast failed");
-        return 0;
+    return_code = preprocess(filter);
+    if (return_code != FDS_FILTER_OK) {
+        pdebug("ERROR: Preprocess failed!");
+        return return_code;
     }
-    print_eval_tree(stderr, eval_tree);
+
+    return_code = semantic_analysis(filter);
+    if (return_code != FDS_FILTER_OK) {
+        pdebug("ERROR: Semantic analysis failed!");
+        return return_code;
+    }
+
+    return_code = optimize(filter);
+    if (return_code != FDS_FILTER_OK) {
+        pdebug("ERROR: Optimize failed!");
+        return return_code;
+    }
+
+    pdebug("====== Final AST ======");
+    ast_print(stderr, filter->ast);
+    pdebug("=======================");
+
+    struct eval_node *eval_tree = eval_tree_generate(filter, filter->ast);
+    if (eval_tree == NULL) {
+        pdebug("Generate eval tree from AST failed");
+        return FDS_FILTER_FAIL;
+    }
+    eval_tree_print(stderr, eval_tree);
     filter->eval_tree = eval_tree;
 
-    return 1;
+    return FDS_FILTER_OK;
 }
 
 int
@@ -125,9 +141,13 @@ fds_filter_evaluate(fds_filter_t *filter, void *input_data)
     assert(filter->eval_tree != NULL);
 
     filter->data = input_data;
-    evaluate_eval_tree(filter, filter->eval_tree);
-    // TODO: error handling
-    return filter->eval_tree->value.uint_ != 0;
+
+    int return_code = eval_tree_evaluate(filter, filter->eval_tree);
+    if (return_code == FDS_OK) {
+        return filter->eval_tree->value.bool_ ? FDS_FILTER_YES : FDS_FILTER_NO;
+    } else {
+        return FDS_FILTER_FAIL;
+    }
 }
 
 int
@@ -181,3 +201,4 @@ fds_filter_print_errors(fds_filter_t *filter, FILE *out_stream)
     }
     return i;
 }
+

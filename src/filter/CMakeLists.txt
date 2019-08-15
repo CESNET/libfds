@@ -40,10 +40,14 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_library(filter_obj OBJECT
 	filter.h
 	filter.c
+	ast_utils.h
 	ast.c
 	error.c
-    evaluate.c
-	preprocess.c
+	preprocessor.c
+	semantic_analyzer.c
+	optimizer.c
+	evaluator_functions.h
+	evaluator.c
 	${flex_header}
 	${flex_source}
 	${bison_header}

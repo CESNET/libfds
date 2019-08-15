@@ -108,13 +108,13 @@ struct Filter {
         fds_filter_set_user_context(filter, this);
         int rc = fds_filter_compile(filter, filter_expr);
         fds_filter_print_errors(filter, stderr);
-        return rc;
+        return rc == FDS_FILTER_OK;
     }
 
     int evaluate() {
         int rc = fds_filter_evaluate(filter, NULL);
         fds_filter_print_errors(filter, stderr);
-        return rc;
+        return rc == FDS_FILTER_YES;
     }
 
     int error_count() {
@@ -392,5 +392,4 @@ TEST(Filter, ip_address_list_trie_optimization)
     filter.set_expression("ip in [127.0.0.1, 192.168.1.25, aabb:ccdd::, 85.132.197.60, 1.1.1.1, 8.8.8.8, 4.4.4.4, 0011:2233:4455::]");
     EXPECT_TRUE(filter.compile());
     EXPECT_TRUE(filter.evaluate());
-
 }

@@ -6,25 +6,10 @@
 struct fds_filter_ast_node *
 ast_node_create()
 {
-    struct fds_filter_ast_node *node = malloc(sizeof(*node));
+    struct fds_filter_ast_node *node = calloc(1, sizeof(struct fds_filter_ast_node));
     if (node == NULL) {
         return NULL;
     }
-    node->op = FDS_FILTER_AST_NONE;
-    node->parent = NULL;
-    node->left = NULL;
-    node->right = NULL;
-    node->identifier_id = 0;
-    node->identifier_name = NULL;
-    node->identifier_type = FDS_FILTER_TYPE_NONE;
-    node->match_mode = FDS_FILTER_MATCH_MODE_NONE;
-    node->type = FDS_FILTER_TYPE_NONE;
-    node->subtype = FDS_FILTER_TYPE_NONE;
-    memset(&node->value, 0, sizeof(node->value));
-    node->location.first_line = 0;
-    node->location.last_line = 0;
-    node->location.first_column = 0;
-    node->location.last_column = 0;
     return node;
 }
 
@@ -34,9 +19,25 @@ ast_destroy(struct fds_filter_ast_node *node)
     if (node == NULL) {
         return;
     }
-    // TODO: check based on node type
-    // TODO: also destroy value etc
-    free(node->left);
-    free(node->right);
+
+    if (node->op == FDS_FILTER_AST_CONST) {
+        if (node->type == FDS_FILTER_TYPE_STR) {
+            free(node->value.string.chars);
+        } else if (node->type == FDS_FILTER_AST_LIST) {
+            if (node->is_trie) {
+                fds_trie_destroy(node->value.pointer);
+            } else {
+                if (node->subtype == FDS_FILTER_TYPE_STR) {
+                    for (int i = 0; i < node->value.list.length; i++) {
+                        free(node->value.list.items[i].string.chars);
+                    }
+                }
+                free(node->value.list.items);
+            }
+        }
+    }
+
+    ast_destroy(node->left);
+    ast_destroy(node->right);
     free(node);
 }

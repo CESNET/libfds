@@ -5,9 +5,13 @@
 extern "C" {
 #endif
 
-#define FDS_FILTER_FAIL    0
-#define FDS_FILTER_OK      1
-#define FDS_FILTER_OK_MORE 2
+#define FDS_FILTER_FAIL    -1
+
+#define FDS_FILTER_OK       0
+#define FDS_FILTER_OK_MORE  1
+
+#define FDS_FILTER_YES      0
+#define FDS_FILTER_NO       1
 
 typedef struct fds_filter fds_filter_t;
 
@@ -34,12 +38,12 @@ enum fds_filter_data_type {
  */
 union fds_filter_value {
     struct {
-        uint64_t length;
         char *chars;
+        uint64_t length;
     } string;
     struct {
-        uint64_t length;
         union fds_filter_value *items;
+        uint64_t length;
     } list;
     uint8_t bool_;
     uint64_t uint_;

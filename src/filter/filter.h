@@ -2,6 +2,7 @@
 #define FDS_FILTER_FILTER_H
 
 #include <stdbool.h>
+#include <setjmp.h>
 #include <libfds.h>
 
 #ifndef NDEBUG
@@ -35,6 +36,7 @@ struct eval_node {
     bool is_defined;
     bool is_more;
     bool is_trie;
+    bool is_alloc;
     enum fds_filter_data_type type;
     enum fds_filter_data_type subtype;
     int identifier_id;
@@ -52,6 +54,7 @@ struct fds_filter {
     bool reset_context;
 
     struct eval_node *eval_tree;
+    jmp_buf eval_jmp_buf;
 
     int error_count;
     struct error *errors;
@@ -88,16 +91,25 @@ int
 prepare_ast_nodes(struct fds_filter *filter, struct fds_filter_ast_node **node);
 
 struct eval_node *
-generate_eval_tree_from_ast(struct fds_filter *filter, struct fds_filter_ast_node *ast_node);
+eval_tree_generate(struct fds_filter *filter, struct fds_filter_ast_node *ast_node);
 
 int
-evaluate_eval_tree(struct fds_filter *filter, struct eval_node *eval_tree);
+eval_tree_evaluate(struct fds_filter *filter, struct eval_node *eval_tree);
 
 void
-print_eval_tree(FILE *outstream, struct eval_node *node);
+eval_tree_print(FILE *outstream, struct eval_node *node);
 
 void
-destroy_eval_tree(struct eval_node *eval_tree);
+eval_tree_destroy(struct eval_node *eval_tree);
+
+int
+preprocess(struct fds_filter *filter);
+
+int
+semantic_analysis(struct fds_filter *filter);
+
+int
+optimize(struct fds_filter *filter);
 
 
 #endif // FDS_FILTER_FILTER_H

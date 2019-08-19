@@ -190,7 +190,9 @@
         <dataType>unsigned8</dataType>
     </element>
 <!--
+    START
     Note: Probably obsolete Lukas Truxa's extension of VOIP plugin for INVEA
+-->
     <element>
         <id>51</id>
         <name>sipUserAgent</name>
@@ -206,6 +208,8 @@
         <name>sipCSeq</name>
         <dataType>string</dataType>
     </element>
+<!--
+    END
 -->
     <element>
         <id>61</id>

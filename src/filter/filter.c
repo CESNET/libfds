@@ -1,6 +1,9 @@
 #include <stdbool.h>
 #include <libfds.h>
 #include "filter.h"
+#include "ast.h"
+#include "error.h"
+#include "debug.h"
 #include "parser.h"
 #include "scanner.h"
 
@@ -11,28 +14,23 @@ extern int yydebug;
 fds_filter_t *
 fds_filter_create()
 {
-    fds_filter_t *filter = malloc(sizeof(fds_filter_t));
+    fds_filter_t *filter = calloc(1, sizeof(fds_filter_t));
     if (filter == NULL) {
         return NULL;
     }
-    filter->lookup_callback = NULL;
-    filter->const_callback = NULL;
-    filter->field_callback = NULL;
-    filter->ast = NULL;
-    filter->eval_tree = NULL;
-    filter->reset_context = false;
-    filter->user_context = NULL;
-    filter->data = NULL;
-    filter->error_count = 0;
-    filter->errors = NULL;
+    filter->error_list = create_error_list();
+    if (filter->error_list == NULL) {
+        return NULL;
+    }
     return filter;
 }
 
 void
 fds_filter_destroy(fds_filter_t *filter)
 {
-    ast_destroy(filter->ast);
-    eval_tree_destroy(filter->eval_tree);
+    destroy_ast(filter->ast);
+    destroy_eval_tree(filter->eval_tree);
+    destroy_error_list(filter->error_list);
     free(filter);
 }
 
@@ -81,52 +79,54 @@ fds_filter_compile(fds_filter_t *filter, const char *filter_expression)
     yyscan_t scanner;
     yydebug = 0;
     yylex_init(&scanner);
-    pdebug("Parsing %s", filter_expression);
     YY_BUFFER_STATE buffer = yy_scan_string(filter_expression, scanner);
     yyparse(filter, scanner);
-    pdebug("Finished parsing");
     yy_delete_buffer(buffer, scanner);
     yylex_destroy(scanner);
 
     if (fds_filter_get_error_count(filter) != 0) {
-        pdebug("Parsing failed");
+        PDEBUG("ERROR: Parsing failed!");
         return FDS_FILTER_FAIL;
     }
-    pdebug("Filter compiled - input: %s", filter_expression);
-    ast_print(stderr, filter->ast);
+    PDEBUG("Filter compiled: \"%s\"", filter_expression);
+    PDEBUG("====================== AST ======================");
+    print_ast(stderr, filter->ast);
+    PDEBUG("=================================================");
 
     int return_code;
 
     return_code = preprocess(filter);
     if (return_code != FDS_FILTER_OK) {
-        pdebug("ERROR: Preprocess failed!");
+        PDEBUG("ERROR: Preprocess failed!");
         return return_code;
     }
 
     return_code = semantic_analysis(filter);
     if (return_code != FDS_FILTER_OK) {
-        pdebug("ERROR: Semantic analysis failed!");
+        PDEBUG("ERROR: Semantic analysis failed!");
         return return_code;
     }
 
     return_code = optimize(filter);
     if (return_code != FDS_FILTER_OK) {
-        pdebug("ERROR: Optimize failed!");
+        PDEBUG("ERROR: Optimize failed!");
         return return_code;
     }
 
-    pdebug("====== Final AST ======");
-    ast_print(stderr, filter->ast);
-    pdebug("=======================");
+    PDEBUG("=================== Final AST ===================");
+    print_ast(stderr, filter->ast);
 
-    struct eval_node *eval_tree = eval_tree_generate(filter, filter->ast);
+    struct eval_node *eval_tree = generate_eval_tree(filter, filter->ast);
     if (eval_tree == NULL) {
-        pdebug("Generate eval tree from AST failed");
+        PDEBUG("ERROR: Generating eval tree failed!");
         return FDS_FILTER_FAIL;
     }
-    eval_tree_print(stderr, eval_tree);
+    PDEBUG("================ Final eval tree ================");
+    print_eval_tree(stderr, eval_tree);
     filter->eval_tree = eval_tree;
-
+    PDEBUG("=================================================");
+    PDEBUG("");
+    PDEBUG("");
     return FDS_FILTER_OK;
 }
 
@@ -142,8 +142,8 @@ fds_filter_evaluate(fds_filter_t *filter, void *input_data)
 
     filter->data = input_data;
 
-    int return_code = eval_tree_evaluate(filter, filter->eval_tree);
-    if (return_code == FDS_OK) {
+    int return_code = evaluate_eval_tree(filter, filter->eval_tree);
+    if (return_code == FDS_FILTER_OK) {
         return filter->eval_tree->value.bool_ ? FDS_FILTER_YES : FDS_FILTER_NO;
     } else {
         return FDS_FILTER_FAIL;
@@ -153,28 +153,29 @@ fds_filter_evaluate(fds_filter_t *filter, void *input_data)
 int
 fds_filter_get_error_count(fds_filter_t *filter)
 {
-    return filter->error_count;
+    return filter->error_list->count;
 }
 
 const char *
 fds_filter_get_error_message(fds_filter_t *filter, int index)
 {
-    if (index >= filter->error_count) {
+    if (index >= filter->error_list->count) {
         return NULL;
     }
-    return filter->errors[index].message;
+    return filter->error_list->errors[index].message;
 }
 
 int
 fds_filter_get_error_location(fds_filter_t *filter, int index, struct fds_filter_location *location)
 {
-    if (index >= filter->error_count) {
+    if (index >= filter->error_list->count) {
         return 0;
     }
-    if (filter->errors[index].location.first_line == -1) {
+    struct fds_filter_location location_ = filter->error_list->errors[index].location;
+    if (location_.first_line == 0) {
         return 0;
     }
-    *location = filter->errors[index].location;
+    *location = location_;
     return 1;
 }
 
@@ -185,19 +186,18 @@ fds_filter_get_ast(fds_filter_t *filter)
 }
 
 FDS_API int
-fds_filter_print_errors(fds_filter_t *filter, FILE *out_stream)
+fds_filter_print_errors(fds_filter_t *filter, FILE *output)
 {
     int i;
-    pdebug("Error count: %d", fds_filter_get_error_count(filter));
     for (i = 0; i < fds_filter_get_error_count(filter); i++) {
         struct fds_filter_location location;
         const char *error_message = fds_filter_get_error_message(filter, i);
-        fprintf(out_stream, "ERROR: %s", error_message);
+        fprintf(output, "ERROR: %s", error_message);
         if (fds_filter_get_error_location(filter, i, &location)) {
-            fprintf(out_stream, " on line %d:%d, column %d:%d",
+            fprintf(output, " on line %d:%d, column %d:%d",
                     location.first_line, location.last_line, location.first_column, location.last_column);
         }
-        fprintf(out_stream, "\n");
+        fprintf(output, "\n");
     }
     return i;
 }

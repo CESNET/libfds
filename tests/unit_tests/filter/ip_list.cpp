@@ -40,14 +40,14 @@ int lookup_callback(const char *name, void *user_context, struct fds_filter_iden
 {
     if (std::strcmp(name, "ip") == 0) {
         attributes->id = int(identifier::ip);
-        attributes->identifier_type = FDS_FILTER_IDENTIFIER_FIELD;
-        attributes->type = FDS_FILTER_TYPE_IP_ADDRESS;
+        attributes->identifier_type = FDS_FIT_FIELD;
+        attributes->data_type = FDS_FDT_IP_ADDRESS;
         return FDS_FILTER_OK;
     } else if (std::strcmp(name, "blacklist") == 0) {
         attributes->id = int(identifier::blacklist);
-        attributes->identifier_type = FDS_FILTER_IDENTIFIER_CONST;
-        attributes->type = FDS_FILTER_TYPE_LIST;
-        attributes->subtype = FDS_FILTER_TYPE_IP_ADDRESS;
+        attributes->identifier_type = FDS_FIT_CONST;
+        attributes->data_type = FDS_FDT_LIST;
+        attributes->data_subtype = FDS_FDT_IP_ADDRESS;
         return FDS_FILTER_OK;
     } else {
         return FDS_FILTER_FAIL;
@@ -63,7 +63,7 @@ void const_callback(int id, void *user_context, union fds_filter_value *value)
         ASSERT_TRUE(value->list.items != NULL);
         for (int i = 0; i < blacklist.size(); i++) {
             value->list.items[i].ip_address.version = blacklist[i].version;
-            value->list.items[i].ip_address.mask = blacklist[i].bit_length;
+            value->list.items[i].ip_address.prefix_length = blacklist[i].bit_length;
             std::memcpy(value->list.items[i].ip_address.bytes, blacklist[i].bytes, 16);
         }
     } break;
@@ -77,7 +77,7 @@ int field_callback(int id, void *user_context_, int reset_flag, void *input_data
     switch (id) {
     case int(identifier::ip): {
         value->ip_address.version = address->version;
-        value->ip_address.mask = address->bit_length;
+        value->ip_address.prefix_length = address->bit_length;
         std::memcpy(value->ip_address.bytes, address->bytes, 16);
         return FDS_FILTER_OK;
     } break;
@@ -94,18 +94,18 @@ TEST(Filter, ip_list) {
     fds_filter_set_field_callback(filter, field_callback);
 
     ASSERT_TRUE(
-        fds_filter_compile(filter, "ip in blacklist") == FDS_FILTER_OK
+        fds_filter_compile(filter, "ip inside blacklist") == FDS_FILTER_OK
     );
 
     for (auto &address : testlist) {
-        EXPECT_FALSE(
-            fds_filter_evaluate(filter, &address)
+        EXPECT_TRUE(
+            fds_filter_evaluate(filter, &address) == FDS_FILTER_NO
         );
     }
 
     for (auto &address : blacklist) {
         EXPECT_TRUE(
-            fds_filter_evaluate(filter, &address)
+            fds_filter_evaluate(filter, &address) == FDS_FILTER_YES
         );
     }
 

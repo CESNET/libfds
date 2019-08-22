@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 #define FDS_FILTER_FAIL    -1
 
 #define FDS_FILTER_OK       0
@@ -18,19 +20,19 @@ typedef struct fds_filter fds_filter_t;
 /**
  * All the possible data types of a filter value
  *
- * FDS_FILTER_TYPE_NONE and FDS_FILTER_TYPE_COUNT are special values that are not valid filter data types
+ * FDS_FDT_NONE and FDS_FDT_COUNT are special values that are not valid filter data types
  */
 enum fds_filter_data_type {
-    FDS_FILTER_TYPE_NONE = 0,
-    FDS_FILTER_TYPE_STR,
-    FDS_FILTER_TYPE_UINT,
-    FDS_FILTER_TYPE_INT,
-    FDS_FILTER_TYPE_FLOAT,
-    FDS_FILTER_TYPE_BOOL,
-    FDS_FILTER_TYPE_IP_ADDRESS,
-    FDS_FILTER_TYPE_MAC_ADDRESS,
-    FDS_FILTER_TYPE_LIST,
-    FDS_FILTER_TYPE_COUNT
+    FDS_FDT_NONE = 0,
+    FDS_FDT_STR,
+    FDS_FDT_UINT,
+    FDS_FDT_INT,
+    FDS_FDT_FLOAT,
+    FDS_FDT_BOOL,
+    FDS_FDT_IP_ADDRESS,
+    FDS_FDT_MAC_ADDRESS,
+    FDS_FDT_LIST,
+    FDS_NUMBER_OF_FDT
 };
 
 /**
@@ -52,7 +54,7 @@ union fds_filter_value {
     uint8_t bytes[18];
     struct {
 		uint8_t version; // 4 or 6
-        uint8_t mask;
+        uint8_t prefix_length;
         uint8_t bytes[16];
     } ip_address;
     uint8_t mac_address[6];
@@ -62,50 +64,46 @@ union fds_filter_value {
 typedef union fds_filter_value fds_filter_value_t;
 
 /**
- * Possible AST node operations
+ * Possible AST node types
  */
-enum fds_filter_ast_op {
-    FDS_FILTER_AST_NONE = 0,
-    FDS_FILTER_AST_ADD,
-    FDS_FILTER_AST_MUL,
-    FDS_FILTER_AST_SUB,
-    FDS_FILTER_AST_DIV,
-    FDS_FILTER_AST_MOD,
-    FDS_FILTER_AST_UMINUS,
-    FDS_FILTER_AST_BITNOT,
-    FDS_FILTER_AST_BITAND,
-    FDS_FILTER_AST_BITOR,
-    FDS_FILTER_AST_BITXOR,
-    FDS_FILTER_AST_NOT,
-    FDS_FILTER_AST_AND,
-    FDS_FILTER_AST_OR,
-    FDS_FILTER_AST_EQ,
-    FDS_FILTER_AST_NE,
-    FDS_FILTER_AST_GT,
-    FDS_FILTER_AST_LT,
-    FDS_FILTER_AST_GE,
-    FDS_FILTER_AST_LE,
-    FDS_FILTER_AST_CONST,
-    FDS_FILTER_AST_IDENTIFIER,
-    FDS_FILTER_AST_LIST,
-    FDS_FILTER_AST_LIST_ITEM,
-    FDS_FILTER_AST_IN,
-    FDS_FILTER_AST_CONTAINS,
-    FDS_FILTER_AST_CAST,
-    FDS_FILTER_AST_ANY,
-    FDS_FILTER_AST_ROOT,
-    FDS_FILTER_AST_COUNT
-};
-
-enum fds_filter_value_match_mode {
-    FDS_FILTER_MATCH_MODE_NONE = 0,
-    FDS_FILTER_MATCH_MODE_FULL,
-    FDS_FILTER_MATCH_MODE_PARTIAL
+enum fds_filter_ast_node_type {
+    FDS_FANT_NONE = 0,
+    FDS_FANT_ADD,
+    FDS_FANT_MUL,
+    FDS_FANT_SUB,
+    FDS_FANT_DIV,
+    FDS_FANT_MOD,
+    FDS_FANT_UMINUS,
+    FDS_FANT_BITNOT,
+    FDS_FANT_BITAND,
+    FDS_FANT_BITOR,
+    FDS_FANT_BITXOR,
+    FDS_FANT_FLAGCMP,
+    FDS_FANT_NOT,
+    FDS_FANT_AND,
+    FDS_FANT_OR,
+    FDS_FANT_IMPLICIT,
+    FDS_FANT_EQ,
+    FDS_FANT_NE,
+    FDS_FANT_GT,
+    FDS_FANT_LT,
+    FDS_FANT_GE,
+    FDS_FANT_LE,
+    FDS_FANT_CONST,
+    FDS_FANT_IDENTIFIER,
+    FDS_FANT_LIST,
+    FDS_FANT_LIST_ITEM,
+    FDS_FANT_IN,
+    FDS_FANT_CONTAINS,
+    FDS_FANT_CAST,
+    FDS_FANT_ANY,
+    FDS_FANT_ROOT,
+    FDS_NUMBER_OF_FANT
 };
 
 enum fds_filter_identifier_type {
-    FDS_FILTER_IDENTIFIER_FIELD,
-    FDS_FILTER_IDENTIFIER_CONST
+    FDS_FIT_FIELD,
+    FDS_FIT_CONST
 };
 
 /**
@@ -122,7 +120,7 @@ struct fds_filter_location {
  * Node of an abstract syntax tree of the filter
  */
 struct fds_filter_ast_node {
-    enum fds_filter_ast_op op;
+    enum fds_filter_ast_node_type node_type;
 
     struct fds_filter_ast_node *parent;
 
@@ -133,12 +131,11 @@ struct fds_filter_ast_node {
     int identifier_id;
     enum fds_filter_identifier_type identifier_type;
 
-    bool is_constant;
     bool is_trie;
+    bool is_flags;
 
-    enum fds_filter_data_type type;
-    enum fds_filter_data_type subtype; // In case of list
-    enum fds_filter_value_match_mode match_mode;
+    enum fds_filter_data_type data_type;
+    enum fds_filter_data_type data_subtype; // In case of list
     union fds_filter_value value;
 
     struct fds_filter_location location;
@@ -147,9 +144,9 @@ struct fds_filter_ast_node {
 struct fds_filter_identifier_attributes {
     int id;
     enum fds_filter_identifier_type identifier_type;
-    enum fds_filter_data_type type;
-    enum fds_filter_data_type subtype;
-    enum fds_filter_value_match_mode match_mode;
+    enum fds_filter_data_type data_type;
+    enum fds_filter_data_type data_subtype;
+    bool is_flags;
 };
 
 typedef int (*fds_filter_lookup_callback_t)

@@ -12,7 +12,9 @@
 
 %{
 #include <arpa/inet.h>
+#define __USE_XOPEN /* for strptime */
 #include <time.h>
+#include <assert.h>
 #include "parser.h"
 
 #define YY_USER_ACTION \
@@ -46,7 +48,7 @@
 (\|\||or|OR)               { return OR; }
 (!|not|NOT)                { return NOT; }
 (exists|EXISTS)            { return EXISTS; }
-(in|IN)                    { return IN; }
+(inside|INSIDE)            { return INSIDE; }
 (contains|CONTAINS)        { return CONTAINS; }
 "+"                        { return PLUS; }
 "-"                        { return MINUS; }
@@ -60,7 +62,6 @@
 "["                        { return OBRACKET; }
 "]"                        { return CBRACKET; }
 ","                        { return COMMA; }
-"!"                        { return ASTERISK; }
 [ \t]                      { /* do nothing */ }
 
 
@@ -69,7 +70,7 @@
     int len = yyleng - 2; /* without the surrounding quotes */
     char *str = malloc(len + 1); /* + 1 for the terminating null byte */
     if (str == NULL) {
-        error_no_memory(filter);
+        no_memory_error(filter->error_list);
         return ERROR_ABORT;
     }
     str[len] = '\0';
@@ -80,7 +81,7 @@
             len -= 1;
         }
     }
-    yylval_param->ast.type = FDS_FILTER_TYPE_STR;
+    yylval_param->ast.data_type = FDS_FDT_STR;
     yylval_param->ast.value.string.length = len;
     yylval_param->ast.value.string.chars = str;
     return STR;
@@ -89,21 +90,21 @@
  /* int */
 [0-9]+ {
     char *unused;
-    yylval_param->ast.type = FDS_FILTER_TYPE_INT;
+    yylval_param->ast.data_type = FDS_FDT_INT;
     yylval_param->ast.value.int_ = strtoul(yytext, &unused, 10);
     return UINT;
 }
 
  /* float */
 [0-9]+\.[0-9]+ {
-    yylval_param->ast.type = FDS_FILTER_TYPE_FLOAT;
+    yylval_param->ast.data_type = FDS_FDT_FLOAT;
     yylval_param->ast.value.float_ = atof(yytext);
     return FLOAT;
 }
 
  /* MAC address */
-[0-9a-zA-Z]{2}(:[0-9a-zA-Z]{2}){5} {
-	yylval_param->ast.type = FDS_FILTER_TYPE_MAC_ADDRESS;
+[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5} {
+	yylval_param->ast.data_type = FDS_FDT_MAC_ADDRESS;
     sscanf(yytext, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
            &yylval_param->ast.value.mac_address[0],
            &yylval_param->ast.value.mac_address[1],
@@ -116,9 +117,9 @@
 
  /* IPv4 address */
 [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} {
-    yylval_param->ast.type = FDS_FILTER_TYPE_IP_ADDRESS;
+    yylval_param->ast.data_type = FDS_FDT_IP_ADDRESS;
 	yylval_param->ast.value.ip_address.version = 4;
-    yylval_param->ast.value.ip_address.mask = 32;
+    yylval_param->ast.value.ip_address.prefix_length = 32;
     if (inet_pton(AF_INET, yytext, yylval_param->ast.value.ip_address.bytes) != 1) {
         ERROR_("invalid IPv4 address");
         return 0;
@@ -126,13 +127,17 @@
     return IP_ADDRESS;
 }
 
- /* IPv4 address with mask */
+ /* IPv4 address with prefix_length */
 [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}[/][0-9]{1,2} {
-    yylval_param->ast.type = FDS_FILTER_TYPE_IP_ADDRESS;
+    yylval_param->ast.data_type = FDS_FDT_IP_ADDRESS;
 	yylval_param->ast.value.ip_address.version = 4;
     char *slash = strchr(yytext, '/');
     *slash = '\0';
-    yylval_param->ast.value.ip_address.mask = atoi(slash);
+    int prefix_length = atoi(slash + 1);
+    if (prefix_length > 32 || prefix_length < 1) {
+        ERROR_("invalid IPv4 address prefix length");
+    }
+    yylval_param->ast.value.ip_address.prefix_length = prefix_length;
     int rc = inet_pton(AF_INET, yytext, yylval_param->ast.value.ip_address.bytes);
     *slash = '/';
     if (rc != 1) {
@@ -144,9 +149,9 @@
 
  /* IPv6 address */
 [0-9a-fA-F]{0,4}(:[0-9a-fA-F]{0,4})+ {
-    yylval_param->ast.type = FDS_FILTER_TYPE_IP_ADDRESS;
+    yylval_param->ast.data_type = FDS_FDT_IP_ADDRESS;
 	yylval_param->ast.value.ip_address.version = 6;
-	yylval_param->ast.value.ip_address.mask = 128;
+	yylval_param->ast.value.ip_address.prefix_length = 128;
     if (inet_pton(AF_INET6, yytext, yylval_param->ast.value.ip_address.bytes) != 1) {
         ERROR_("invalid IPv6 address");
         return 0;
@@ -156,11 +161,15 @@
 
  /* IPv6 address with prefix */
 [0-9a-fA-F]{0,4}(:[0-9a-fA-F]{0,4})+[/][0-9]{1,3} {
-    yylval_param->ast.type = FDS_FILTER_TYPE_IP_ADDRESS;
+    yylval_param->ast.data_type = FDS_FDT_IP_ADDRESS;
 	yylval_param->ast.value.ip_address.version = 6;
     char *slash = strchr(yytext, '/');
     *slash = '\0';
-    yylval_param->ast.value.ip_address.mask = atoi(slash);
+    int prefix_length = atoi(slash + 1);
+    if (prefix_length > 128 || prefix_length < 1) {
+        ERROR_("invalid IPv6 address prefix length");
+    }
+    yylval_param->ast.value.ip_address.prefix_length = prefix_length;
     int rc = inet_pton(AF_INET6, yytext, yylval_param->ast.value.ip_address.bytes);
     *slash = '/';
     if (rc != 1) {
@@ -177,32 +186,33 @@
     strptime(yytext, "%Y-%m-%dT%H:%M:%S%z", &tm);
     /* TODO: error handling? */
     unsigned long ns = mktime(&tm) * 1000000000;
-    yylval_param->ast.type = FDS_FILTER_TYPE_UINT;
+    yylval_param->ast.data_type = FDS_FDT_UINT;
     yylval_param->ast.value.uint_  = ns;
 }
 
  /* Time delta */
-[0-9]+(\.[0-9]+)?(h|m|s|ms|us|ns)? {
+[0-9]+(\.[0-9]+)?(d|h|m|s|ms|us|ns) {
     char suffix[3] = { '\0' };
     double value;
     sscanf(yytext, "%lf%2s", &value, suffix);
-    if      (strcmp(suffix, "h" ) == 0) { value *= 3600000000000; }
-    else if (strcmp(suffix, "m" ) == 0) { value *= 60000000000;   }
-    else if (strcmp(suffix, "s" ) == 0) { value *= 1000000000;    }
-    else if (strcmp(suffix, "ms") == 0) { value *= 1000000;       }
-    else if (strcmp(suffix, "us") == 0) { value *= 1000;          }
-    else if (strcmp(suffix, "ns") == 0) { value *= 1;             }
-    else                                { value *= 1000000000;    } /* seconds by default */
-    yylval_param->ast.type = FDS_FILTER_TYPE_UINT;
+    if (strcmp(suffix, "d" ) == 0)      { value *= 86400000000000; }
+    else if (strcmp(suffix, "h" ) == 0) { value *= 3600000000000;  }
+    else if (strcmp(suffix, "m" ) == 0) { value *= 60000000000;    }
+    else if (strcmp(suffix, "s" ) == 0) { value *= 1000000000;     }
+    else if (strcmp(suffix, "ms") == 0) { value *= 1000000;        }
+    else if (strcmp(suffix, "us") == 0) { value *= 1000;           }
+    else if (strcmp(suffix, "ns") == 0) { value *= 1;              }
+    else                                assert("!unhandled suffix");
+    yylval_param->ast.data_type = FDS_FDT_UINT;
     yylval_param->ast.value.uint_ = value;
     return TIMEDELTA;
 }
 
  /* !!! problem v gramatice, mozny prefix in/out a zaroven operator in !!! */
-((src|dst|ingress|egress)[ ]+)?[a-zA-Z][a-zA-Z0-9@:\-\.]* {
+((src|dst|ingress|egress|in|out)[ ]+)?[a-zA-Z][a-zA-Z0-9@:\-\.]* {
     yylval_param->ast.identifier_name = strdup(yytext);
     if (yylval_param->ast.identifier_name == NULL) {
-        error_no_memory(filter);
+        no_memory_error(filter->error_list);
         return ERROR_ABORT;
     }
     return IDENTIFIER;

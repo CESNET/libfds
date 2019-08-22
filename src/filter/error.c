@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <assert.h>
-#include "filter.h"
+#include "error.h"
+#include "debug.h"
 
 static char *
 str_vprintf(char *str, const char *format, va_list args)
@@ -22,233 +23,98 @@ str_vprintf(char *str, const char *format, va_list args)
     return new_str;
 }
 
-#if 0
-static char *
-str_printf(char *str, const char *format, ...)
+static const struct fds_filter_location NO_LOCATION = { 0, 0, 0, 0 };
+static const struct error OUT_OF_MEMORY_ERROR = { "Out of memory!", { 0, 0, 0, 0 } };
+
+struct error_list *
+create_error_list()
 {
-    va_list args;
-    va_start(args, format);
-    char *new_str = str_vprintf(str, format, args);
-    va_end(args);
-    return new_str;
-}
-#endif
-
-
-static const struct error OUT_OF_MEMORY_ERROR = { "out of memory", { -1, -1, -1, -1 } };
-
-void
-error_init(struct fds_filter *filter)
-{
-    filter->error_count = 0;
-    filter->errors = NULL;
+    struct error_list *error_list = calloc(1, sizeof(struct error_list));
+    if (error_list == NULL) {
+        return NULL;
+    }
+    return error_list;
 }
 
-void
-error_location_message(struct fds_filter *filter, struct fds_filter_location location, const char *format, ...)
+static void
+destroy_errors(struct error_list *error_list)
 {
-    struct error *new_errors = realloc(filter->errors, (filter->error_count + 1) * sizeof(*new_errors));
+    if (error_list->errors != &OUT_OF_MEMORY_ERROR) {
+        for (int i = 0; i < error_list->count; i++) {
+            free(error_list->errors[i].message);
+        }
+        free(error_list->errors);
+    }
+}
+
+void
+destroy_error_list(struct error_list *error_list)
+{
+    destroy_errors(error_list);
+    free(error_list);
+}
+
+static struct error *
+alloc_error_list_entry(struct error_list *error_list)
+{
+    int new_count = error_list->count + 1;
+    struct error *new_errors = realloc(error_list->errors, sizeof(struct error) * new_count);
     if (new_errors == NULL) {
-        error_no_memory(filter);
+        no_memory_error(error_list);
+        return NULL;
+    }
+    error_list->count = new_count;
+    error_list->errors = new_errors;
+    return &error_list->errors[error_list->count - 1];
+}
+
+void
+add_error_location_message(struct error_list *error_list, struct fds_filter_location location, const char *format, ...)
+{
+    struct error *error = alloc_error_list_entry(error_list);
+    if (error == NULL) {
         return;
     }
-    filter->error_count++;
-    filter->errors = new_errors;
-    struct error *error = &filter->errors[filter->error_count - 1];
     error->location = location;
 
     va_list args;
     va_start(args, format);
     error->message = str_vprintf(NULL, format, args);
     if (error->message == NULL) {
-        error_no_memory(filter);
+        no_memory_error(error_list);
         return;
     }
     va_end(args);
 }
 
 void
-error_message(struct fds_filter *filter, const char *format, ...)
+add_error_message(struct error_list *error_list, const char *format, ...)
 {
-    struct error *new_errors = realloc(filter->errors, (filter->error_count + 1) * sizeof(new_errors));
-    if (new_errors == NULL) {
-        error_no_memory(filter);
+
+    struct error *error = alloc_error_list_entry(error_list);
+    if (error == NULL) {
         return;
     }
-    filter->error_count++;
-    filter->errors = new_errors;
-    struct error *error = &filter->errors[filter->error_count - 1];
-    error->location = (struct fds_filter_location) { -1, -1, -1, -1 };
+    error->location = NO_LOCATION;
 
     va_list args;
     va_start(args, format);
     error->message = str_vprintf(NULL, format, args);
     if (error->message == NULL) {
-        error_no_memory(filter);
+        no_memory_error(error_list);
         return;
     }
     va_end(args);
 }
 
 void
-error_no_memory(struct fds_filter *filter)
+no_memory_error(struct error_list *error_list)
 {
-    error_destroy(filter);
-    filter->error_count = 1;
-    filter->errors = (struct error *)&OUT_OF_MEMORY_ERROR;
+    destroy_errors(error_list);
+    error_list->count = 1;
+    error_list->errors = (struct error *)&OUT_OF_MEMORY_ERROR;
 }
 
-void
-error_destroy(struct fds_filter *filter)
-{
-    if (filter->errors != &OUT_OF_MEMORY_ERROR) {
-        for (int i = 0; i < filter->error_count; i++) {
-            free(filter->errors[i].message);
-        }
-        free(filter->errors);
-    }
-    filter->errors = NULL;
-    filter->error_count = 0;
-}
 
-const char *
-type_to_str(int type)
-{
-    switch (type) {
-    case FDS_FILTER_TYPE_NONE:        return "NONE";
-    case FDS_FILTER_TYPE_STR:         return "STR";
-    case FDS_FILTER_TYPE_UINT:        return "UINT";
-    case FDS_FILTER_TYPE_INT:         return "INT";
-    case FDS_FILTER_TYPE_FLOAT:       return "FLOAT";
-    case FDS_FILTER_TYPE_BOOL:        return "BOOL";
-    case FDS_FILTER_TYPE_IP_ADDRESS:  return "IP_ADDRESS";
-    case FDS_FILTER_TYPE_MAC_ADDRESS: return "MAC_ADDRESS";
-    case FDS_FILTER_TYPE_LIST:        return "LIST";
-    default:                          assert(0);
-    }
-}
 
-const char *
-ast_op_to_str(int op)
-{
-    switch (op) {
-    case FDS_FILTER_AST_NONE:       return "NONE";
-    case FDS_FILTER_AST_ADD:        return "ADD";
-    case FDS_FILTER_AST_MUL:        return "MUL";
-    case FDS_FILTER_AST_SUB:        return "SUB";
-    case FDS_FILTER_AST_DIV:        return "DIV";
-    case FDS_FILTER_AST_MOD:        return "MOD";
-    case FDS_FILTER_AST_UMINUS:     return "UMINUS";
-    case FDS_FILTER_AST_BITNOT:     return "BITNOT";
-    case FDS_FILTER_AST_BITAND:     return "BITAND";
-    case FDS_FILTER_AST_BITOR:      return "BITOR";
-    case FDS_FILTER_AST_BITXOR:     return "BITXOR";
-    case FDS_FILTER_AST_NOT:        return "NOT";
-    case FDS_FILTER_AST_AND:        return "AND";
-    case FDS_FILTER_AST_OR:         return "OR";
-    case FDS_FILTER_AST_EQ:         return "EQ";
-    case FDS_FILTER_AST_NE:         return "NE";
-    case FDS_FILTER_AST_GT:         return "GT";
-    case FDS_FILTER_AST_LT:         return "LT";
-    case FDS_FILTER_AST_GE:         return "GE";
-    case FDS_FILTER_AST_LE:         return "LE";
-    case FDS_FILTER_AST_CONST:      return "CONST";
-    case FDS_FILTER_AST_IDENTIFIER: return "IDENTIFIER";
-    case FDS_FILTER_AST_LIST:       return "LIST";
-    case FDS_FILTER_AST_LIST_ITEM:  return "LIST_ITEM";
-    case FDS_FILTER_AST_IN:         return "IN";
-    case FDS_FILTER_AST_CONTAINS:   return "CONTAINS";
-    case FDS_FILTER_AST_CAST:       return "CAST";
-    case FDS_FILTER_AST_ANY:        return "ANY";
-    case FDS_FILTER_AST_ROOT:       return "ROOT";
-    default:                        assert(0);
-    }
-}
 
-void
-ast_print(FILE *outstream, struct fds_filter_ast_node *node)
-{
-    if (node == NULL) {
-        return;
-    }
-    static int level = 0;
-    for (int i = 0; i < level; i++) {
-        fprintf(outstream, "    ");
-    }
-	fprintf(outstream, "(%s, ", ast_op_to_str(node->op));
-    if (node->op == FDS_FILTER_AST_IDENTIFIER) {
-        fprintf(outstream, "name: %s, id: %d, ", node->identifier_name, node->identifier_id);
-	}
-	fprintf(outstream, "type: %s, ", type_to_str(node->type));
-    if (node->subtype != FDS_FILTER_TYPE_NONE) {
-	    fprintf(outstream, "subtype: %s, ", type_to_str(node->subtype));
-    }
-    if (node->is_trie) {
-        fprintf(outstream, "is trie, ");
-    }
-	switch (node->type) {
-    case FDS_FILTER_AST_NONE:
-        fprintf(outstream, "<NONE>");
-        break;
-	case FDS_FILTER_TYPE_BOOL:
-		fprintf(outstream, "%s", node->value.int_ != 0 ? "true" : "false");
-		break;
-	case FDS_FILTER_TYPE_STR:
-		fprintf(outstream, "%*s", node->value.string.length, node->value.string.chars);
-		break;
-	case FDS_FILTER_TYPE_INT:
-		fprintf(outstream, "%li", node->value.int_);
-		break;
-	case FDS_FILTER_TYPE_UINT:
-		fprintf(outstream, "%lu", node->value.uint_);
-		break;
-    case FDS_FILTER_TYPE_FLOAT:
-		fprintf(outstream, "%lf", node->value.float_);
-		break;
-	case FDS_FILTER_TYPE_IP_ADDRESS:
-		if (node->value.ip_address.version == 4) {
-			fprintf(outstream, "%d.%d.%d.%d",
-					node->value.ip_address.bytes[0],
-					node->value.ip_address.bytes[1],
-					node->value.ip_address.bytes[2],
-					node->value.ip_address.bytes[3]);
-		} else {
-			fprintf(outstream, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
-					node->value.ip_address.bytes[0],
-					node->value.ip_address.bytes[1],
-					node->value.ip_address.bytes[2],
-					node->value.ip_address.bytes[3],
-					node->value.ip_address.bytes[4],
-					node->value.ip_address.bytes[5],
-					node->value.ip_address.bytes[6],
-					node->value.ip_address.bytes[7],
-					node->value.ip_address.bytes[8],
-					node->value.ip_address.bytes[9],
-					node->value.ip_address.bytes[10],
-					node->value.ip_address.bytes[11],
-					node->value.ip_address.bytes[12],
-					node->value.ip_address.bytes[13],
-					node->value.ip_address.bytes[14],
-					node->value.ip_address.bytes[15]);
-		}
-		break;
-	case FDS_FILTER_TYPE_MAC_ADDRESS:
-		fprintf(outstream, "%02x:%02x:%02x:%02x:%02x:%02x",
-				node->value.mac_address[0],
-				node->value.mac_address[1],
-				node->value.mac_address[2],
-				node->value.mac_address[3],
-				node->value.mac_address[4],
-				node->value.mac_address[5]);
-		break;
-    case FDS_FILTER_TYPE_LIST:
-        fprintf(outstream, "<UNIMPLEMENTED>");
-        break;
-	}
-	fprintf(outstream, ")\n");
-    level++;
-    ast_print(outstream, node->left);
-    ast_print(outstream, node->right);
-
-    level--;
-}

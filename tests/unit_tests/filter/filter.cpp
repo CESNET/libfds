@@ -4,6 +4,82 @@
 #include <string>
 #include <algorithm>
 
+struct Value {
+    enum fds_filter_data_type type;
+    enum fds_filter_data_type subtype;
+    union fds_filter_value value;
+
+    void set_uint(uint32_t u) {
+        type = FDS_FDT_UINT;
+        subtype = FDS_FDT_NONE;
+        value.uint_ = u;
+    }
+
+    void set_int(int32_t i) {
+        type = FDS_FDT_INT;
+        subtype = FDS_FDT_NONE;
+        value.int_ = i;
+    }
+
+    void set_str(const char *str, int len) {
+        type = FDS_FDT_STR;
+        subtype = FDS_FDT_NONE;
+        value.string.chars = new char[len];
+        std::memcpy(value.string.chars, str, len);
+        value.string.length = len;
+    }
+
+    void set_ip_address(int version, uint8_t *address, int bit_length) {
+        std::memset(&value, sizeof(value), 0);
+        value.ip_address.version = version;
+        value.ip_address.prefix_length = bit_length;
+        std::memcpy(value.ip_address.bytes, address, (bit_length + 7) / 8);
+    }
+
+    void set_mac_address(uint8_t *address) {
+        std::memcpy(value.mac_address, address, 6);
+    }
+
+    void set_list(std::vector<Value> list) {
+        type = FDS_FDT_LIST;
+        subtype = FDS_FDT_
+        this->list.items = new union fds_filter_value[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+
+        }
+        this->list.items.length = list.size();
+    }
+
+    Value(const Value &other) {
+        type = other->data_type;
+        subtype = other.subtype;
+        if (type == FDS_FDT_STR) {
+            set_str(other.)
+        } else if (type == FDS_FDT_LIST) {
+            value.list.items = new union fds_filter_value[other.list.length];
+            for (int i = 0; i < value.list.length)
+            value.list.length = other.value.list.length;
+        } else {
+            value = other.value;
+        }
+    }
+
+    Value(const Value &&other) {
+
+    }
+
+    Value(enum fds_filter_data_type type_, uint32_t u) {
+        assert(type_ == FDS_FDT_UINT);
+        type = FDS_FDT_UINT;
+        value.uint_ = u;
+    }
+
+    Value(enum fds_filter_data_type type_, int32_t i) {
+        type = type_;
+        value.uint_ = u;
+    }
+}
+
 int main(int argc, char **argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
@@ -13,7 +89,7 @@ int main(int argc, char **argv)
 struct Filter {
     struct identifier_data {
         int id = -1;
-        fds_filter_data_type type = FDS_FILTER_TYPE_NONE;
+        fds_filter_data_type type = FDS_FDT_NONE;
         bool is_constant;
         std::vector<fds_filter_value> values;
     };
@@ -32,8 +108,8 @@ struct Filter {
         }
         identifier_data &data = filter->identifiers[name];
         attributes->id = data.id;
-        attributes->type = data.type;
-        attributes->identifier_type = data.is_constant ? FDS_FILTER_IDENTIFIER_CONST : FDS_FILTER_IDENTIFIER_FIELD;
+        attributes->data_type = data->data_type;
+        attributes->identifier_type = data.is_constant ? FDS_FIT_CONST : FDS_FIT_FIELD;
         return FDS_FILTER_OK;
     }
 
@@ -91,7 +167,7 @@ struct Filter {
         identifier_data data;
         identifier_count++;
         data.id = identifier_count;
-        data.type = type;
+        data->data_type = type;
         data.values = values;
         data.is_constant = is_constant;
         identifiers[name] = data;
@@ -130,30 +206,30 @@ TEST(Filter, ip_multiple_values_1)
 {
     Filter filter;
     filter.set_expression("ip 127.0.0.1");
-    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 85, 123, 45, 6 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 127, 0, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 192, 168, 0, 1 } } },
+    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } },
     });
     EXPECT_TRUE(filter.compile_and_evaluate());
 
-    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 127, 0, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 85, 123, 45, 6 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 192, 168, 0, 1 } } },
+    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } },
     });
     EXPECT_TRUE(filter.compile_and_evaluate());
 
-    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 85, 123, 45, 6 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 192, 168, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 127, 0, 0, 1 } } },
+    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } },
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
     });
     EXPECT_TRUE(filter.compile_and_evaluate());
 
-    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 85, 123, 45, 6 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 192, 168, 0, 1 } } }
+    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } }
     });
     EXPECT_FALSE(filter.compile_and_evaluate());
 }
@@ -161,10 +237,10 @@ TEST(Filter, ip_multiple_values_1)
 TEST(Filter, ip_multiple_values_2)
 {
     Filter filter;
-    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 85, 123, 45, 6 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 127, 0, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 192, 168, 0, 1 } } },
+    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } },
     });
     filter.set_expression("not ip 127.0.0.1");
     EXPECT_TRUE(filter.compile());
@@ -180,12 +256,12 @@ TEST(Filter, ip_multiple_values_2)
 TEST(Filter, ip_port_multiple_values)
 {
     Filter filter;
-    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 192, 168, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 127, 0, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 85, 123, 45, 6 } } },
+    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } },
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
     });
-    filter.set_identifier("port", FDS_FILTER_TYPE_UINT, false, {
+    filter.set_identifier("port", FDS_FDT_UINT, false, {
         (fds_filter_value) { .uint_ = 80 },
         (fds_filter_value) { .uint_ = 443 },
         (fds_filter_value) { .uint_ = 22 }
@@ -219,8 +295,8 @@ TEST(Filter, ip_port_multiple_values)
 TEST(Filter, ip_port_undefined_field)
 {
     Filter filter;
-    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, { });
-    filter.set_identifier("port", FDS_FILTER_TYPE_UINT, false, {
+    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, { });
+    filter.set_identifier("port", FDS_FDT_UINT, false, {
         (fds_filter_value) { .uint_ = 80 },
         (fds_filter_value) { .uint_ = 443 },
         (fds_filter_value) { .uint_ = 22 }
@@ -250,11 +326,11 @@ TEST(Filter, ip_port_undefined_field)
 TEST(Filter, arithmetic)
 {
     Filter filter;
-    filter.set_identifier("a", FDS_FILTER_TYPE_UINT, true, // Const
+    filter.set_identifier("a", FDS_FDT_UINT, true, // Const
                           { (fds_filter_value) { .uint_ = 10 } });
-    filter.set_identifier("b", FDS_FILTER_TYPE_UINT, true, // Const
+    filter.set_identifier("b", FDS_FDT_UINT, true, // Const
                           { (fds_filter_value) { .uint_ = 20 } });
-    filter.set_identifier("c", FDS_FILTER_TYPE_UINT, false, // Not const
+    filter.set_identifier("c", FDS_FDT_UINT, false, // Not const
                           { (fds_filter_value) { .uint_ = 30 } });
 
     filter.set_expression("10 + 20 == 30");
@@ -279,11 +355,11 @@ TEST(Filter, arithmetic)
 TEST(Filter, list)
 {
     Filter filter;
-    filter.set_identifier("a", FDS_FILTER_TYPE_UINT, true, // Const
+    filter.set_identifier("a", FDS_FDT_UINT, true, // Const
                           { (fds_filter_value) { .uint_ = 10 } });
-    filter.set_identifier("b", FDS_FILTER_TYPE_UINT, true, // Const
+    filter.set_identifier("b", FDS_FDT_UINT, true, // Const
                           { (fds_filter_value) { .uint_ = 20 } });
-    filter.set_identifier("c", FDS_FILTER_TYPE_UINT, false, // Not const
+    filter.set_identifier("c", FDS_FDT_UINT, false, // Not const
                           { (fds_filter_value) { .uint_ = 30 } });
 
     filter.set_expression("10 in [10, 20, 30]");
@@ -312,8 +388,8 @@ TEST(Filter, list)
 TEST(Filter, identifiers_with_space)
 {
     Filter filter;
-    filter.set_identifier("src ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 32, .bytes = { 127, 0, 0, 1 } } },
+    filter.set_identifier("src ip", FDS_FDT_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
     });
     filter.set_expression("src ip 127.0.0.1");
     EXPECT_TRUE(filter.compile());
@@ -324,11 +400,11 @@ TEST(Filter, identifiers_with_space)
     EXPECT_TRUE(filter.evaluate());
 }
 
-TEST(Filter, ipv4_address_with_mask)
+TEST(Filter, ipv4_address_with_prefix_length)
 {
     Filter filter;
-    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .mask = 24, .bytes = { 192, 168, 0, 1 } } },
+    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 24, .bytes = { 192, 168, 0, 1 } } },
     });
     filter.set_expression("ip 192.168.0.0/24");
     EXPECT_TRUE(filter.compile());
@@ -349,7 +425,7 @@ TEST(Filter, ipv6_address_shortened)
     EXPECT_TRUE(filter.compile());
 }
 
-TEST(Filter, ipv6_address_with_mask)
+TEST(Filter, ipv6_address_with_prefix_length)
 {
     Filter filter;
     filter.set_expression("1:2:3:4::/64");
@@ -361,10 +437,10 @@ TEST(Filter, ipv6_address_with_mask)
 TEST(Filter, ipv6_address_basic)
 {
     Filter filter;
-    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0xaa, 0xbb, 0xcc, 0xdd, 0x00 } } },
-        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0x11, 0x22, 0x33, 0x44, 0x55 } } },
-        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0xff, 0xff, 0xff, 0xff, 0xff } } },
+    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0xaa, 0xbb, 0xcc, 0xdd, 0x00 } } },
+        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0x11, 0x22, 0x33, 0x44, 0x55 } } },
+        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0xff, 0xff, 0xff, 0xff, 0xff } } },
     });
 
     filter.set_expression("ip aabb:ccdd::");
@@ -380,10 +456,10 @@ TEST(Filter, ip_address_list_trie_optimization)
     filter.set_expression("127.0.0.1 in [127.0.0.1, 192.168.1.25, 85.132.197.60, 1.1.1.1, 8.8.8.8, 4.4.4.4, 0011:2233:4455::]");
     EXPECT_TRUE(filter.compile_and_evaluate());
 
-    filter.set_identifier("ip", FDS_FILTER_TYPE_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0xaa, 0xbb, 0xcc, 0xdd, 0x00 } } },
-        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0x11, 0x22, 0x33, 0x44, 0x55 } } },
-        (fds_filter_value) { .ip_address = { .version = 6, .mask = 128, .bytes = { 0xff, 0xff, 0xff, 0xff, 0xff } } },
+    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
+        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0xaa, 0xbb, 0xcc, 0xdd, 0x00 } } },
+        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0x11, 0x22, 0x33, 0x44, 0x55 } } },
+        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0xff, 0xff, 0xff, 0xff, 0xff } } },
     });
 
     filter.set_expression("ip in [127.0.0.1, 192.168.1.25, 85.132.197.60, 1.1.1.1, 8.8.8.8, 4.4.4.4, 0011:2233:4455::]");

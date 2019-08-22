@@ -4,44 +4,7 @@
 #include <stdbool.h>
 #include <setjmp.h>
 #include <libfds.h>
-
-#ifndef NDEBUG
-#define pdebug(fmt, ...) \
-        do { fprintf(stderr, "%s:%d:%s(): " fmt "\n", __FILE__, __LINE__, __func__,##__VA_ARGS__); } while (0)
-#else
-#define pdebug(fmt, ...) /* nothing */
-#endif
-
-#define CHECK_ERROR(x) \
-    {  \
-        int return_code = x; \
-        if (return_code != FDS_FILTER_OK) { \
-            return return_code; \
-        } \
-    }
-
-struct error {
-    char *message;
-    struct fds_filter_location location;
-};
-
-struct eval_node;
-
-typedef void (*eval_func_t)(struct fds_filter *filter, struct eval_node *node);
-
-struct eval_node {
-    eval_func_t evaluate;
-    struct eval_node *left;
-    struct eval_node *right;
-    bool is_defined;
-    bool is_more;
-    bool is_trie;
-    bool is_alloc;
-    enum fds_filter_data_type type;
-    enum fds_filter_data_type subtype;
-    int identifier_id;
-    union fds_filter_value value;
-};
+#include "error.h"
 
 struct fds_filter {
     struct fds_filter_ast_node *ast;
@@ -56,51 +19,8 @@ struct fds_filter {
     struct eval_node *eval_tree;
     jmp_buf eval_jmp_buf;
 
-    int error_count;
-    struct error *errors;
+    struct error_list *error_list;
 };
-
-void
-error_message(struct fds_filter *filter, const char *format, ...);
-
-void
-error_location_message(struct fds_filter *filter, struct fds_filter_location location, const char *format, ...);
-
-void
-error_no_memory(struct fds_filter *filter);
-
-void
-error_destroy(struct fds_filter *filter);
-
-const char *
-type_to_str(int type);
-
-const char *
-ast_op_to_str(int op);
-
-void
-ast_print(FILE *outstream, struct fds_filter_ast_node *node);
-
-struct fds_filter_ast_node *
-ast_node_create();
-
-void
-ast_destroy(struct fds_filter_ast_node *node);
-
-int
-prepare_ast_nodes(struct fds_filter *filter, struct fds_filter_ast_node **node);
-
-struct eval_node *
-eval_tree_generate(struct fds_filter *filter, struct fds_filter_ast_node *ast_node);
-
-int
-eval_tree_evaluate(struct fds_filter *filter, struct eval_node *eval_tree);
-
-void
-eval_tree_print(FILE *outstream, struct eval_node *node);
-
-void
-eval_tree_destroy(struct eval_node *eval_tree);
 
 int
 preprocess(struct fds_filter *filter);

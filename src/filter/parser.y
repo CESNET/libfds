@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "parser.h"
 #include "scanner.h"
+#include "ast.h"
 
 extern int yylex();
 extern int yyparse();
@@ -29,11 +30,11 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
 
 #define AST_NODE_(result, op_, left_, right_, location_) \
     struct fds_filter_ast_node *node; \
-    if ((node = ast_node_create()) == NULL) { \
-        error_no_memory(filter); \
+    if ((node = create_ast_node()) == NULL) { \
+        no_memory_error(filter->error_list); \
         YYABORT; \
     } \
-    node->op = op_; \
+    node->node_type = op_; \
     node->left = left_; \
     node->right = right_; \
     if (left_ != NULL) { \
@@ -50,12 +51,13 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
 
 #define AST_CONST_(result, node_, location_) \
     struct fds_filter_ast_node *node; \
-    if ((node = ast_node_create()) == NULL) { \
-        error_no_memory(filter); \
+    if ((node = create_ast_node()) == NULL) { \
+        no_memory_error(filter->error_list); \
         YYABORT; \
     } \
-    node->op = FDS_FILTER_AST_CONST; \
-    node->type = node_.type; \
+    node->node_type = FDS_FANT_CONST; \
+    node->data_type = node_.data_type; \
+    node->data_subtype = node_.data_subtype; \
     node->value = node_.value; \
     node->location.first_line = location_.first_line; \
     node->location.last_line = location_.last_line; \
@@ -66,11 +68,11 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
 
 #define AST_IDENTIFIER_(result, node_, location_) \
     struct fds_filter_ast_node *node; \
-    if ((node = ast_node_create()) == NULL) { \
-        error_no_memory(filter); \
+    if ((node = create_ast_node()) == NULL) { \
+        no_memory_error(filter->error_list); \
         YYABORT; \
     } \
-    node->op = FDS_FILTER_AST_IDENTIFIER; \
+    node->node_type = FDS_FANT_IDENTIFIER; \
     node->identifier_name = node_.identifier_name; \
     node->location.first_line = location_.first_line; \
     node->location.last_line = location_.last_line; \
@@ -91,7 +93,7 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
 
 %token AND "and" OR "or" NOT "not"
 %token EQ "==" NE "!=" GT ">" LT "<" GE ">=" LE "<="
-%token EXISTS "exists" CONTAINS "contains" IN "in"
+%token EXISTS "exists" CONTAINS "contains" INSIDE "inside"
 %token OPAREN "(" CPAREN ")"
 %token OBRACKET "[" CBRACKET "]"
 %token PLUS "+" MINUS "-" UMINUS STAR "*" SLASH "/" PERCENT "%"
@@ -112,7 +114,7 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
 %precedence "not"
 /*
 %destructor {
-    if ($$.type == FDS_FILTER_DATATYPE_STR) {
+    if ($$->data_type == FDS_FILTER_DATATYPE_STR) {
         free($$.value.str);
     }
 } <data>
@@ -124,45 +126,45 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
 
 %%
 
-filter: condition { AST_NODE_(filter->ast, FDS_FILTER_AST_ROOT, $1, NULL, @$) }
+filter: condition { AST_NODE_(filter->ast, FDS_FANT_ROOT, $1, NULL, @$) }
 
-condition: condition "and" condition  { AST_NODE_($$, FDS_FILTER_AST_AND, $1, $3, @$) }
-         | condition "or" condition  { AST_NODE_($$, FDS_FILTER_AST_OR, $1, $3, @$) }
-         | "not" condition { AST_NODE_($$, FDS_FILTER_AST_NOT, $2, NULL, @$) }
+condition: condition "and" condition  { AST_NODE_($$, FDS_FANT_AND, $1, $3, @$) }
+         | condition "or" condition  { AST_NODE_($$, FDS_FANT_OR, $1, $3, @$) }
+         | "not" condition { AST_NODE_($$, FDS_FANT_NOT, $2, NULL, @$) }
          | "(" condition ")" { $$ = $2; }
          | comparsion { $$ = $1; }
          | error { $$ = NULL; }
 
-comparsion: expr "==" expr { AST_NODE_($$, FDS_FILTER_AST_EQ, $1, $3, @$) }
-          | expr "!=" expr { AST_NODE_($$, FDS_FILTER_AST_NE, $1, $3, @$) }
-          | expr "<" expr { AST_NODE_($$, FDS_FILTER_AST_LT, $1, $3, @$) }
-          | expr ">" expr { AST_NODE_($$, FDS_FILTER_AST_GT, $1, $3, @$) }
-          | expr "<=" expr { AST_NODE_($$, FDS_FILTER_AST_LE, $1, $3, @$) }
-          | expr ">=" expr { AST_NODE_($$, FDS_FILTER_AST_GE, $1, $3, @$) }
-          | expr "in" expr { AST_NODE_($$, FDS_FILTER_AST_IN, $1, $3, @$) }
-          | expr "contains" expr { AST_NODE_($$, FDS_FILTER_AST_CONTAINS, $1, $3, @$) }
-          | expr expr { AST_NODE_($$, FDS_FILTER_AST_EQ, $1, $2, @$) }
+comparsion: expr "==" expr { AST_NODE_($$, FDS_FANT_EQ, $1, $3, @$) }
+          | expr "!=" expr { AST_NODE_($$, FDS_FANT_NE, $1, $3, @$) }
+          | expr "<" expr { AST_NODE_($$, FDS_FANT_LT, $1, $3, @$) }
+          | expr ">" expr { AST_NODE_($$, FDS_FANT_GT, $1, $3, @$) }
+          | expr "<=" expr { AST_NODE_($$, FDS_FANT_LE, $1, $3, @$) }
+          | expr ">=" expr { AST_NODE_($$, FDS_FANT_GE, $1, $3, @$) }
+          | expr "inside" expr { AST_NODE_($$, FDS_FANT_IN, $1, $3, @$) }
+          | expr "contains" expr { AST_NODE_($$, FDS_FANT_CONTAINS, $1, $3, @$) }
+          | expr expr { AST_NODE_($$, FDS_FANT_IMPLICIT, $1, $2, @$) }
           | expr { $$ = $1; }
 
-expr: expr "|" expr { AST_NODE_($$, FDS_FILTER_AST_BITOR, $1, $3, @$) }
-    | expr "&" expr { AST_NODE_($$, FDS_FILTER_AST_BITAND, $1, $3, @$) }
-    | expr "^" expr { AST_NODE_($$, FDS_FILTER_AST_BITXOR, $1, $3, @$) }
-    | "~" expr { AST_NODE_($$, FDS_FILTER_AST_BITNOT, $2, NULL, @$) }
-    | expr "+" expr { AST_NODE_($$, FDS_FILTER_AST_ADD, $1, $3, @$) }
-    | expr "-" expr { AST_NODE_($$, FDS_FILTER_AST_SUB, $1, $3, @$) }
-    | expr "*" expr { AST_NODE_($$, FDS_FILTER_AST_MUL, $1, $3, @$) }
-    | expr "/" expr { AST_NODE_($$, FDS_FILTER_AST_DIV, $1, $3, @$) }
-    | expr "%" expr { AST_NODE_($$, FDS_FILTER_AST_MOD, $1, $3, @$) }
-    | "-" %prec UMINUS expr { AST_NODE_($$, FDS_FILTER_AST_UMINUS, $2, NULL, @$) }
+expr: expr "|" expr { AST_NODE_($$, FDS_FANT_BITOR, $1, $3, @$) }
+    | expr "&" expr { AST_NODE_($$, FDS_FANT_BITAND, $1, $3, @$) }
+    | expr "^" expr { AST_NODE_($$, FDS_FANT_BITXOR, $1, $3, @$) }
+    | "~" expr { AST_NODE_($$, FDS_FANT_BITNOT, $2, NULL, @$) }
+    | expr "+" expr { AST_NODE_($$, FDS_FANT_ADD, $1, $3, @$) }
+    | expr "-" expr { AST_NODE_($$, FDS_FANT_SUB, $1, $3, @$) }
+    | expr "*" expr { AST_NODE_($$, FDS_FANT_MUL, $1, $3, @$) }
+    | expr "/" expr { AST_NODE_($$, FDS_FANT_DIV, $1, $3, @$) }
+    | expr "%" expr { AST_NODE_($$, FDS_FANT_MOD, $1, $3, @$) }
+    | "-" %prec UMINUS expr { AST_NODE_($$, FDS_FANT_UMINUS, $2, NULL, @$) }
     | "(" expr ")" { $$ = $2; }
     | term { $$ = $1; }
     | list { $$ = $1; }
 
-list_items: list_items "," expr { AST_NODE_($$, FDS_FILTER_AST_LIST_ITEM, $1, $3, @$) }
-          | expr { AST_NODE_($$, FDS_FILTER_AST_LIST_ITEM, NULL, $1, @$) }
+list_items: list_items "," expr { AST_NODE_($$, FDS_FANT_LIST_ITEM, $1, $3, @$) }
+          | expr { AST_NODE_($$, FDS_FANT_LIST_ITEM, NULL, $1, @$) }
 
-list: "[" "]" { AST_NODE_($$, FDS_FILTER_AST_LIST, NULL, NULL, @$) }
-    | "[" list_items "]" { AST_NODE_($$, FDS_FILTER_AST_LIST, $2, NULL, @$) }
+list: "[" "]" { AST_NODE_($$, FDS_FANT_LIST, NULL, NULL, @$) }
+    | "[" list_items "]" { AST_NODE_($$, FDS_FANT_LIST, $2, NULL, @$) }
 
 term: UINT { AST_CONST_($$, $1, @$) }
     | INT { AST_CONST_($$, $1, @$) }
@@ -186,5 +188,5 @@ void yyerror(YYLTYPE *location, struct fds_filter *filter, void *scanner, char *
     location_.last_line = location->last_line;
     location_.first_column = location->first_column;
     location_.last_column = location->last_column;
-    error_location_message(filter, location_, "%s", error_message);
+    add_error_location_message(filter->error_list, location_, "%s", error_message);
 }

@@ -4,6 +4,51 @@
 #include "filter.h"
 #include "ast.h"
 
+static void
+nullify_freeable_value(struct fds_filter_ast_node *node)
+{
+    node->value.pointer = NULL;
+    // TODO: action based on type?
+}
+
+static void
+remove_freeable_value_references(struct fds_filter_ast_node *parent_node, struct fds_filter_ast_node *node)
+{
+    if (node == NULL) {
+        return;
+    }
+
+    // TODO: cleanup
+    if (is_list_of_type(parent_node, FDS_FDT_STR)) {
+        if (node->data_type == FDS_FDT_STR) {
+            for (int i = 0; i < parent_node->value.list.length; i++) {
+                if (parent_node->value.list.items[i].string.chars == node->value.string.chars) {
+                    node->value.string.chars = NULL;
+                    break;
+                }
+            }
+        }
+
+    } else if (is_list_of_type(parent_node, FDS_FDT_IP_ADDRESS) && parent_node->is_trie) {
+        if (node->is_trie && parent_node->value.pointer == node->value.pointer) {
+            node->value.pointer == NULL;
+        }
+
+    } else if (parent_node->data_type == FDS_FDT_LIST) {
+        if (node->data_type == FDS_FDT_LIST && parent_node->value.list.items == node->value.list.items) {
+            node->value.list.items = NULL;
+        }
+
+    } else if (parent_node->data_type == FDS_FDT_STR) {
+        if (node->data_type == FDS_FDT_STR && parent_node->value.string.chars == node->value.string.chars) {
+            node->value.string.chars = NULL;
+        }
+    }
+
+    remove_freeable_value_references(parent_node, node->left);
+    remove_freeable_value_references(parent_node, node->right);
+}
+
 static bool
 is_constant_subtree(struct fds_filter_ast_node *node)
 {
@@ -36,12 +81,20 @@ optimize_constant_subtree(struct fds_filter *filter, struct fds_filter_ast_node 
         return FDS_FILTER_FAIL;
     }
     evaluate_eval_tree(filter, eval_tree);
-    destroy_ast(node->left);
-    destroy_ast(node->right);
     node->node_type = FDS_FANT_CONST;
     node->value = eval_tree->value;
+    // Values of types that have to be allocated (STR, LIST) could have been propagated
+    // up the tree to the resulting node (their pointers could have been propagated).
+    // Because we are destroying the left and right subtrees and the values in the process,
+    // we have to first remove the pointers in the subtrees that match the resulting const
+    // node value pointer.
+    remove_freeable_value_references(node, node->left);
+    remove_freeable_value_references(node, node->right);
+    destroy_ast(node->left);
+    destroy_ast(node->right);
     node->left = NULL;
     node->right = NULL;
+
     return FDS_FILTER_OK;
 }
 
@@ -84,11 +137,9 @@ convert_ast_list_to_actual_list(struct fds_filter *filter, struct fds_filter_ast
                 "List items must be constant expressions");
             return FDS_FILTER_FAIL;
         }
-        if ((return_code = optimize_constant_subtree(filter, &list_item->right)) != FDS_FILTER_OK) {
-            PTRACE("propagating return code");
-            return return_code;
-        }
+        RETURN_IF_ERROR(optimize_constant_subtree(filter, &list_item->right));
         list[item_index] = list_item->right->value;
+        nullify_freeable_value(list_item->right);
         item_index++;
         list_item = list_item->parent;
     }

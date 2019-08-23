@@ -183,7 +183,8 @@ semantic_resolve_node(struct fds_filter *filter, struct fds_filter_ast_node **no
 
     case FDS_FANT_SUB:
     case FDS_FANT_MUL:
-    case FDS_FANT_DIV: {
+    case FDS_FANT_DIV:
+    case FDS_FANT_MOD: {
         if (is_number_type(node->left->data_type) && is_number_type(node->right->data_type)) {
             RETURN_IF_ERROR(cast_children_to_common_number_type(filter, node));
             node->data_type = node->left->data_type;

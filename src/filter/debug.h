@@ -155,6 +155,12 @@ evaluate_function_to_str(void (*function)(struct fds_filter *filter, struct eval
     if (function == f_bitxor)                  return "BITXOR";
     if (function == f_bitnot)                  return "BITNOT";
     if (function == f_flagcmp)                 return "FLAGCMP";
+    if (function == f_mod_int)                 return "MOD_INT";
+    if (function == f_mod_uint)                return "MOD_UINT";
+    if (function == f_mod_float)               return "MOD_FLOAT";
+    if (function == f_cast_list_uint_to_float) return "CAST_LIST_UINT_TO_FLOAT";
+    if (function == f_cast_list_int_to_uint)   return "CAST_LIST_INT_TO_UINT";
+    if (function == f_cast_list_int_to_float)  return "CAST_LIST_INT_TO_FLOAT";
     else                                       assert(!"unhandled evaluate function case");
 }
 

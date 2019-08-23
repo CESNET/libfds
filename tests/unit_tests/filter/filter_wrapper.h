@@ -171,12 +171,14 @@ protected:
         std::string name;
         int id;
         Value value;
+        bool is_flags;
     };
 
     struct field_info {
         std::string name;
         int id;
         std::vector<Value> values;
+        bool is_flags;
     };
 
     std::vector<constant_info> constants;
@@ -210,21 +212,21 @@ protected:
         this->expr = expr;
     }
 
-    void constant(std::string name, Value value) {
+    void constant(std::string name, Value value, bool is_flags = false) {
         assert(
             std::find_if(constants.begin(), constants.end(),
             [name](constant_info &x) { return x.name == name; }) == constants.end()
         );
-        constants.push_back({ name, ++last_id, value });
+        constants.push_back({ name, ++last_id, value, is_flags });
     }
 
-    void field(std::string name, Value value) {
+    void field(std::string name, Value value, bool is_flags = false) {
         auto field = std::find_if(fields.begin(), fields.end(),
             [name](field_info &x) { return x.name == name; });
         if (field != fields.end()) {
             field->values.push_back(value);
         } else {
-            fields.push_back({ name, ++last_id, { value } });
+            fields.push_back({ name, ++last_id, { value }, is_flags });
         }
     }
 
@@ -255,6 +257,14 @@ protected:
         return return_code;
     }
 
+    void reset_fields() {
+        fields.clear();
+    }
+
+    void reset_constants() {
+        constants.clear();
+    }
+
     static int
     lookup_callback(const char *name, void *user_context, struct fds_filter_identifier_attributes *attributes)
     {
@@ -266,6 +276,7 @@ protected:
                 attributes->identifier_type = FDS_FIT_CONST;
                 attributes->data_type = v.value.type;
                 attributes->data_subtype = v.value.subtype;
+                attributes->is_flags = v.is_flags;
                 return FDS_FILTER_OK;
             }
         }
@@ -276,6 +287,7 @@ protected:
                 attributes->identifier_type = FDS_FIT_FIELD;
                 attributes->data_type = v.values[0].type;
                 attributes->data_subtype = v.values[0].subtype;
+                attributes->is_flags = v.is_flags;
                 return FDS_FILTER_OK;
             }
         }

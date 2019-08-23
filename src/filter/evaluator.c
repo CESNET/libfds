@@ -97,6 +97,23 @@ eval_tree_node_generate(struct fds_filter *filter, struct fds_filter_ast_node *a
         }
     } break;
 
+    case FDS_FANT_MOD: {
+        assert(ast_node->left->data_type == ast_node->right->data_type
+            && ast_node->data_type == ast_node->left->data_type);
+        switch (ast_node->left->data_type) {
+        case FDS_FDT_INT:
+            eval_node->evaluate = f_mod_int;
+            break;
+        case FDS_FDT_UINT:
+            eval_node->evaluate = f_mod_uint;
+            break;
+        case FDS_FDT_FLOAT:
+            eval_node->evaluate = f_mod_float;
+            break;
+        default: assert(0);
+        }
+    } break;
+
     case FDS_FANT_EQ: {
         assert(ast_node->left->data_type == ast_node->right->data_type
             && ast_node->data_type == FDS_FDT_BOOL);
@@ -386,6 +403,12 @@ eval_tree_node_generate(struct fds_filter *filter, struct fds_filter_ast_node *a
         default: assert(0 && "Unhandled type for IN");
         }
     } break;
+
+    case FDS_FANT_CONTAINS: {
+        assert(ast_node->left->data_type == FDS_FDT_STR && ast_node->right->data_type == FDS_FDT_STR);
+        eval_node->evaluate = f_contains_str;
+    } break;
+
 
     default: assert(0 && "Unhandled ast node operation");
     }

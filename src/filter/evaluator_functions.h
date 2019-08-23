@@ -92,6 +92,10 @@ DECLARE_FUNC(f_bitor)
 DECLARE_FUNC(f_bitxor)
 DECLARE_FUNC(f_bitnot)
 DECLARE_FUNC(f_flagcmp)
+DECLARE_FUNC(f_mod_int)
+DECLARE_FUNC(f_mod_uint)
+DECLARE_FUNC(f_mod_float)
+DECLARE_FUNC(f_contains_str)
 
 #undef DECLARE_FUNC
 

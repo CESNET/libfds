@@ -87,12 +87,34 @@
     return STR;
 }
 
+0b[0-9A-Za-z]+ {
+    char *end;
+    yylval_param->ast.data_type = FDS_FDT_INT;
+    yylval_param->ast.value.int_ = strtoul(&yytext[2], &end, 2);
+    if (*end != '\0') {
+        ERROR_("invalid binary number");
+        return 0;
+    }
+    return INT;
+}
+
+0x[0-9A-Za-z]+ {
+    char *end;
+    yylval_param->ast.data_type = FDS_FDT_INT;
+    yylval_param->ast.value.int_ = strtoul(&yytext[2], &end, 16);
+    if (*end != '\0') {
+        ERROR_("invalid hexadecimal number");
+        return 0;
+    }
+    return INT;
+}
+
  /* int */
 [0-9]+ {
-    char *unused;
+    char *end;
     yylval_param->ast.data_type = FDS_FDT_INT;
-    yylval_param->ast.value.int_ = strtoul(yytext, &unused, 10);
-    return UINT;
+    yylval_param->ast.value.int_ = strtoul(yytext, &end, 10);
+    return INT;
 }
 
  /* float */
@@ -191,7 +213,7 @@
 }
 
  /* Time delta */
-[0-9]+(\.[0-9]+)?(d|h|m|s|ms|us|ns) {
+[0-9]+(\.[0-9]+)?(d|h|m|s|ms|us|ns|k|M|G|T) {
     char suffix[3] = { '\0' };
     double value;
     sscanf(yytext, "%lf%2s", &value, suffix);
@@ -202,6 +224,10 @@
     else if (strcmp(suffix, "ms") == 0) { value *= 1000000;        }
     else if (strcmp(suffix, "us") == 0) { value *= 1000;           }
     else if (strcmp(suffix, "ns") == 0) { value *= 1;              }
+    else if (strcmp(suffix, "k" ) == 0) { value *= 1000;           }
+    else if (strcmp(suffix, "M" ) == 0) { value *= 1000000;        }
+    else if (strcmp(suffix, "G" ) == 0) { value *= 1000000000;     }
+    else if (strcmp(suffix, "T" ) == 0) { value *= 1000000000000;  }
     else                                assert("!unhandled suffix");
     yylval_param->ast.data_type = FDS_FDT_UINT;
     yylval_param->ast.value.uint_ = value;

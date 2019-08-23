@@ -10,6 +10,19 @@ TEST_F(Filter, literals_int) {
     EXPECT_EQ(compile("465464894a616548498"), FDS_FILTER_FAIL);
 }
 
+TEST_F(Filter, literals_int_bases) {
+    EXPECT_EQ(compile("0x123"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0xF123AF"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("-0xF123AF"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0xF123AG"), FDS_FILTER_FAIL);
+    EXPECT_EQ(compile("0xGF123AG"), FDS_FILTER_FAIL);
+
+    EXPECT_EQ(compile("0b000"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0b11"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("-0b11"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0b12"), FDS_FILTER_FAIL);
+}
+
 TEST_F(Filter, literals_float) {
     EXPECT_EQ(compile("1.0"), FDS_FILTER_OK);
     EXPECT_EQ(compile("-1.0"), FDS_FILTER_OK);
@@ -191,6 +204,20 @@ TEST_F(Filter, number_time_suffixes) {
     EXPECT_EQ(evaluate("1h == 60m"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("1h == 3600s"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("1d == 24h"), FDS_FILTER_YES);
+
+    EXPECT_EQ(evaluate("1k == 1000"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1M == 1000k"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1G == 1000M"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1T == 1000G"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, number_bases) {
+    EXPECT_EQ(evaluate("0xFF == 255"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0xFf == 255"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0xfF == 255"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0x0fF == 255"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0b01111111 == 127"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0b11111111 == 0xFF"), FDS_FILTER_YES);
 }
 
 TEST_F(Filter, arithmetic) {
@@ -208,7 +235,124 @@ TEST_F(Filter, arithmetic) {
     EXPECT_EQ(evaluate("-1 + 1 == -1.0 + 1.0"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("-1 + 1.0 == -1 + 1.0"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("3.33 * 3 < 10"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("5 % 2 == 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("5.0 % 2 == 1"), FDS_FILTER_YES);
 }
+
+TEST_F(Filter, lists_numbers) {
+    EXPECT_EQ(evaluate("1 inside [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("2 inside [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("3 inside [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("4 inside [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("5 inside [1, 2, 3, 4]"), FDS_FILTER_NO);
+    EXPECT_EQ(evaluate("1 inside []"), FDS_FILTER_NO);
+
+    EXPECT_EQ(evaluate("1.0 inside [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0 inside [1, 2.0, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 inside [1, 2.0, 3, 4]"), FDS_FILTER_YES);
+
+    EXPECT_EQ(compile("1 inside 1, 2, 3, 4]"), FDS_FILTER_FAIL);
+    EXPECT_EQ(compile("1 inside [1, 2, 3, 4"), FDS_FILTER_FAIL);
+    EXPECT_EQ(compile("1 inside [1, 2 3, 4]"), FDS_FILTER_FAIL);
+    EXPECT_EQ(compile("1 inside [1, 2, 3 4]"), FDS_FILTER_FAIL);
+    EXPECT_EQ(compile("1 inside [1, 2, 3, 4,]"), FDS_FILTER_FAIL);
+    EXPECT_EQ(compile("1 inside [,1, 2, 3, 4]"), FDS_FILTER_FAIL);
+    EXPECT_EQ(compile("1 inside [1, 2. 3, 4]"), FDS_FILTER_FAIL);
+}
+
+TEST_F(Filter, lists_strings) {
+    EXPECT_EQ(evaluate("\"hello\" inside [\"hello\", \"world\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not \"hello\" inside [\"hello \", \"world\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not \"hello\" inside [\" hello\", \"world\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"world\" inside [\"hello\", \"world\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"world\" inside [\"hello\", \"world\", \"!\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"world\" inside [\"world\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not \"world\" inside []"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, lists_ip_addresses) {
+    EXPECT_EQ(evaluate("192.168.1.1 inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 192.168.0.1 inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("10.123.4.5 inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 11.2.2.2 inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.1.1.1 inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("8.8.8.8 inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 1.1.1.2 inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 8.8.8.16 inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not ff:: inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("192.168.1.0/28 inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+
+    // ? should this be correct?
+    EXPECT_EQ(evaluate("192.168.1.0/16 inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, string_operations) {
+    EXPECT_EQ(evaluate("\"hello\" + \" world\" == \"hello world\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"hello\" + \"\" == \"hello\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"\" + \"world\" == \"world\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"hello\" + \" world\" + \"!\" == \"hello world!\""), FDS_FILTER_YES);
+
+    EXPECT_EQ(evaluate("\"hello world!\" contains \"hello\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"hello world!\" contains \"world\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"hello world!\" contains \" \""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"hello world!\" contains \"\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not \"hello world!\" contains \"foo\""), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, bitwise_operations) {
+    EXPECT_EQ(evaluate("0b11110000 | 0b01011111 == 0b11111111"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0b11110000 ^ 0b01011111 == 0b10101111"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0b11110000 & 0b01011111 == 0b01010000"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("~0b11110000 == 0b1111111111111111111111111111111111111111111111111111111100001111"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, bool_operations) {
+    EXPECT_EQ(evaluate("1 and 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not (1 and 0)"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not (0 and 1)"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0 or 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 or 0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not (0 or 0)"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 0 or 0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0 or ((1 or 0) and 1)"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("(not (0 and 1)) or ((1 or 0) and 1)"), FDS_FILTER_YES);
+}
+
+#if 0
+TEST_F(Filter, flags) {
+    constant("A", Value::UInt(0b100000), true);
+    constant("S", Value::UInt(0b010000), true);
+    constant("F", Value::UInt(0b001000), true);
+    constant("R", Value::UInt(0b000100), true);
+    constant("P", Value::UInt(0b000010), true);
+    constant("U", Value::UInt(0b000001), true);
+    constant("X", Value::UInt(0b111111), true);
+
+    field("tcpflags", Value::UInt(0b111000), true);
+    EXPECT_EQ(evaluate("tcpflags A"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags S"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags F"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not tcpflags R"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not tcpflags P"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not tcpflags U"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not tcpflags X"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags A and tcpflags S"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags A and tcpflags S and not tcpflags U"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags 0b101000"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags (A | S | F)"), FDS_FILTER_YES);
+
+    reset_fields();
+    field("tcpflags", Value::UInt(0b111111), true);
+    EXPECT_EQ(evaluate("tcpflags A"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags S"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags F"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags R"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags P"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags U"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("tcpflags X"), FDS_FILTER_YES);
+}
+#endif
 
 
 

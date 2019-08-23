@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <math.h>
 #include "evaluator.h"
 #include "evaluator_functions.h"
 
@@ -12,6 +13,17 @@ bit_compare(uint8_t *a, uint8_t *b, int n_bits)
     int result = memcmp(a, b, n_bytes) == 0;
     result = result && a[n_bytes] >> (8 - n_remaining_bits) == b[n_bytes] >> (8 - n_remaining_bits);
     return result;
+}
+
+static inline bool
+string_contains(const char *big, int big_length, const char *little, int little_length)
+{
+    for (int i = 0; i < big_length - little_length; i++) {
+        if (memcmp(&big[i], little, little_length) == 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 #define DEFINE_FUNC(NAME, BODY) \
@@ -307,23 +319,23 @@ LIST_IN_FUNC(f_in_ip_address,
 )
 
 #define LIST_CAST_FUNC(FUNC_NAME, CAST_STATEMENT) \
-    DEFINE_UNARY_FUNC(FUNC_NAME, { \
-        node->value.list = node->left->value.list; \
-        for (uint64_t i = 0; i < node->right->value.list.length; i++) { \
-            CAST_STATEMENT; \
-        } \
-    })
+DEFINE_UNARY_FUNC(FUNC_NAME, { \
+    node->value.list = node->left->value.list; \
+    for (uint64_t i = 0; i < node->value.list.length; i++) { \
+        CAST_STATEMENT; \
+    } \
+})
 
 LIST_CAST_FUNC(f_cast_list_uint_to_float, {
-    node->value.list.items[i].float_ = node->value.list.items[i].uint_;
+    node->value.list.items[i].float_ = (double)node->value.list.items[i].uint_;
 })
 
 LIST_CAST_FUNC(f_cast_list_int_to_uint, {
-    node->value.list.items[i].uint_ = node->value.list.items[i].int_;
+    node->value.list.items[i].uint_ = (uint64_t)node->value.list.items[i].int_;
 })
 
 LIST_CAST_FUNC(f_cast_list_int_to_float, {
-    node->value.list.items[i].float_ = node->value.list.items[i].int_;
+    node->value.list.items[i].float_ = (double)node->value.list.items[i].int_;
 })
 
 DEFINE_BINARY_FUNC(f_ip_address_in_trie, {
@@ -419,6 +431,22 @@ DEFINE_UNARY_FUNC(f_bitnot, {
 })
 DEFINE_UNARY_FUNC(f_flagcmp, {
     node->value.bool_ = (node->left->value.uint_ & node->right->value.uint_) ? 1 : 0;
+})
+DEFINE_BINARY_FUNC(f_mod_int, {
+    node->value.int_ = node->left->value.int_ % node->right->value.int_;
+})
+DEFINE_BINARY_FUNC(f_mod_uint, {
+    node->value.uint_ = node->left->value.uint_ % node->right->value.uint_;
+})
+DEFINE_BINARY_FUNC(f_mod_float, {
+    node->value.float_ = fmod(node->left->value.float_, node->right->value.float_);
+})
+
+DEFINE_BINARY_FUNC(f_contains_str, {
+    node->value.bool_ = string_contains(node->left->value.string.chars,
+                                        node->left->value.string.length,
+                                        node->right->value.string.chars,
+                                        node->right->value.string.length);
 })
 
 

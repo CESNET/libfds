@@ -286,6 +286,8 @@ eval_tree_node_generate(struct fds_filter *filter, struct fds_filter_ast_node *a
             eval_node->evaluate = f_cast_int_to_float;
         } else if (ast_node->left->data_type == FDS_FDT_INT && ast_node->data_type == FDS_FDT_UINT) {
             eval_node->evaluate = f_cast_int_to_uint;
+        } else if (ast_node->left->data_type == FDS_FDT_UINT && ast_node->data_type == FDS_FDT_INT) {
+            eval_node->evaluate = f_cast_uint_to_int;
         } else if (ast_node->left->data_type == FDS_FDT_UINT && ast_node->data_type == FDS_FDT_FLOAT) {
             eval_node->evaluate = f_cast_uint_to_float;
         } else if (ast_node->left->data_type == FDS_FDT_UINT && ast_node->data_type == FDS_FDT_BOOL) {

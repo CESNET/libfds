@@ -28,6 +28,13 @@ TEST_F(Filter, literals_float) {
     EXPECT_EQ(compile("-1.0"), FDS_FILTER_OK);
     EXPECT_EQ(compile("10000.0"), FDS_FILTER_OK);
     EXPECT_EQ(compile("154.145489"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.2e+10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.2E+10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.2E-10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.2E10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.2e10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile(".2e10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.e10"), FDS_FILTER_OK);
 }
 
 TEST_F(Filter, literals_string) {
@@ -108,10 +115,21 @@ TEST_F(Filter, comparsions_int) {
     EXPECT_EQ(evaluate("1 == 1"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("-1 != 1"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("-1 < 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 > -1"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("1 >= 1"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("-100 < -50"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("-100 <= -50"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("-100 <= -100"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, comparsions_uint) {
+    EXPECT_EQ(evaluate("1u == 1u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1u != 2u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1u < 2u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1u >= 1u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("100u < 150u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("100u <= 150u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("100u <= 100u"), FDS_FILTER_YES);
 }
 
 TEST_F(Filter, comparsions_float) {
@@ -194,7 +212,7 @@ TEST_F(Filter, comparsions_mac_address) {
     EXPECT_EQ(evaluate("00:11:22:33:44:55 != 00:11:22:33:44:66"), FDS_FILTER_YES);
 }
 
-TEST_F(Filter, number_time_suffixes) {
+TEST_F(Filter, number_suffixes) {
     EXPECT_EQ(evaluate("1ns == 1"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("1us == 1000ns"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("1ms == 1000us"), FDS_FILTER_YES);
@@ -205,10 +223,26 @@ TEST_F(Filter, number_time_suffixes) {
     EXPECT_EQ(evaluate("1h == 3600s"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("1d == 24h"), FDS_FILTER_YES);
 
-    EXPECT_EQ(evaluate("1k == 1000"), FDS_FILTER_YES);
-    EXPECT_EQ(evaluate("1M == 1000k"), FDS_FILTER_YES);
-    EXPECT_EQ(evaluate("1G == 1000M"), FDS_FILTER_YES);
-    EXPECT_EQ(evaluate("1T == 1000G"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1B == 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1k == 1024B"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1M == 1024k"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1G == 1024M"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1T == 1024G"), FDS_FILTER_YES);
+
+    EXPECT_EQ(evaluate("1.0ns == 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0us == 1000ns"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0ms == 1000us"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0s == 1000ms"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0m == 60s"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0m == 60000ms"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0h == 60m"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0h == 3600s"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0d == 24h"), FDS_FILTER_YES);
+
+    EXPECT_EQ(evaluate("1.0k == 1024"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0M == 1024k"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0G == 1024M"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0T == 1024G"), FDS_FILTER_YES);
 }
 
 TEST_F(Filter, number_bases) {
@@ -220,8 +254,26 @@ TEST_F(Filter, number_bases) {
     EXPECT_EQ(evaluate("0b11111111 == 0xFF"), FDS_FILTER_YES);
 }
 
+TEST_F(Filter, float_extra) {
+    EXPECT_EQ(evaluate(".2 == 0.2"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("2. == 2.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate(". == 0.0"), FDS_FILTER_FAIL);
+    EXPECT_EQ(evaluate("0. == 0.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate(".0 == 0.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate(".e == 0.0"), FDS_FILTER_FAIL);
+    EXPECT_EQ(evaluate("0.e == 0.0"), FDS_FILTER_FAIL);
+    EXPECT_EQ(evaluate("1.2e1 == 12.0"), FDS_FILTER_OK);
+    EXPECT_EQ(evaluate("1.2e2 == 120.0"), FDS_FILTER_OK);
+    EXPECT_EQ(evaluate("1.2e3 == 1200.0"), FDS_FILTER_OK);
+    EXPECT_EQ(evaluate("1.2e+3 == 1200.0"), FDS_FILTER_OK);
+    EXPECT_EQ(evaluate("120.0e-2 == 1.2"), FDS_FILTER_OK);
+    EXPECT_EQ(evaluate("120.0e-3 == 0.12"), FDS_FILTER_OK);
+}
+
 TEST_F(Filter, arithmetic) {
     EXPECT_EQ(evaluate("1 + 1 == 2"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 - 1 == 0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 - 10 == -9"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("-1 + 1 == 0"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("-1 + 1 == 20 * 0"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("2 * 2 + 2 * 4 == (3 + 3) * 2"), FDS_FILTER_YES);
@@ -233,6 +285,9 @@ TEST_F(Filter, arithmetic) {
     EXPECT_EQ(evaluate("3.0 + 2.0 < 3.0 * 2.0"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("3.0 + 2 < 3.0 * 2"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("-1 + 1 == -1.0 + 1.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 - 1 == -1.0 - 1.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 * 1 == -1.0 * 1.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 / 1 == -1.0 / 1.0"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("-1 + 1.0 == -1 + 1.0"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("3.33 * 3 < 10"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("5 % 2 == 1"), FDS_FILTER_YES);
@@ -258,6 +313,10 @@ TEST_F(Filter, lists_numbers) {
     EXPECT_EQ(compile("1 inside [1, 2, 3, 4,]"), FDS_FILTER_FAIL);
     EXPECT_EQ(compile("1 inside [,1, 2, 3, 4]"), FDS_FILTER_FAIL);
     EXPECT_EQ(compile("1 inside [1, 2. 3, 4]"), FDS_FILTER_FAIL);
+
+    EXPECT_EQ(evaluate("1u inside [1, 2, 3, 4u]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1u inside [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 inside [1u, 2, 3, 4]"), FDS_FILTER_YES);
 }
 
 TEST_F(Filter, lists_strings) {
@@ -284,6 +343,12 @@ TEST_F(Filter, lists_ip_addresses) {
 
     // ? should this be correct?
     EXPECT_EQ(evaluate("192.168.1.0/16 inside [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, lists_mac_addresses) {
+    EXPECT_EQ(evaluate("11:22:33:44:55:66 inside [11:22:33:44:55:66, 11:22:33:44:55:77]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 11:22:33:44:55:88 inside [11:22:33:44:55:66, 11:22:33:44:55:77]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("11:22:33:44:55:66 inside [11:22:33:44:55:77, 11:22:33:44:55:66]"), FDS_FILTER_YES);
 }
 
 TEST_F(Filter, string_operations) {
@@ -319,7 +384,6 @@ TEST_F(Filter, bool_operations) {
     EXPECT_EQ(evaluate("(not (0 and 1)) or ((1 or 0) and 1)"), FDS_FILTER_YES);
 }
 
-#if 0
 TEST_F(Filter, flags) {
     constant("A", Value::UInt(0b100000), true);
     constant("S", Value::UInt(0b010000), true);
@@ -352,8 +416,43 @@ TEST_F(Filter, flags) {
     EXPECT_EQ(evaluate("tcpflags U"), FDS_FILTER_YES);
     EXPECT_EQ(evaluate("tcpflags X"), FDS_FILTER_YES);
 }
-#endif
 
+TEST_F(Filter, number_mixed_types) {
+    constant("a", Value::UInt(1));
+    constant("b", Value::Int(2));
+    constant("c", Value::Float(3));
+
+    EXPECT_EQ(evaluate("a + a == b"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("a + b == c"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("a + 5 == 6"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("a + 5.0 == 6"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("a + 5 == 6.0"), FDS_FILTER_YES);
+
+    EXPECT_EQ(evaluate("6u * 2u == 12u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("6u % 2u == 0u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("6u / 2u == 3u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("6u - 2u == 4"), FDS_FILTER_YES);
+
+    EXPECT_EQ(evaluate("0U > -1.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0U < 1U"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0U <= 1U"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1U >= 1U"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1U != 0"), FDS_FILTER_YES);
+
+    // TODO: should this be correct? it's how it works in C...
+    EXPECT_EQ(evaluate("-1 < 1U"), FDS_FILTER_NO);
+    EXPECT_EQ(evaluate("0U > -1"), FDS_FILTER_NO);
+    EXPECT_EQ(evaluate("0U > -1U"), FDS_FILTER_NO);
+}
+
+TEST_F(Filter, implicit_compare) {
+    constant("ip", Value::Ip("127.0.0.1"));
+    constant("port", Value::UInt(80));
+
+    EXPECT_EQ(evaluate("ip 127.0.0.1 and port 80"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not ip 127.0.0.1 and not port 80"), FDS_FILTER_NO);
+    EXPECT_EQ(evaluate("not ip 127.0.0.1 or not port 80"), FDS_FILTER_NO);
+}
 
 
 #if 0

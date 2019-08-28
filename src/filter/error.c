@@ -114,7 +114,3 @@ no_memory_error(struct error_list *error_list)
     error_list->count = 1;
     error_list->errors = (struct error *)&OUT_OF_MEMORY_ERROR;
 }
-
-
-
-

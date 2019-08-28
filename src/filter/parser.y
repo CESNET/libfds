@@ -100,7 +100,7 @@ void yyerror(YYLTYPE *loc, struct fds_filter *filter, void *scanner, char *err);
 %token AMPERSAND "&" PIPE "|" CARET "^" TILDE "~" ASTERISK "!"
 %token COMMA "," END "end"
 
-%token <ast> IDENTIFIER STR UINT INT FLOAT BOOL IP_ADDRESS MAC_ADDRESS TIMESTAMP TIMEDELTA
+%token <ast> IDENTIFIER STR UINT INT FLOAT BOOL IP_ADDRESS MAC_ADDRESS
 %token ERROR_ABORT
 %type <ast_ptr> expr term comparsion condition filter list_items list
 
@@ -173,8 +173,6 @@ term: UINT { AST_CONST_($$, $1, @$) }
     | BOOL { AST_CONST_($$, $1, @$) }
     | IP_ADDRESS { AST_CONST_($$, $1, @$) }
     | MAC_ADDRESS { AST_CONST_($$, $1, @$) }
-    | TIMESTAMP { AST_CONST_($$, $1, @$) }
-    | TIMEDELTA { AST_CONST_($$, $1, @$) }
     | IDENTIFIER { AST_IDENTIFIER_($$, $1, @$) }
 
 filter: ERROR_ABORT { YYABORT; }

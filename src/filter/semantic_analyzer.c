@@ -173,9 +173,9 @@ semantic_resolve_node(struct fds_filter *filter, struct fds_filter_ast_node **no
     case FDS_FANT_ADD: {
         if (is_number_type(node->left->data_type) && is_number_type(node->right->data_type)) {
             RETURN_IF_ERROR(cast_children_to_common_number_type(filter, node));
-            node->data_type = node->left->data_type;
+            node->data_type = node->left->data_type; // The resulting datatype of the cast
         } else if (node->left->data_type == FDS_FDT_STR && node->right->data_type == FDS_FDT_STR) {
-            node->data_type = FDS_FDT_STR;
+            node->data_type = FDS_FDT_STR; // String concatenation
         } else {
             goto invalid_operation;
         }
@@ -271,7 +271,7 @@ semantic_resolve_node(struct fds_filter *filter, struct fds_filter_ast_node **no
 
     case FDS_FANT_FLAGCMP: {
         if (is_integer_number_type(node->left->data_type)
-            && is_integer_number_type(node->right->data_type)) {
+                && is_integer_number_type(node->right->data_type)) {
             RETURN_IF_ERROR(cast_children_to_common_number_type(filter, node));
             node->data_type = FDS_FDT_BOOL;
         } else {
@@ -283,7 +283,7 @@ semantic_resolve_node(struct fds_filter *filter, struct fds_filter_ast_node **no
     case FDS_FANT_BITOR:
     case FDS_FANT_BITXOR: {
         if (is_integer_number_type(node->left->data_type)
-            && is_integer_number_type(node->right->data_type)) {
+                && is_integer_number_type(node->right->data_type)) {
             RETURN_IF_ERROR(cast_children_to_common_number_type(filter, node));
             node->data_type = node->left->data_type;
         } else {
@@ -309,20 +309,24 @@ semantic_resolve_node(struct fds_filter *filter, struct fds_filter_ast_node **no
 
 
 invalid_operation:
+
     if (is_binary_ast_node(node)) {
         add_error_location_message(filter->error_list, node->location,
             "Invalid operation %s for values of type %s(%s) and %s(%s)",
             ast_node_type_to_str(node->node_type),
             data_type_to_str(node->left->data_type), data_type_to_str(node->left->data_subtype),
             data_type_to_str(node->right->data_type), data_type_to_str(node->right->data_subtype));
+
     } else if (is_unary_ast_node(node)) {
         add_error_location_message(filter->error_list, node->location,
             "Invalid operation %s for value of type %s",
             ast_node_type_to_str(node->node_type), data_type_to_str(node->left->data_type));
+
     } else if (is_leaf_ast_node(node)) {
         add_error_location_message(filter->error_list, node->location,
             "Invalid operation %s", ast_node_type_to_str(node->node_type));
     }
+
     PTRACE("returning FAIL because invalid operation");
     return FDS_FILTER_FAIL;
 }

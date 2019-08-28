@@ -96,6 +96,7 @@ DECLARE_FUNC(f_mod_int)
 DECLARE_FUNC(f_mod_uint)
 DECLARE_FUNC(f_mod_float)
 DECLARE_FUNC(f_contains_str)
+DECLARE_FUNC(f_cast_uint_to_int)
 
 #undef DECLARE_FUNC
 

@@ -430,7 +430,7 @@ DEFINE_UNARY_FUNC(f_bitnot, {
     node->value.uint_ = ~node->left->value.uint_;
 })
 DEFINE_UNARY_FUNC(f_flagcmp, {
-    node->value.bool_ = (node->left->value.uint_ & node->right->value.uint_) ? 1 : 0;
+    node->value.bool_ = ((node->left->value.uint_ & node->right->value.uint_) == node->right->value.uint_) ? 1 : 0;
 })
 DEFINE_BINARY_FUNC(f_mod_int, {
     node->value.int_ = node->left->value.int_ % node->right->value.int_;
@@ -447,6 +447,10 @@ DEFINE_BINARY_FUNC(f_contains_str, {
                                         node->left->value.string.length,
                                         node->right->value.string.chars,
                                         node->right->value.string.length);
+})
+
+DEFINE_UNARY_FUNC(f_cast_uint_to_int, {
+    node->value.int_ = node->left->value.uint_;
 })
 
 

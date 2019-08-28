@@ -127,18 +127,19 @@ struct fds_filter_ast_node {
     struct fds_filter_ast_node *left;
     struct fds_filter_ast_node *right;
 
-    const char *identifier_name;
-    int identifier_id;
-    enum fds_filter_identifier_type identifier_type;
+    const char *identifier_name;                     // The name of the identifier if the node type is identifier
+    int identifier_id;                               // The id of the identifier if the node type is identifier
+    enum fds_filter_identifier_type identifier_type; // The type of the identifier if the node type is identifier
 
-    bool is_trie;
-    bool is_flags;
+    bool is_trie;  // If the node contained a list of ip addresses that were optimized to a trie
+
+    bool is_flags; // If the node is a special "flags" value
 
     enum fds_filter_data_type data_type;
     enum fds_filter_data_type data_subtype; // In case of list
     union fds_filter_value value;
 
-    struct fds_filter_location location;
+    struct fds_filter_location location; // The location of the node in the source code, only for error reporting purposes
 };
 
 struct fds_filter_identifier_attributes {

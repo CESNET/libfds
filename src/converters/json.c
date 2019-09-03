@@ -15,42 +15,77 @@
 #include <inttypes.h>
 #include "protocols.h"
 
-/** Base size of the conversion buffer           */
+/// Base size of the conversion buffer
 #define BUFFER_BASE   4096
-/** IANA enterprise number (forward fields)      */
+/// IANA enterprise number (forward fields)
 #define IANA_EN_FWD   0
-/** IANA enterprise number (reverse fields)      */
+/// IANA enterprise number (reverse fields)
 #define IANA_EN_REV   29305
-/** IANA identificator of TCP flags              */
+/// IANA identificator of TCP flags
 #define IANA_ID_FLAGS 6
-/** IANA identificator of protocols              */
+/// IANA identificator of protocols
 #define IANA_ID_PROTO 4
 
+/// Conversion context
 struct context {
-    /** Data begin                                                                           */
+    /// Data begin
     char *buffer_begin;
-    /** The past-the-end element (a character that would follow the last character)          */
+    /// The past-the-end element (a character that would follow the last character)
     char *buffer_end;
-    /** Position of the next write operation                                                 */
+    /// Position of the next write operation
     char *write_begin;
-    /**  Flag for realocation                                                                */
+    ///  Flag for realocation
     bool allow_real;
-    /**  Other flags                                                                         */
+    ///  Other flags
     uint32_t flags;
-    /** Information Element manager                                                          */
+    /// Information Element manager
     const fds_iemgr_t *mgr;
-    /** Template snapshot */
+    /// Template snapshot
     const fds_tsnapshot_t *snap;
-} ; /**< Converted JSON record                                                               */
+};
 
-typedef int (*converter_fn)(struct context *,const struct fds_drec_field *);
+/**
+ * \brief Conversion function callback
+ * \param[in] buffer Conversion context
+ * \param[in] field  Record field to convert to textual representation
+ * \return #FDS_OK on success
+ * \return #FDS_ERR_ARG in case of invalid data format
+ * \return #FDS_ERR_NOMEM in case of memory allocation error
+ */
+typedef int (*converter_fn)(struct context *buffer, const struct fds_drec_field *field);
 
-// Free space in buffer
-size_t buffer_remain(const struct context *buffer) {return buffer->buffer_end - buffer->write_begin;}
-// Total size of allocated buffer
-size_t buffer_alloc(const struct context *buffer) {return buffer->buffer_end - buffer->buffer_begin;}
-// Used buffer size
-size_t buffer_used(const struct context *buffer) {return buffer->write_begin - buffer->buffer_begin;}
+/**
+ * \brief Get remaining size of the free space in the buffer
+ * \param[in] buffer Conversion context
+ * \return Number of free bytes
+ */
+static inline size_t
+buffer_remain(const struct context *buffer)
+{
+    return buffer->buffer_end - buffer->write_begin;
+}
+
+/**
+ * \brief Get total size of the buffer
+ * \param[in] buffer Conversion context
+ * \return Number of allocated bytes
+ */
+static inline size_t
+buffer_alloc(const struct context *buffer)
+{
+    return buffer->buffer_end - buffer->buffer_begin;
+}
+
+/**
+ * \brief Get size of the used space in the buffer
+ * \param[in] buffer Conversion context
+ * \return Number of used bytes
+ */
+static inline size_t
+buffer_used(const struct context *buffer)
+{
+    return buffer->write_begin - buffer->buffer_begin;
+}
 
 /**
  * \brief Reserve memory of the conversion buffer
@@ -58,27 +93,27 @@ size_t buffer_used(const struct context *buffer) {return buffer->write_begin - b
  * Requests that the string capacity be adapted to a planned change in size to a length of up
  * to n characters.
  * \param[in] buffer Buffer
- * \param[in] n Minimal size of the buffer
+ * \param[in] n      Minimal size of the buffer
  * \return #FDS_OK on success
- * \return #FDS_ERR_NOMEM in case of memory allocation error
- * \retunr #FDS_ERR_BUFFER in case if flag for reallocation is not set
+ * \return #FDS_ERR_NOMEM in case of a memory allocation error
+ * \retunr #FDS_ERR_BUFFER in case the flag for reallocation is not set
  */
-int
-buffer_reserve (struct context *buffer, size_t n)
+static inline int
+buffer_reserve(struct context *buffer, size_t n)
 {
     if (n <= buffer_alloc(buffer)) {
         // Nothing to do
         return FDS_OK;
     }
-    if (buffer->allow_real == 0){
+    if (buffer->allow_real == 0) {
         return FDS_ERR_BUFFER;
     }
     size_t used = buffer_used(buffer);
 
     // Prepare a new buffer and copy the content
     const size_t new_size = ((n / BUFFER_BASE) + 1) * BUFFER_BASE;
-    char *new_buffer = (char*)realloc( buffer->buffer_begin, new_size * sizeof(char));
-    if (new_buffer == NULL){
+    char *new_buffer = (char*) realloc(buffer->buffer_begin, new_size * sizeof(char));
+    if (new_buffer == NULL) {
         return FDS_ERR_NOMEM;
     }
 
@@ -95,17 +130,17 @@ buffer_reserve (struct context *buffer, size_t n)
 *   If the buffer length is not sufficient enough, it is automatically reallocated to fit
 *   the string.
 * \param[in] buffer Buffer
-* \param[in] str String to add
+* \param[in] str    String to add
 * \return #FDS_OK on success
-* \return ret_code in case of memory allocation error
+* \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
 */
 
-int
-buffer_append(struct context *buffer,const char *str)
+static int
+buffer_append(struct context *buffer, const char *str)
 {
     const size_t len = strlen(str) + 1; // "\0"
 
-    int ret_code = buffer_reserve(buffer ,buffer_used(buffer) + len + 1); // +1 for error with uvalid size
+    int ret_code = buffer_reserve(buffer, buffer_used(buffer) + len + 1); // +1 for error with invalid size
     if (ret_code != FDS_OK) {
         return ret_code;
     }
@@ -118,13 +153,13 @@ buffer_append(struct context *buffer,const char *str)
 /**
  * \brief Convert an integer to JSON string
  * \param[in] buffer Buffer
- * \param[in] field Field to convert
+ * \param[in] field  Field to convert
  * \return #FDS_OK on success
- * \return #FDS_ERR_ARG invalid data format
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_ARG in case the field is not a valid field of this type
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
-to_int(struct context *buffer,const struct fds_drec_field *field)
+static int
+to_int(struct context *buffer, const struct fds_drec_field *field)
 {
     // Print as signed integer
     int res = fds_int2str_be(field->data, field->size, buffer->write_begin, buffer_remain(buffer));
@@ -138,23 +173,23 @@ to_int(struct context *buffer,const struct fds_drec_field *field)
     }
 
     // Reallocate and try again
-    int ret_code = buffer_reserve(buffer ,buffer_used(buffer) + FDS_CONVERT_STRLEN_INT);
+    int ret_code = buffer_reserve(buffer, buffer_used(buffer) + FDS_CONVERT_STRLEN_INT);
     if (ret_code != FDS_OK) {
         return ret_code;
     }
-    return to_int(buffer ,field);
+
+    return to_int(buffer, field);
 }
 
 /**
  * \brief Convert an unsigned integer to JSON string
  * \param[in] buffer Buffer
- * \param[in] field Field to convert
- * \throw invalid_argument if the field is not a valid field of this type
+ * \param[in] field  Field to convert
  * \return #FDS_OK on success
- * \return #FDS_ERR_ARG in case of wrong argument
- * \return ret_code in case of memory allocation error
-*/
-int
+ * \return #FDS_ERR_ARG in case the field is not a valid field of this type
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
+ */
+static int
 to_uint(struct context *buffer, const struct fds_drec_field *field)
 {
     // Print as unsigned integer
@@ -169,7 +204,7 @@ to_uint(struct context *buffer, const struct fds_drec_field *field)
     }
 
     // Reallocate and try again
-    int ret_code = buffer_reserve(buffer ,buffer_used(buffer) + FDS_CONVERT_STRLEN_INT);
+    int ret_code = buffer_reserve(buffer, buffer_used(buffer) + FDS_CONVERT_STRLEN_INT);
     if (ret_code != FDS_OK) {
         return ret_code;
     }
@@ -185,12 +220,11 @@ to_uint(struct context *buffer, const struct fds_drec_field *field)
  *   double quotes.
  * \param[in] buffer Buffer
  * \param[in] field  Field to convert
- * \throw invalid_argument if the field is not a valid field of this type
  * \return #FDS_OK on success
- * \return #FDS_ERR_ARG iinvalid data format
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_ARG in case the field is not a valid field of this type
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
+static int
 to_octet(struct context *buffer, const struct fds_drec_field *field)
 {
     if (field->size <= 8) {
@@ -201,7 +235,7 @@ to_octet(struct context *buffer, const struct fds_drec_field *field)
 
     const size_t mem_req = (2 * field->size) + 5U; // "0x" + 2 chars per byte + 2x "\"" + "\0"
 
-    int ret_code = buffer_reserve(buffer ,buffer_used(buffer) + mem_req);
+    int ret_code = buffer_reserve(buffer, buffer_used(buffer) + mem_req);
     if (ret_code != FDS_OK) {
         return ret_code;
     }
@@ -217,7 +251,7 @@ to_octet(struct context *buffer, const struct fds_drec_field *field)
         return FDS_OK;
     }
 
-    // Restore position and throw an exception
+    // Error
     return FDS_ERR_ARG;
 }
 
@@ -228,12 +262,12 @@ to_octet(struct context *buffer, const struct fds_drec_field *field)
  *   If the value represent infinite or NaN, instead of number a corresponding string
  *   is stored.
  * \param[in] buffer Buffer
- * \param[in] field Field to convert
+ * \param[in] field  Field to convert
  * \return #FDS_OK on success
  * \return #FDS_ERR_ARG if failed to convert a float number
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
+static int
 to_float(struct context *buffer, const struct fds_drec_field *field)
 {
     // We can not use default function because of "NAN" and "infinity" values
@@ -254,11 +288,11 @@ to_float(struct context *buffer, const struct fds_drec_field *field)
 
         if ((size_t) str_real_len >= buffer_remain(buffer)) {
             // Reallocate the buffer and try again
-            int ret_code = buffer_reserve( buffer,2 * buffer_alloc(buffer)); // Just double it
+            int ret_code = buffer_reserve(buffer, 2 * buffer_alloc(buffer)); // Just double it
             if (ret_code != FDS_OK) {
                 return ret_code;
             }
-            return to_float(buffer,field);
+            return to_float(buffer, field);
         }
 
         buffer->write_begin += str_real_len;
@@ -281,7 +315,7 @@ to_float(struct context *buffer, const struct fds_drec_field *field)
     // size without '\0'
     size_t size = strlen(str);
 
-    // +1 because strcpy cope '\0' too, so there need to be reserved more, then 'size'
+    // +1 because strcpy copy '\0' too, so there need to be reserved more, then 'size'
     int ret_code = buffer_reserve(buffer, buffer_used(buffer) + size + 1);
     if (ret_code != FDS_OK) {
         return ret_code;
@@ -301,9 +335,9 @@ to_float(struct context *buffer, const struct fds_drec_field *field)
  * \param[in] field Field to convert
  * \return #FDS_OK on success
  * \return #FDS_ERR_ARG if failed to convert a boolean to string
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
+static int
 to_bool(struct context *buffer, const struct fds_drec_field *field)
 {
     if (field->size != 1) {
@@ -313,7 +347,7 @@ to_bool(struct context *buffer, const struct fds_drec_field *field)
     int res = fds_bool2str(field->data, buffer->write_begin, buffer_remain(buffer));
     if (res > 0) {
         buffer->write_begin += res;
-        return FDS_OK ;
+        return FDS_OK;
     }
 
     if (res != FDS_ERR_BUFFER) {
@@ -322,9 +356,10 @@ to_bool(struct context *buffer, const struct fds_drec_field *field)
 
     // Reallocate and try again
     int ret_code = buffer_reserve(buffer, buffer_used(buffer) + FDS_CONVERT_STRLEN_FALSE); // false is longer
-    if (ret_code !=FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
+
     return to_bool(buffer, field);
 }
 
@@ -336,23 +371,22 @@ to_bool(struct context *buffer, const struct fds_drec_field *field)
  * (in milliseconds). Formatted string is based on ISO 8601 and use only millisecond precision
  * because JSON parsers typically doesn't support anything else.
  * \param[in] buffer Buffer
- * \param[in] field Field to convert
- * \return FDS_OK on success
- * \return FDS_ERR_ARG if failed to convert a timestamp to string
- * \return ret_code in case of memory allocation error
+ * \param[in] field  Field to convert
+ * \return #FDS_OK on success
+ * \return #FDS_ERR_ARG if failed to convert a timestamp to string
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
+static int
 to_datetime(struct context *buffer, const struct fds_drec_field *field)
 {
     const enum fds_iemgr_element_type type = field->info->def->data_type;
-
 
     if ((buffer->flags & FDS_CD2J_TS_FORMAT_MSEC) != 0) {
         // Convert to formatted string
         enum fds_convert_time_fmt fmt = FDS_CONVERT_TF_MSEC_UTC; // Only supported by JSON parser
 
-        int ret_code = buffer_reserve(buffer,buffer_used(buffer) + FDS_CONVERT_STRLEN_DATE + 2); // 2x '\"'
-        if (ret_code != FDS_OK){
+        int ret_code = buffer_reserve(buffer, buffer_used(buffer) + FDS_CONVERT_STRLEN_DATE + 2); // 2x '\"'
+        if (ret_code != FDS_OK) {
             return ret_code;
         }
 
@@ -386,8 +420,8 @@ to_datetime(struct context *buffer, const struct fds_drec_field *field)
         return FDS_ERR_ARG;
     }
 
-    int ret_code = buffer_reserve(buffer,buffer_used(buffer) + FDS_CONVERT_STRLEN_INT);
-    if (ret_code != FDS_OK){
+    int ret_code = buffer_reserve(buffer, buffer_used(buffer) + FDS_CONVERT_STRLEN_INT);
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
@@ -402,16 +436,16 @@ to_datetime(struct context *buffer, const struct fds_drec_field *field)
  *   Because the JSON doesn't directly support the MAC address, the result string is wrapped in
  *   double quotes.
  * \param[in] buffer Buffer
- * \param[in] field Field to convert
+ * \param[in] field  Field to convert
  * \return #FDS_OK on success
  * \return #FDS_ERR_ARG if failed to convert a MAC address to string
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
-to_mac(struct context *buffer,const struct fds_drec_field *field)
+static int
+to_mac(struct context *buffer, const struct fds_drec_field *field)
 {
-    int ret_code = buffer_reserve(buffer,buffer_used(buffer) + FDS_CONVERT_STRLEN_MAC + 2); // MAC address + 2x '\"'
-    if (ret_code != FDS_OK){
+    int ret_code = buffer_reserve(buffer, buffer_used(buffer) + FDS_CONVERT_STRLEN_MAC + 2); // MAC address + 2x '\"'
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
@@ -432,13 +466,13 @@ to_mac(struct context *buffer,const struct fds_drec_field *field)
  * \note
  *   Because the JSON doesn't directly support IP addresses, the result string is wrapped in double
  *   quotes.
- * \param[in] field Field to convert
+ * \param[in] field  Field to convert
  * \param[in] buffer Buffer
  * \return #FDS_OK on success
  * \return #FDS_ERR_ARG if failed to convert an IP address to string
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
+static int
 to_ip(struct context *buffer, const struct fds_drec_field *field)
 {
     // Make sure that we have enough memory
@@ -446,6 +480,7 @@ to_ip(struct context *buffer, const struct fds_drec_field *field)
     if (ret_code != FDS_OK){
         return ret_code;
     }
+
     *(buffer->write_begin++) = '"';
     int res = fds_ip2str(field->data, field->size, buffer->write_begin, buffer_remain(buffer));
     if (res > 0) {
@@ -499,9 +534,10 @@ utf8char_is_valid(const uint8_t *str, size_t len)
 }
 
 /**
- *\brief Is it a '\' or '"' character
- * \param[in] str Pointer to the character beginning
- * \param[in] len Maximum length of the character (in bytes)
+ * \brief Is it a '\' or '"' character
+ * \param[in]  str  Pointer to the character beginning
+ * \param[in]  len  Maximum length of the character (in bytes)
+ * \param[out] repl Replacement character (can be NULL)
  * \return True or false.
 */
 static inline bool
@@ -523,7 +559,7 @@ utf8char_is_not_esc(const uint8_t *str, size_t len, uint8_t *repl)
         return false;
     }
 
-    if(repl != NULL){
+    if (repl != NULL) {
         *repl = new_char;
     }
 
@@ -584,6 +620,7 @@ utf8char_is_escapable(const uint8_t *str, size_t len, uint8_t *repl)
         case '\f': new_char = 'f'; break;
         default: return false;
     }
+
     if (repl != NULL) {
         *repl = new_char;
     }
@@ -594,16 +631,15 @@ utf8char_is_escapable(const uint8_t *str, size_t len, uint8_t *repl)
 /**
  * \brief Convert IPFIX string to JSON string
  *
- * Non-ASCII characters are automatically converted to the special escaped sequence i.e. '\uXXXX'.
  * Quote and backslash are always escaped and white space (and control) characters are converted
  * based on active configuration.
- * \param[in] field Field to convert
+ * \param[in] field  Field to convert
  * \param[in] buffer Buffer
  * \return #FDS_OK on success
  * \return #FDS_ERR_ARG if failed to convert an IP address to string
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
+static int
 to_string(struct context *buffer, const struct fds_drec_field *field)
 {
     /* Make sure that we have enough memory for the worst possible case (escaping everything)
@@ -611,8 +647,8 @@ to_string(struct context *buffer, const struct fds_drec_field *field)
      * "\uXXXX" (6 characters) each.
      */
     const size_t max_size = (6 * field->size) + 4U; // '\uXXXX' + 2x "\"" + 1x '\0'
-    int ret_code = buffer_reserve(buffer,buffer_used(buffer) + max_size);
-    if (ret_code != FDS_OK){
+    int ret_code = buffer_reserve(buffer, buffer_used(buffer) + max_size);
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
@@ -621,8 +657,8 @@ to_string(struct context *buffer, const struct fds_drec_field *field)
     size_t pos_copy = 0; // Start of "copy" region
     uint8_t subst; // Replacement character for escapable characters
 
-    const uint8_t *in_buffer =(const uint8_t *)(field->data);
-    uint8_t *out_buffer =(uint8_t *) buffer->write_begin;
+    const uint8_t *in_buffer = (const uint8_t *) (field->data);
+    uint8_t *out_buffer = (uint8_t *) buffer->write_begin;
     uint32_t pos_out = 0;
 
     // Beginning of the string
@@ -646,48 +682,33 @@ to_string(struct context *buffer, const struct fds_drec_field *field)
             continue;
         }
 
-        // Interpretation of the character must be changed
-        const size_t copy_len = pos_in - pos_copy;
-        size_t out_remaining = buffer_alloc(buffer) - pos_out;
-
+        // -- Interpretation of the character must be changed --
         // Copy unchanged characters
-        if (copy_len > out_remaining) {
-            return FDS_ERR_BUFFER;
-        }
+        const size_t copy_len = pos_in - pos_copy;
         memcpy(&out_buffer[pos_out], &in_buffer[pos_copy], copy_len);
-        out_remaining -= copy_len;
         pos_out += copy_len;
         pos_copy = pos_in + 1; // Next time start from the next character
 
         /*
-        * Based on RFC 4627 (Section: 2.5. Strings):
-        * Control characters '\' and '"' must be escaped
-        * using '\\' and '\"'.
-        */
-        if(is_not_esc){
+         * Based on RFC 4627 (Section: 2.5. Strings):
+         * Control characters '\' and '"' must be escaped using '\\' and '\"'.
+         */
+        if (is_not_esc) {
             const size_t subst_len = 2U;
-            if (out_remaining < subst_len) {
-                return FDS_ERR_BUFFER;
-            }
-
             out_buffer[pos_out] = '\\';
             out_buffer[pos_out + 1] = subst;
             pos_out += subst_len;
             continue;
         }
 
-        //Escape characte only if flag FDS_CD2J_NON_PRINTABLE is set
-        if ((buffer->flags & FDS_CD2J_NON_PRINTABLE) != 0){
+        // Escape characte only if flag FDS_CD2J_NON_PRINTABLE is set
+        if ((buffer->flags & FDS_CD2J_NON_PRINTABLE) != 0) {
             continue;
         }
 
         // Is it an escapable character?
-        if (is_escapable){
+        if (is_escapable) {
             const size_t subst_len = 2U;
-            if (out_remaining < subst_len) {
-                return FDS_ERR_BUFFER;
-            }
-
             out_buffer[pos_out] = '\\';
             out_buffer[pos_out + 1] = subst;
             pos_out += subst_len;
@@ -695,18 +716,15 @@ to_string(struct context *buffer, const struct fds_drec_field *field)
         }
 
         /*
-        * Based on RFC 4627 (Section: 2.5. Strings):
-        * Control characters (i.e. 0x00 - 0x1F) must be escaped
-        * using "\uXXXX" where "XXXX" is a hexa value.
-        */
+         * Based on RFC 4627 (Section: 2.5. Strings):
+         * Control characters (i.e. 0x00 - 0x1F) must be escaped
+         * using "\uXXXX" where "XXXX" is a hexa value.
+         */
         // Is it a control character?
         if (is_control) {
             const size_t subst_len = 6U;
-            if (out_remaining < subst_len) {
-                return FDS_ERR_BUFFER;
-            }
-
             uint8_t hex;
+
             out_buffer[pos_out] = '\\';
             out_buffer[pos_out + 1] = 'u';
             out_buffer[pos_out + 2] = '0';
@@ -721,29 +739,19 @@ to_string(struct context *buffer, const struct fds_drec_field *field)
             continue;
         }
 
-        // // Invalid character -> replace with "REPLACEMENT CHARACTER"
+        // Invalid character -> replace with "REPLACEMENT CHARACTER"
         const size_t subst_len = 3U;
-        if (out_remaining < subst_len) {
-            return FDS_ERR_BUFFER;
-        }
-
-        // Character U+FFFD in UTF8 encoding
-        out_buffer[pos_out] = 0xEF;
+        out_buffer[pos_out] = 0xEF;   // Character U+FFFD in UTF8 encoding
         out_buffer[pos_out + 1] = 0xBF;
         out_buffer[pos_out + 2] = 0xBD;
         pos_out += subst_len;
 
     }
     const size_t copy_len = size - pos_copy;
-    const size_t out_remaining = buffer_alloc(buffer) - pos_out;
-
-    if (copy_len + 1> out_remaining) {
-        return FDS_ERR_BUFFER;
-    }
     memcpy(&out_buffer[pos_out], &in_buffer[pos_copy], copy_len);
     pos_out += copy_len;
     out_buffer[pos_out++] = '"';
-    
+
     // End of the string
     buffer->write_begin += pos_out;
     return FDS_OK;
@@ -753,13 +761,13 @@ to_string(struct context *buffer, const struct fds_drec_field *field)
  * \brief Convert TCP flags to JSON string
  *
  * \note The result string is wrapped in double quotes.
- * \param[in] field Field to convert
+ * \param[in] field  Field to convert
  * \param[in] buffer Buffer
  * \return #FDS_OK on success
  * \return #FDS_ERR_ARG if failed to convert TCP flags to string
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
+static int
 to_flags(struct context *buffer, const struct fds_drec_field *field)
 {
     if (field->size != 1 && field->size != 2) {
@@ -774,8 +782,8 @@ to_flags(struct context *buffer, const struct fds_drec_field *field)
     }
 
     const size_t size = 8; // 2x '"' + 6x flags
-    int ret_code = buffer_reserve(buffer,buffer_used(buffer) + size + 1); // '\0'
-    if (ret_code != FDS_OK){
+    int ret_code = buffer_reserve(buffer, buffer_used(buffer) + size + 1); // '\0'
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
@@ -798,13 +806,13 @@ to_flags(struct context *buffer, const struct fds_drec_field *field)
  * \brief Convert a protocol to JSON string
  *
  * \note The result string is wrapped in double quotes.
- * \param[in] field Field to convert
+ * \param[in] field  Field to convert
  * \param[in] buffer Buffer
  * \return #FDS_OK on success
  * \return #FDS_ERR_ARG if failed to convert a protocol to string
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
+static int
 to_proto(struct context *buffer, const struct fds_drec_field *field)
 {
     if (field->size != 1) {
@@ -813,7 +821,7 @@ to_proto(struct context *buffer, const struct fds_drec_field *field)
 
     const char *proto_str = protocols[*field->data];
     const size_t proto_len = strlen(proto_str);
-    int ret_code = buffer_reserve(buffer,buffer_used(buffer) + proto_len + 3); // 2x '"' + '\0'
+    int ret_code = buffer_reserve(buffer, buffer_used(buffer) + proto_len + 3); // 2x '"' + '\0'
     if (ret_code != FDS_OK){
         return ret_code;
     }
@@ -825,46 +833,48 @@ to_proto(struct context *buffer, const struct fds_drec_field *field)
     return FDS_OK;
 }
 /**
- * \breaf Function for scoping fields with same ID
+ * \breaf Auxiliary function for converting record fields with multiple occurrence
  *
- * \param[in] rec IPFIX Data Record to convert
+ * The values are stored into a simple JSON array identified by the field ID.
+ * \param[in] rec    IPFIX Data Record with the fields
  * \param[in] buffer Buffer
- * \param[in] fn Convert for field
- * \param[in] en Enterprise Number of field
- * \param[in] id ID of field
+ * \param[in] fn     Convert function applied on the values
+ * \param[in] en     Enterprise Number of the field
+ * \param[in] id     Information Element ID of the field
  *
  * \return #FDS_OK on success
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  *
 */
-int
-multi_fields (const struct fds_drec *rec, struct context *buffer,
+static int
+multi_fields(const struct fds_drec *rec, struct context *buffer,
     converter_fn fn, uint32_t en, uint16_t id)
 {
-    // inicialization of iterator
+    // Inicialization of iterator
     uint16_t iter_flag = (buffer->flags & FDS_CD2J_IGNORE_UNKNOWN) ? FDS_DREC_UNKNOWN_SKIP : 0;
     iter_flag |= (buffer->flags & FDS_CD2J_BIFLOW_REVERSE) ? FDS_DREC_BIFLOW_REV : 0;
 
     struct fds_drec_iter iter_mul_f;
     fds_drec_iter_init(&iter_mul_f, (struct fds_drec *) rec, iter_flag);
 
-    // multi fields must be like "enXX:idYY":[value, value...]
+    // Multi-fields must be stored as "enXX:idYY":[value, value...]
     int ret_code;
-    // append "["
-    ret_code = buffer_append(buffer,"[");
-    if (ret_code != FDS_OK){
+    // Append "["
+    ret_code = buffer_append(buffer, "[");
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
-    // looking for multi fields
+    // Looking for multi fields with the given ID
     while (fds_drec_iter_next(&iter_mul_f) != FDS_EOC) {
         const struct fds_tfield *def = iter_mul_f.field.info;
         char *writer_pos = buffer->write_begin;
 
-        // check for simular ID and enterprise number
-        if (def->id != id || def->en != en){
+        // Check the ID and enterprise number
+        if (def->id != id || def->en != en) {
             continue;
         }
+
         ret_code = fn(buffer, &iter_mul_f.field);
 
         switch (ret_code) {
@@ -872,24 +882,25 @@ multi_fields (const struct fds_drec *rec, struct context *buffer,
         case FDS_ERR_ARG:
             buffer->write_begin = writer_pos;
             ret_code = buffer_append(buffer, "null");
-            if (ret_code != FDS_OK){
+            if (ret_code != FDS_OK) {
                 return ret_code;
             }
+            // fallthrough
         case FDS_OK:
             break;
         default:
-           // Other erros -> completly out
+           // Other errors -> completly out
            return ret_code;
         }
 
-        // if it last field, then go out from loop
-        if (def->flags & FDS_TFIELD_LAST_IE){
+        // If it is the last field, then go out from this loop
+        if (def->flags & FDS_TFIELD_LAST_IE) {
             break;
         }
 
-        // otherwise add "," and continue
+        // Otherwise add "," and continue
         ret_code = buffer_append(buffer, ",");
-        if (ret_code != FDS_OK){
+        if (ret_code != FDS_OK) {
             return ret_code;
         }
         continue;
@@ -897,20 +908,20 @@ multi_fields (const struct fds_drec *rec, struct context *buffer,
 
     // add "]" in the end if trehe are no more fields with same ID or EN
     ret_code = buffer_append(buffer, "]" );
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
     return FDS_OK;
 }
 
-int
+static int
 to_blist (struct context *buffer, const struct fds_drec_field *field);
-int
+static int
 add_field_name(struct context *buffer, const struct fds_drec_field *field);
-int
+static int
 to_stlist(struct context *buffer, const struct fds_drec_field *field);
-int
+static int
 to_stMulList(struct context *buffer, const struct fds_drec_field *field);
 
 /**
@@ -918,7 +929,7 @@ to_stMulList(struct context *buffer, const struct fds_drec_field *field);
  * \param[in] field An IPFIX field to convert
  * \return Conversion function
  */
-converter_fn
+static converter_fn
 get_converter(const struct fds_drec_field *field)
 {
     // Conversion table, based on types defined by enum fds_iemgr_element_type
@@ -944,8 +955,8 @@ get_converter(const struct fds_drec_field *field)
         &to_ip,       // FDS_ET_IPV4_ADDRESS
         &to_ip,       // FDS_ET_IPV6_ADDRESS
         &to_blist,    // FDS_ET_BASIC_LIST
-        &to_stlist,   // subTemplateList
-        &to_stMulList // subTemplteMultiList
+        &to_stlist,   // FDS_ET_SUB_TEMPLATE_LIST
+        &to_stMulList // FDS_ET_SUB_TEMPLATE_MULTILIST
         // Other types are not supported yet
     };
 
@@ -960,12 +971,15 @@ get_converter(const struct fds_drec_field *field)
     }
 }
 
-/* \breaf Function for eterating throught Information Elements
- *
- * \param[in] rec  IPFIX Data Record to convert
+/**
+ * \breaf Function for iterating throught Information Elements
+ * \param[in] rec    IPFIX Data Record to convert
  * \param[in] buffer Buffer
+ *
+ * \return #FDS_OK on success
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
+static int
 iter_loop(const struct fds_drec *rec, struct context *buffer)
 {
     converter_fn fn;
@@ -984,7 +998,7 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
 
     while (fds_drec_iter_next(&iter) != FDS_EOC) {
         // If flag of multi fields is set,
-        // then this field will be skiped and processed later
+        // then this field will be skiped and processed when the last occurrence is found
         const fds_template_flag_t field_flags = iter.field.info->flags;
         if ((field_flags & FDS_TFIELD_MULTI_IE) != 0 && (field_flags & FDS_TFIELD_LAST_IE) == 0){
             continue;
@@ -994,14 +1008,14 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
         if (added != 0) {
             // Add comma
             ret_code = buffer_append(buffer, ",");
-            if (ret_code != FDS_OK){
+            if (ret_code != FDS_OK) {
                 return ret_code;
             }
         }
 
         // Add field name "<pen>:<field_name>"
         ret_code = add_field_name(buffer, &iter.field);
-        if (ret_code != FDS_OK){
+        if (ret_code != FDS_OK) {
             return ret_code;
         }
 
@@ -1016,29 +1030,28 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
             // Convert to formatted protocol type
             fn = &to_proto;
         } else {
-            // Convert to field based on internal type
+            // Convert to field based on the internal type
             fn = get_converter(&iter.field);
         }
 
-        // If nesesary, call function for write multi fields
+        // Convert the field
         char *writer_pos = buffer->write_begin;
-        if ((field_flags & FDS_TFIELD_MULTI_IE) != 0 && (field_flags & FDS_TFIELD_LAST_IE) != 0){
+        if ((field_flags & FDS_TFIELD_MULTI_IE) != 0 && (field_flags & FDS_TFIELD_LAST_IE) != 0) {
+            // Conversion of the field with multiple occurrences
            ret_code = multi_fields(rec, buffer, fn, def->en, def->id);
-           if (ret_code != FDS_OK){
+           if (ret_code != FDS_OK) {
                return ret_code;
            }
         } else {
            ret_code = fn(buffer, &iter.field);
         }
 
-        // Convert the field
-
         switch (ret_code) {
         // Recover from a conversion error
         case FDS_ERR_ARG:
             buffer->write_begin = writer_pos;
             ret_code = buffer_append(buffer, "null");
-            if (ret_code != FDS_OK){
+            if (ret_code != FDS_OK) {
                 return ret_code;
             }
             __attribute__ ((fallthrough)); // only for purpose to avoid warning "this statement may fall through"
@@ -1054,13 +1067,16 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
 
     return FDS_OK;
 }
-/* \breaf Function for adding seamntic for strucutred datatype
+
+/**
+ * \breaf Function for adding seamntic for strucutred datatype
  * \param[in] buffer Buffer
  * \param[in] sematic Sematic value
  *
- * \return ret_code
+ * \return #FDS_OK on success
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
-int
+static int
 add_sematic(struct context *buffer, int semantic) {
     int ret_code;
 
@@ -1086,23 +1102,24 @@ add_sematic(struct context *buffer, int semantic) {
     }
     return ret_code;
 }
+
 /**
  * \brief Procces basicList data type
  *
- * \param[in] field An IPFIX field to convert
+ * \param[in] field  An IPFIX field to convert
  * \param[in] buffer Buffer
  * \return #FDS_OK on success
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
 int
-to_blist (struct context *buffer, const struct fds_drec_field *field)
+to_blist(struct context *buffer, const struct fds_drec_field *field)
 {
     int ret_code;
     int added = 0;
     struct fds_blist_iter blist_iter;
 
     ret_code = buffer_append(buffer,"{\"@type\":\"basicList\",\"semantic\":\"");
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
@@ -1110,29 +1127,30 @@ to_blist (struct context *buffer, const struct fds_drec_field *field)
 
     // Add sematic
     ret_code = add_sematic(buffer, blist_iter.semantic);
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
     ret_code = buffer_append(buffer,"\",\"data\":[");
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
-    // Prepare converter for fielda in list
+    // Prepare converter for fields in the list
+    // FIXME: This uses type extracted during iterator initialization, but it isn't guaranteed!
     converter_fn fn;
-    if (blist_iter.field.info->def == NULL){
+    if (blist_iter.field.info->def == NULL) {
         fn = &to_octet;
     } else {
         fn = get_converter(&blist_iter.field);
     }
 
-    // Add vaules from list
-    while (fds_blist_iter_next(&blist_iter) != FDS_EOC) {
+    // Add values from the list
+    while (fds_blist_iter_next(&blist_iter) == FDS_OK) {
         if (added > 0) {
             // Add comma
             ret_code = buffer_append(buffer,",");
-            if (ret_code != FDS_OK){
+            if (ret_code != FDS_OK) {
                 return ret_code;
             }
         }
@@ -1146,7 +1164,7 @@ to_blist (struct context *buffer, const struct fds_drec_field *field)
         case FDS_ERR_ARG:
             buffer->write_begin = writer_pos;
             ret_code = buffer_append(buffer, "null");
-            if (ret_code != FDS_OK){
+            if (ret_code != FDS_OK) {
                 return ret_code;
             }
             __attribute__ ((fallthrough)); // only for purpose to avoid warning "this statement may fall through"
@@ -1157,8 +1175,6 @@ to_blist (struct context *buffer, const struct fds_drec_field *field)
             // Other erros -> completly out
             return ret_code;
         }
-
-
     }
 
     ret_code = buffer_append(buffer,"]}");
@@ -1169,14 +1185,14 @@ to_blist (struct context *buffer, const struct fds_drec_field *field)
     return FDS_OK;
 }
 
-/*
-* \brief Procces subTemplateList datatype
-*
-* \param[in] field An IPFIX field to convert
-* \param[in] buffer Buffer
-* \return #FDS_OK on success
-* \return ret_code in case of memory allocation error
-*/
+/**
+ * \brief Procces subTemplateList datatype
+ *
+ * \param[in] field  An IPFIX field to convert
+ * \param[in] buffer Buffer
+ * \return #FDS_OK on success
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
+ */
 int
 to_stlist(struct context *buffer, const struct fds_drec_field *field)
 {
@@ -1185,42 +1201,36 @@ to_stlist(struct context *buffer, const struct fds_drec_field *field)
     struct fds_stlist_iter stlist_iter;
 
     ret_code = buffer_append(buffer,"{\"@type\":\"subTemplateList\",\"semantic\":\"");
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
-    // Try to convert each field in the record
-    uint16_t iter_flag = (buffer->flags & FDS_CD2J_IGNORE_UNKNOWN) ? FDS_DREC_UNKNOWN_SKIP : 0;
-    // If flag FDS_CD2J_BIFLOW_REVERSE is set,
-    // then will be added flag FDS_DREC_BIFLOW_REV for every field
-    iter_flag |= (buffer->flags & FDS_CD2J_BIFLOW_REVERSE) ? FDS_DREC_BIFLOW_REV : 0;
-
-    fds_stlist_iter_init(&stlist_iter, (struct fds_drec_field *)field, buffer->snap, iter_flag);
+    fds_stlist_iter_init(&stlist_iter, (struct fds_drec_field *) field, buffer->snap, 0);
 
     // Add sematic
     ret_code = add_sematic(buffer, stlist_iter.semantic);
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
     ret_code = buffer_append(buffer,"\",\"data\":[");
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
-    // Add vaules from list
+    // Add records from the list
     while (fds_stlist_iter_next(&stlist_iter) == FDS_OK) {
         if (added > 0) {
             // Add comma
             ret_code = buffer_append(buffer,",");
-            if (ret_code != FDS_OK){
+            if (ret_code != FDS_OK) {
                 return ret_code;
             }
         }
 
         // Add "{" in the beginig of each structure
         ret_code = buffer_append(buffer,"{");
-        if (ret_code != FDS_OK){
+        if (ret_code != FDS_OK) {
             return ret_code;
         }
 
@@ -1231,29 +1241,29 @@ to_stlist(struct context *buffer, const struct fds_drec_field *field)
 
         // Add "{" in the beginig of each structure
         ret_code = buffer_append(buffer,"}");
-        if (ret_code != FDS_OK){
+        if (ret_code != FDS_OK) {
             return ret_code;
         }
-        added++;
 
+        added++;
     }
 
     ret_code = buffer_append(buffer,"]}");
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
     return FDS_OK;
 }
 
-/*
-* \brief Procces subTemplteMultiList datatype
-*
-* \param[in] field An IPFIX field to convert
-* \param[in] buffer Buffer
-* \return #FDS_OK on success
-* \return ret_code in case of memory allocation error
-*/
+/**
+ * \brief Procces subTemplteMultiList datatype
+ *
+ * \param[in] field An IPFIX field to convert
+ * \param[in] buffer Buffer
+ * \return #FDS_OK on success
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
+ */
 int
 to_stMulList(struct context *buffer, const struct fds_drec_field *field)
 {
@@ -1261,59 +1271,54 @@ to_stMulList(struct context *buffer, const struct fds_drec_field *field)
     struct fds_stmlist_iter stMulList_iter;
 
     ret_code = buffer_append(buffer,"{\"@type\":\"subTemplateMultiList\",\"semantic\":\"");
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
-    // Try to convert each field in the record
-    uint16_t iter_flag = (buffer->flags & FDS_CD2J_IGNORE_UNKNOWN) ? FDS_DREC_UNKNOWN_SKIP : 0;
-    // If flag FDS_CD2J_BIFLOW_REVERSE is set,
-    // then will be added flag FDS_DREC_BIFLOW_REV for every field
-    iter_flag |= (buffer->flags & FDS_CD2J_BIFLOW_REVERSE) ? FDS_DREC_BIFLOW_REV : 0;
 
-    fds_stmlist_iter_init(&stMulList_iter, (struct fds_drec_field *)field, buffer->snap, iter_flag);
+    fds_stmlist_iter_init(&stMulList_iter, (struct fds_drec_field *) field, buffer->snap, 0);
 
     // Add sematic
     ret_code = add_sematic(buffer, stMulList_iter.semantic);
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
     ret_code = buffer_append(buffer,"\",\"data\":[");
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
 
-    // Loop for blocks from list
+    // Loop through blocks in the list
     int added = 0;
     while (fds_stmlist_iter_next_block(&stMulList_iter) == FDS_OK) {
         // Separate fields
         if (added > 0) {
             // Add comma
             ret_code = buffer_append(buffer,",");
-            if (ret_code != FDS_OK){
+            if (ret_code != FDS_OK) {
                 return ret_code;
             }
         }
         // Add opening bracket for block
         ret_code = buffer_append(buffer,"[");
-        if (ret_code != FDS_OK){
+        if (ret_code != FDS_OK) {
             return ret_code;
         }
 
-        // Loop for individual elements throught block
+        // Loop through individual records in the current block
         int added_in_block = 0;
         while (fds_stmlist_iter_next_rec(&stMulList_iter) == FDS_OK) {
             // Separate fields
             if (added_in_block > 0) {
                 // Add comma
                 ret_code = buffer_append(buffer,",");
-                if (ret_code != FDS_OK){
+                if (ret_code != FDS_OK) {
                     return ret_code;
                 }
             }
-            // Add opening bracket for element
+            // Add opening bracket for the record
             ret_code = buffer_append(buffer,"{");
-            if (ret_code != FDS_OK){
+            if (ret_code != FDS_OK) {
                 return ret_code;
             }
 
@@ -1322,9 +1327,9 @@ to_stMulList(struct context *buffer, const struct fds_drec_field *field)
                 return ret_code;
             }
 
-            // Add opening bracket for element
+            // Add closing bracket for the record
             ret_code = buffer_append(buffer,"}");
-            if (ret_code != FDS_OK){
+            if (ret_code != FDS_OK) {
                 return ret_code;
             }
             added_in_block++;
@@ -1332,7 +1337,7 @@ to_stMulList(struct context *buffer, const struct fds_drec_field *field)
 
         // Add closing bracket for block
         ret_code = buffer_append(buffer,"]");
-        if (ret_code != FDS_OK){
+        if (ret_code != FDS_OK) {
             return ret_code;
         }
         added++;
@@ -1346,14 +1351,17 @@ to_stMulList(struct context *buffer, const struct fds_drec_field *field)
 
     return FDS_OK;
 }
+
 /**
  * \brief Append the buffer with a name of an Information Element
  *
- * If the definition of a field is unknown, numeric identification is added.
+ * If the definition of a field is unknown or #FDS_CD2J_NUMERIC_ID flag is set,
+ * numeric identification is added.
+ *
  * \param[in] buffer Buffer
  * \param[in] field Field identification to add
  * \return #FDS_OK on success
- * \return ret_code in case of memory allocation error
+ * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
 int
 add_field_name(struct context *buffer, const struct fds_drec_field *field)
@@ -1364,7 +1372,7 @@ add_field_name(struct context *buffer, const struct fds_drec_field *field)
     // If defenition of field is unknown or if flag FDS_CD2J_NUMERIC_ID is set,
     // then identeficator will be in format "enXX:idYY"
     if ((def == NULL) || (num_id)) {
-        int scope_size = 32;
+        static const size_t scope_size = 32;
         char raw_name[scope_size];
 
         // Max length of identeficator in format "enXX:idYY"
@@ -1372,18 +1380,20 @@ add_field_name(struct context *buffer, const struct fds_drec_field *field)
         snprintf(raw_name, scope_size, "\"en%" PRIu32 ":id%" PRIu16 "\":", field->info->en,
             field->info->id);
 
-        int ret_code = buffer_append(buffer,raw_name);
-        if (ret_code != FDS_OK){
+        int ret_code = buffer_append(buffer, raw_name);
+        if (ret_code != FDS_OK) {
             return ret_code;
         }
         return FDS_OK;
     }
+
+    // Add a string identeficator
     const size_t scope_size = strlen(def->scope->name);
     const size_t elem_size = strlen(def->name);
 
     size_t size = scope_size + elem_size + 5; // 2x '"' + 2x ':' + '\0'
     int ret_code = buffer_reserve(buffer, buffer_used(buffer) + size);
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         return ret_code;
     }
     *(buffer->write_begin++) = '"';
@@ -1403,7 +1413,7 @@ int
 fds_drec2json(const struct fds_drec *rec, uint32_t flags, const fds_iemgr_t *ie_mgr, char **str,
     size_t *str_size)
 {
-    // Control pointer to buffer
+    // Allocate a memory if neccessary
     bool null_buffer = false;
     if (*str == NULL) {
         null_buffer = true;
@@ -1417,8 +1427,8 @@ fds_drec2json(const struct fds_drec *rec, uint32_t flags, const fds_iemgr_t *ie_
 
     }
 
+    // Prepare a conversion buffer
     struct context record;
-
     record.buffer_begin = *str;
     record.buffer_end = *str + *str_size;
     record.write_begin = record.buffer_begin;
@@ -1427,32 +1437,31 @@ fds_drec2json(const struct fds_drec *rec, uint32_t flags, const fds_iemgr_t *ie_
     record.mgr = ie_mgr;
     record.snap = rec->snap;
 
+    // Convert the record
     int ret_code;
-
     ret_code = buffer_append(&record,"{\"@type\":\"ipfix.entry\",");
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         goto error;
     }
 
-    // Try to process record
     ret_code = iter_loop(rec, &record);
-    if (ret_code != FDS_OK){
+    if (ret_code != FDS_OK) {
         goto error;
     }
 
-    /*update value of \p str_size*/
+    ret_code = buffer_append(&record,"}"); // This also adds '\0'
+    if(ret_code != FDS_OK) {
+        goto error;
+    }
+
+    // Update values (buffer might be reallocated i.e. new pointer)
     *str = record.buffer_begin;
     *str_size = buffer_alloc(&record);
 
-    ret_code = buffer_append(&record,"}"); // This also adds '\0'
-    if(ret_code != FDS_OK){
-        goto error;
-    }
-
     return buffer_used(&record);
 
-error:;
-    if (null_buffer){
+error:
+    if (null_buffer) {
         free(str);
     }
     return ret_code;

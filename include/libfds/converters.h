@@ -1359,7 +1359,7 @@ fds_string_utf8check(const void *field, size_t size);
  */
 enum fds_convert_drec2json {
     /**
-     * Allow to realloc output buffer is its size is not sufficient.
+     * Allow to realloc output buffer if its size is not sufficient.
      */
     FDS_CD2J_ALLOW_REALLOC   = (1U << 0),
     /**
@@ -1393,7 +1393,7 @@ enum fds_convert_drec2json {
      */
     FDS_CD2J_NUMERIC_ID      = (1U << 6),
     /**
-     * Convert all timestamps to ISO 8601 textual representation of UTC and
+     * Convert all timestamps to ISO 8601 textual representation of UTC with
      * milliseconds, e.g. "2019-05-22T22:34:57.828Z"
      */
     FDS_CD2J_TS_FORMAT_MSEC  = (1U << 7),
@@ -1415,7 +1415,7 @@ enum fds_convert_drec2json {
  *     format "enXX:idYY", where XX is an Enterprise Number and YY is
  *     an Information Element ID.
  *   - Fields with unknown definition of their Information Elements are
- *     interpreted as octatArray (i.e. hexadecimal value in network byte order).
+ *     interpreted as octetArray (i.e. hexadecimal value in network byte order).
  *   - If conversion of an IPFIX field of the Data Record fails (for example,
  *     due to invalid size or value), "null" is used as its value.
  *   - All timestamps are formatted as number of milliseconds from UNIX Epoch.
@@ -1432,8 +1432,9 @@ enum fds_convert_drec2json {
  *
  * @param[in]     rec      IPFIX Data Record to convert
  * @param[in]     flags    Conversion flags (see ::fds_convert_drec2json)
+ * @patam[in]     ie_mgr   Information Element manager (necessary for decoding
+ *                         basicLists, can be NULL)
  * @param[out]    str      Output buffer where the JSON string will be stored
- * @patam[in]     ie_mgr   Information Element manager (can be NULL)
  * @param[in,out] str_size Size of the output buffer
  *
  * \return On success returns a number of characters (excluding the termination
@@ -1449,7 +1450,6 @@ enum fds_convert_drec2json {
 FDS_API int
 fds_drec2json(const struct fds_drec *rec, uint32_t flags, const fds_iemgr_t *ie_mgr, char **str,
     size_t *str_size);
-
 
 #ifdef __cplusplus
 }

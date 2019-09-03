@@ -262,7 +262,8 @@ TEST_F(Drec_basic, tcpFlag)
 
 // -------------------------------------------------------------------------------------------------
 /// IPFIX Data Record of a biflow
-class Drec_biflow : public Drec_base { protected:
+class Drec_biflow : public Drec_base {
+protected:
     /// Before each Test case
     void SetUp() override {
         Drec_base::SetUp();
@@ -438,7 +439,9 @@ TEST_F(Drec_biflow, errorBuff)
     free(def_buff);
     // Loop check error situations
     for (int i = 0; i < def_rc; i++){
-        char*  new_buff= (char*) malloc(i);
+        SCOPED_TRACE("i: " + std::to_string(i));
+        char *new_buff = (char*) malloc(i);
+        ASSERT_NE(new_buff, nullptr);
         uint32_t new_flags = 0;
         size_t new_buff_size = i;
         int new_rc = fds_drec2json(&m_drec, new_flags, m_iemgr.get(), &new_buff, &new_buff_size);
@@ -761,7 +764,34 @@ TEST_F(Drec_extra, forLoop)
         EXPECT_GT(new_rc, 0);
         free(new_buff);
     }
+}
 
+// Testing return of error code FDS_ERR_BUFFER
+TEST_F(Drec_extra, errorBuff)
+{
+    // Default situation
+    constexpr size_t BSIZE = 0U;
+    char* def_buff = (char*) malloc(BSIZE);
+    uint32_t def_flags = FDS_CD2J_ALLOW_REALLOC;
+    size_t def_buff_size = BSIZE;
+
+    int def_rc = fds_drec2json(&m_drec, def_flags, m_iemgr.get(), &def_buff, &def_buff_size);
+    ASSERT_GT(def_rc, 0);
+    EXPECT_EQ(size_t(def_rc), strlen(def_buff));
+    EXPECT_NE(def_buff_size, BSIZE);
+    free(def_buff);
+
+    // Loop check error situations
+    for (int i = 0; i < def_rc; i++) {
+        SCOPED_TRACE("i: " + std::to_string(i));
+        char *new_buff = (char*) malloc(i);
+        ASSERT_NE(new_buff, nullptr);
+        uint32_t new_flags = 0;
+        size_t new_buff_size = i;
+        int new_rc = fds_drec2json(&m_drec, new_flags, m_iemgr.get(), &new_buff, &new_buff_size);
+        EXPECT_EQ(new_rc, FDS_ERR_BUFFER);
+        free(new_buff);
+    }
 }
 
 // Test for formating flag of size 2 (FDS_CD2J_FORMAT_TCPFLAGS)
@@ -822,8 +852,8 @@ TEST_F(Drec_extra, numID)
 
 
 // -------------------------------------------------------------------------------------------------
-/// IPFIX Data Record for unvalid situations
-class Drec_unvalid : public Drec_base {
+/// IPFIX Data Record for invalid situations
+class Drec_invalid : public Drec_base {
 protected:
     /// Before each Test case
     void SetUp() override {
@@ -832,7 +862,7 @@ protected:
         // Prepare an IPFIX Template
         ipfix_trec trec{256};
         trec.add_field( 8,  0);             // sourceIPv4Address
-        trec.add_field(12,  0);             // destinationIPv4Address (second occurrence)
+        trec.add_field(12,  0);             // destinationIPv4Address
         trec.add_field(24,  0);             // postPacketDeltaCount
         trec.add_field(1002,0);             // myInt
         trec.add_field(1003,0);             // myFloat32
@@ -841,7 +871,7 @@ protected:
         trec.add_field(  4, 0);             // protocolIdentifier
         trec.add_field(  6, 0);             // tcpControlBits
         trec.add_field(56,  0);             // sourceMacAddress
-        trec.add_field( 12, 4);             // destinationIPv4Address
+        trec.add_field( 12, 4);             // destinationIPv4Address (second occurrence)
         trec.add_field( 11, 2);             // destinationTransportPort
         trec.add_field( 82, ipfix_trec::SIZE_VAR); // interfaceName
         trec.add_field( 82, 0);             // interfaceName (second occurrence)
@@ -869,7 +899,7 @@ protected:
 };
 
 //  Test for adding null in case of unvalid field
-TEST_F(Drec_unvalid, unvalidField)
+TEST_F(Drec_invalid, invalidField)
 {
     constexpr size_t BSIZE = 2U;
     char* buff = (char*) malloc(BSIZE);
@@ -895,7 +925,7 @@ TEST_F(Drec_unvalid, unvalidField)
 }
 
 //  Test for adding null to multifield in case of unvalid field
-TEST_F(Drec_unvalid, nullInMulti)
+TEST_F(Drec_invalid, nullInMulti)
 {
     constexpr size_t BSIZE = 2U;
     char* buff = (char*) malloc(BSIZE);
@@ -917,7 +947,7 @@ TEST_F(Drec_unvalid, nullInMulti)
 }
 
 // Test fot string with size 0
-TEST_F(Drec_unvalid, zeroSizeStr)
+TEST_F(Drec_invalid, zeroSizeStr)
 {
     constexpr size_t BSIZE = 2U;
     char* buff = (char*) malloc(BSIZE);
@@ -935,6 +965,34 @@ TEST_F(Drec_unvalid, zeroSizeStr)
    EXPECT_NE(std::find(cfg_arr.begin(), cfg_arr.end(), ""), cfg_arr.end());
 
    free(buff);
+}
+
+// Testing return of error code FDS_ERR_BUFFER
+TEST_F(Drec_invalid, errorBuff)
+{
+    // Default situation
+    constexpr size_t BSIZE = 0U;
+    char* def_buff = (char*) malloc(BSIZE);
+    uint32_t def_flags = FDS_CD2J_ALLOW_REALLOC;
+    size_t def_buff_size = BSIZE;
+
+    int def_rc = fds_drec2json(&m_drec, def_flags, m_iemgr.get(), &def_buff, &def_buff_size);
+    ASSERT_GT(def_rc, 0);
+    EXPECT_EQ(size_t(def_rc), strlen(def_buff));
+    EXPECT_NE(def_buff_size, BSIZE);
+    free(def_buff);
+
+    // Loop check error situations
+    for (int i = 0; i < def_rc; i++) {
+        SCOPED_TRACE("i: " + std::to_string(i));
+        char *new_buff = (char*) malloc(i);
+        ASSERT_NE(new_buff, nullptr);
+        uint32_t new_flags = 0;
+        size_t new_buff_size = i;
+        int new_rc = fds_drec2json(&m_drec, new_flags, m_iemgr.get(), &new_buff, &new_buff_size);
+        EXPECT_EQ(new_rc, FDS_ERR_BUFFER);
+        free(new_buff);
+    }
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1162,6 +1220,34 @@ TEST_F(Drec_basicLists, allocLoop)
     free(buffer);
 }
 
+// Testing return of error code FDS_ERR_BUFFER
+TEST_F(Drec_basicLists, errorBuff)
+{
+    // Default situation
+    constexpr size_t BSIZE = 0U;
+    char* def_buff = (char*) malloc(BSIZE);
+    uint32_t def_flags = FDS_CD2J_ALLOW_REALLOC;
+    size_t def_buff_size = BSIZE;
+
+    int def_rc = fds_drec2json(&m_drec, def_flags, m_iemgr.get(), &def_buff, &def_buff_size);
+    ASSERT_GT(def_rc, 0);
+    EXPECT_EQ(size_t(def_rc), strlen(def_buff));
+    EXPECT_NE(def_buff_size, BSIZE);
+    free(def_buff);
+
+    // Loop check error situations
+    for (int i = 0; i < def_rc; i++) {
+        SCOPED_TRACE("i: " + std::to_string(i));
+        char *new_buff = (char*) malloc(i);
+        ASSERT_NE(new_buff, nullptr);
+        uint32_t new_flags = 0;
+        size_t new_buff_size = i;
+        int new_rc = fds_drec2json(&m_drec, new_flags, m_iemgr.get(), &new_buff, &new_buff_size);
+        EXPECT_EQ(new_rc, FDS_ERR_BUFFER);
+        free(new_buff);
+    }
+}
+
 // -------------------------------------------------------------------------------------------------
 /// IPFIX Data Record with subTemplateList
 class Drec_subTemplateList : public Drec_base {
@@ -1229,7 +1315,7 @@ protected:
     std::string VALUE_HTTP_TARGET2 = "/api/article/";
 };
 
-// TODO
+// Just try to convert the record
 TEST_F(Drec_subTemplateList, simple)
 {
     size_t buffer_size = 2U;
@@ -1246,6 +1332,7 @@ TEST_F(Drec_subTemplateList, simple)
     free(buffer);
 }
 
+// Check values in the sub-records
 TEST_F(Drec_subTemplateList, values)
 {
     size_t buffer_size = 2U;
@@ -1280,6 +1367,34 @@ TEST_F(Drec_subTemplateList, values)
     EXPECT_EQ(obj1["iana:httpRequestTarget"], VALUE_HTTP_TARGET2);
 
     free(buffer);
+}
+
+// Testing return of error code FDS_ERR_BUFFER
+TEST_F(Drec_subTemplateList, errorBuff)
+{
+    // Default situation
+    constexpr size_t BSIZE = 0U;
+    char* def_buff = (char*) malloc(BSIZE);
+    uint32_t def_flags = FDS_CD2J_ALLOW_REALLOC;
+    size_t def_buff_size = BSIZE;
+
+    int def_rc = fds_drec2json(&m_drec, def_flags, m_iemgr.get(), &def_buff, &def_buff_size);
+    ASSERT_GT(def_rc, 0);
+    EXPECT_EQ(size_t(def_rc), strlen(def_buff));
+    EXPECT_NE(def_buff_size, BSIZE);
+    free(def_buff);
+
+    // Loop check error situations
+    for (int i = 0; i < def_rc; i++) {
+        SCOPED_TRACE("i: " + std::to_string(i));
+        char *new_buff = (char*) malloc(i);
+        ASSERT_NE(new_buff, nullptr);
+        uint32_t new_flags = 0;
+        size_t new_buff_size = i;
+        int new_rc = fds_drec2json(&m_drec, new_flags, m_iemgr.get(), &new_buff, &new_buff_size);
+        EXPECT_EQ(new_rc, FDS_ERR_BUFFER);
+        free(new_buff);
+    }
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1319,7 +1434,7 @@ protected:
             sub_drec3.append_mac(VALUE_SRC_MAC);
             sub_drec3.append_string(VALUE_APP_DES);
 
-            // Prepare a subTemplteMultiList field with subTemplateList
+            // Prepare a subTemplteMultiList field
             ipfix_stlist stm_list;
             stm_list.subTempMulti_header(FDS_IPFIX_LIST_ALL_OF);
             stm_list.subTempMulti_data_hdr(257, sub_drec1.size() + sub_drec2.size() );
@@ -1413,6 +1528,34 @@ TEST_F(Drec_subTemplateMultiList, values)
     free(buffer);
 }
 
+// Testing return of error code FDS_ERR_BUFFER
+TEST_F(Drec_subTemplateMultiList, errorBuff)
+{
+    // Default situation
+    constexpr size_t BSIZE = 0U;
+    char* def_buff = (char*) malloc(BSIZE);
+    uint32_t def_flags = FDS_CD2J_ALLOW_REALLOC;
+    size_t def_buff_size = BSIZE;
+
+    int def_rc = fds_drec2json(&m_drec, def_flags, m_iemgr.get(), &def_buff, &def_buff_size);
+    ASSERT_GT(def_rc, 0);
+    EXPECT_EQ(size_t(def_rc), strlen(def_buff));
+    EXPECT_NE(def_buff_size, BSIZE);
+    free(def_buff);
+
+    // Loop check error situations
+    for (int i = 0; i < def_rc; i++) {
+        SCOPED_TRACE("i: " + std::to_string(i));
+        char *new_buff = (char*) malloc(i);
+        ASSERT_NE(new_buff, nullptr);
+        uint32_t new_flags = 0;
+        size_t new_buff_size = i;
+        int new_rc = fds_drec2json(&m_drec, new_flags, m_iemgr.get(), &new_buff, &new_buff_size);
+        EXPECT_EQ(new_rc, FDS_ERR_BUFFER);
+        free(new_buff);
+    }
+}
+
 // -------------------------------------------------------------------------------------------------
 /// IPFIX Data Record with subTemplateMultiList
 class Drec_nested_stList_in_blist : public Drec_base{
@@ -1428,7 +1571,7 @@ protected:
             trec.add_field(11, 2); // destinationTransportPort
             trec.add_field(484, ipfix_trec::SIZE_VAR); // bgpSourceCommunityList
 
-            // Prepare 1. templeta
+            // Prepare 1. template
             ipfix_trec sub_trec1{257};
             sub_trec1.add_field(82, ipfix_trec::SIZE_VAR); // interfaceName
             sub_trec1.add_field(1004, 8); // myMInf
@@ -1440,7 +1583,7 @@ protected:
             ipfix_drec rec_1_2;
             rec_1_2.append_string(VALUE_IFC_NAME2);
             rec_1_2.append_float(VALUE_MY_PINF,8);
-            // Prepare 2. templeta
+            // Prepare 2. template
             ipfix_trec sub_trec2{258};
             sub_trec2.add_field(56, 6); // sourceMacAddress
             sub_trec2.add_field(94, ipfix_trec::SIZE_VAR);// applicationDescription (string)
@@ -1592,6 +1735,34 @@ TEST_F(Drec_nested_stList_in_blist, values)
     free(buffer);
 }
 
+// Testing return of error code FDS_ERR_BUFFER
+TEST_F(Drec_nested_stList_in_blist, errorBuff)
+{
+    // Default situation
+    constexpr size_t BSIZE = 0U;
+    char* def_buff = (char*) malloc(BSIZE);
+    uint32_t def_flags = FDS_CD2J_ALLOW_REALLOC;
+    size_t def_buff_size = BSIZE;
+
+    int def_rc = fds_drec2json(&m_drec, def_flags, m_iemgr.get(), &def_buff, &def_buff_size);
+    ASSERT_GT(def_rc, 0);
+    EXPECT_EQ(size_t(def_rc), strlen(def_buff));
+    EXPECT_NE(def_buff_size, BSIZE);
+    free(def_buff);
+
+    // Loop check error situations
+    for (int i = 0; i < def_rc; i++) {
+        SCOPED_TRACE("i: " + std::to_string(i));
+        char *new_buff = (char*) malloc(i);
+        ASSERT_NE(new_buff, nullptr);
+        uint32_t new_flags = 0;
+        size_t new_buff_size = i;
+        int new_rc = fds_drec2json(&m_drec, new_flags, m_iemgr.get(), &new_buff, &new_buff_size);
+        EXPECT_EQ(new_rc, FDS_ERR_BUFFER);
+        free(new_buff);
+    }
+}
+
 // -------------------------------------------------------------------------------------------------
 /// IPFIX Data Record with subTemplateMultiList
 class Drec_nested_blist_in_stlist : public Drec_base{
@@ -1721,7 +1892,31 @@ TEST_F(Drec_nested_blist_in_stlist, values)
     free(buffer);
 }
 
+// Testing return of error code FDS_ERR_BUFFER
+TEST_F(Drec_nested_blist_in_stlist, errorBuff)
+{
+    // Default situation
+    constexpr size_t BSIZE = 0U;
+    char* def_buff = (char*) malloc(BSIZE);
+    uint32_t def_flags = FDS_CD2J_ALLOW_REALLOC;
+    size_t def_buff_size = BSIZE;
 
-/* TODO
+    int def_rc = fds_drec2json(&m_drec, def_flags, m_iemgr.get(), &def_buff, &def_buff_size);
+    ASSERT_GT(def_rc, 0);
+    EXPECT_EQ(size_t(def_rc), strlen(def_buff));
+    EXPECT_NE(def_buff_size, BSIZE);
+    free(def_buff);
 
-*/
+    // Loop check error situations
+    for (int i = 0; i < def_rc; i++) {
+        SCOPED_TRACE("i: " + std::to_string(i));
+        char *new_buff = (char*) malloc(i);
+        ASSERT_NE(new_buff, nullptr);
+        uint32_t new_flags = 0;
+        size_t new_buff_size = i;
+        int new_rc = fds_drec2json(&m_drec, new_flags, m_iemgr.get(), &new_buff, &new_buff_size);
+        EXPECT_EQ(new_rc, FDS_ERR_BUFFER);
+        free(new_buff);
+    }
+}
+

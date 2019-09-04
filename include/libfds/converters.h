@@ -1445,7 +1445,8 @@ enum fds_convert_drec2json {
  *
  * \return On success returns a number of characters (excluding the termination
  *   null byte) placed into the buffer \p str. Therefore, if the result is
- *   greater that or equal to zero, conversion was successful.
+ *   greater that or equal to zero, conversion was successful (Note: the null
+ *   byte has been also successfuly added at the end of the JSON string)
  * \return #FDS_ERR_BUFFER if the length of the result string (including the
  *   termination null byte) would exceed \p str_size and #FDS_CD2J_ALLOW_REALLOC
  *   flag is not set. The context written to the output buffer \p str is

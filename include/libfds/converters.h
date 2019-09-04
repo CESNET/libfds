@@ -1368,35 +1368,41 @@ enum fds_convert_drec2json {
      */
     FDS_CD2J_BIFLOW_REVERSE  = (1U << 1),
     /**
+     * In case of a Biflow record, skip (i.e. ignore) all reverse fields.
+     * The flag can be combined with ::FDS_CD2J_BIFLOW_REVERSE. In that case,
+     * the filter is applied on the remapped fields.
+     */
+    FDS_CD2J_REVERSE_SKIP    = (1U << 2),
+    /**
      * Skip fields with unknown definition of an Information Element.
      */
-    FDS_CD2J_IGNORE_UNKNOWN  = (1U << 2),
+    FDS_CD2J_IGNORE_UNKNOWN  = (1U << 3),
     /**
      * Convert standard TCP flags identification (i.e. "iana:tcpControlBits")
      * to textual representation. For example, ".A..S.".
      */
-    FDS_CD2J_FORMAT_TCPFLAGS = (1U << 3),
+    FDS_CD2J_FORMAT_TCPFLAGS = (1U << 4),
     /**
      * Convert standart protocol identification (i.e. "iana:protocolIdentifier")
      * to textual representation. For example, instead of 6 writes "TCP").
      */
-    FDS_CD2J_FORMAT_PROTO    = (1U << 4),
+    FDS_CD2J_FORMAT_PROTO    = (1U << 5),
     /**
      * Ingore non-printable charactes (newline, tab, control charactes, etc.)
      * in IPFIX string fields instead of escaping them.
      */
-    FDS_CD2J_NON_PRINTABLE   = (1U << 5),
+    FDS_CD2J_NON_PRINTABLE   = (1U << 6),
     /**
      * Use the format of unknown Information Elements (i.e. "enXX:idYY") for
      * names for all name-value pairs. E.g., instead of "iana:octetDeltaCount"
      * use always "en0:id1".
      */
-    FDS_CD2J_NUMERIC_ID      = (1U << 6),
+    FDS_CD2J_NUMERIC_ID      = (1U << 7),
     /**
      * Convert all timestamps to ISO 8601 textual representation of UTC with
      * milliseconds, e.g. "2019-05-22T22:34:57.828Z"
      */
-    FDS_CD2J_TS_FORMAT_MSEC  = (1U << 7),
+    FDS_CD2J_TS_FORMAT_MSEC  = (1U << 8)
 };
 
 /**

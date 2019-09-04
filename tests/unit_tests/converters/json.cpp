@@ -359,6 +359,97 @@ TEST_F(Drec_biflow, simpleParser)
    free(buff);
 }
 
+// Convert only forward fields
+TEST_F(Drec_biflow, forwardOnly)
+{
+    constexpr size_t BSIZE = 2U;
+    char* buff = (char*) malloc(BSIZE);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC | FDS_CD2J_REVERSE_SKIP;
+    size_t buff_size = BSIZE;
+
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
+    ASSERT_GT(rc, 0);
+    EXPECT_EQ(size_t(rc), strlen(buff));
+    EXPECT_NE(buff_size, BSIZE);
+    Config cfg = parse_string(buff, JSON, "drec2json");
+    EXPECT_TRUE(cfg.has_key("iana:sourceTransportPort"));
+    EXPECT_TRUE(cfg.has_key("iana:sourceIPv6Address"));
+    EXPECT_TRUE(cfg.has_key("iana:destinationTransportPort"));
+    EXPECT_TRUE(cfg.has_key("iana:destinationIPv6Address"));
+    EXPECT_TRUE(cfg.has_key("iana:protocolIdentifier"));
+    EXPECT_TRUE(cfg.has_key("iana:flowStartNanoseconds"));
+    EXPECT_TRUE(cfg.has_key("iana:flowEndNanoseconds"));
+    EXPECT_TRUE(cfg.has_key("iana:applicationName"));
+    EXPECT_TRUE(cfg.has_key("iana:applicationDescription"));
+    EXPECT_TRUE(cfg.has_key("iana:interfaceName"));
+    EXPECT_TRUE(cfg.has_key("iana:octetDeltaCount"));
+    EXPECT_TRUE(cfg.has_key("iana:packetDeltaCount"));
+
+    EXPECT_FALSE(cfg.has_key("iana@reverse:flowStartNanoseconds@reverse"));
+    EXPECT_FALSE(cfg.has_key("iana@reverse:flowEndNanoseconds@reverse"));
+    EXPECT_FALSE(cfg.has_key("iana@reverse:octetDeltaCount@reverse"));
+    EXPECT_FALSE(cfg.has_key("iana@reverse:packetDeltaCount@reverse"));
+
+    EXPECT_EQ((uint64_t) cfg["iana:octetDeltaCount"], VALUE_BYTES);        // octetDeltaCount
+    EXPECT_EQ((uint64_t) cfg["iana:packetDeltaCount"], VALUE_PKTS);        // packetDeltaCount
+    EXPECT_EQ((uint64_t) cfg["iana:sourceTransportPort"], VALUE_SRC_PORT); // sourceTransportPort
+    EXPECT_EQ( cfg["iana:sourceIPv6Address"], VALUE_SRC_IP6);              // sourceIPv6Address
+    EXPECT_EQ((uint64_t) cfg["iana:destinationTransportPort"], VALUE_DST_PORT); // destinationTransportPort
+    EXPECT_EQ( cfg["iana:destinationIPv6Address"], VALUE_DST_IP6);         // destinationIPv6Address
+    EXPECT_EQ((uint64_t) cfg["iana:protocolIdentifier"], VALUE_PROTO);     // protocolIdentifier
+    EXPECT_EQ((uint64_t) cfg["iana:flowStartNanoseconds"], VALUE_TS_FST);  // flowStartNanoseconds
+    EXPECT_EQ((uint64_t) cfg["iana:flowEndNanoseconds"], VALUE_TS_LST);    // flowEndNanoseconds
+    EXPECT_EQ(cfg["iana:applicationName"], VALUE_APP_NAME);                // applicationName
+    EXPECT_EQ(cfg["iana:applicationDescription"], VALUE_APP_DSC);          // applicationDescription
+    free(buff);
+}
+
+// Convert from reverse point of view without "forward only" fields
+TEST_F(Drec_biflow, ReverseOnly)
+{
+    constexpr size_t BSIZE = 2U;
+    char* buff = (char*) malloc(BSIZE);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC | FDS_CD2J_BIFLOW_REVERSE | FDS_CD2J_REVERSE_SKIP;
+    size_t buff_size = BSIZE;
+
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
+    ASSERT_GT(rc, 0);
+    EXPECT_EQ(size_t(rc), strlen(buff));
+    EXPECT_NE(buff_size, BSIZE);
+    Config cfg = parse_string(buff, JSON, "drec2json");
+    EXPECT_TRUE(cfg.has_key("iana:sourceTransportPort"));
+    EXPECT_TRUE(cfg.has_key("iana:sourceIPv6Address"));
+    EXPECT_TRUE(cfg.has_key("iana:destinationTransportPort"));
+    EXPECT_TRUE(cfg.has_key("iana:destinationIPv6Address"));
+    EXPECT_TRUE(cfg.has_key("iana:protocolIdentifier"));
+    EXPECT_TRUE(cfg.has_key("iana:flowStartNanoseconds"));
+    EXPECT_TRUE(cfg.has_key("iana:flowEndNanoseconds"));
+    EXPECT_TRUE(cfg.has_key("iana:applicationName"));
+    EXPECT_TRUE(cfg.has_key("iana:applicationDescription"));
+    EXPECT_TRUE(cfg.has_key("iana:interfaceName"));
+    EXPECT_TRUE(cfg.has_key("iana:octetDeltaCount"));
+    EXPECT_TRUE(cfg.has_key("iana:packetDeltaCount"));
+
+    EXPECT_FALSE(cfg.has_key("iana@reverse:flowStartNanoseconds@reverse"));
+    EXPECT_FALSE(cfg.has_key("iana@reverse:flowEndNanoseconds@reverse"));
+    EXPECT_FALSE(cfg.has_key("iana@reverse:octetDeltaCount@reverse"));
+    EXPECT_FALSE(cfg.has_key("iana@reverse:packetDeltaCount@reverse"));
+
+    // Source and destination fields must be swapped
+    EXPECT_EQ((uint64_t) cfg["iana:octetDeltaCount"], VALUE_BYTES_R);        // octetDeltaCount
+    EXPECT_EQ((uint64_t) cfg["iana:packetDeltaCount"], VALUE_PKTS_R);        // packetDeltaCount
+    EXPECT_EQ((uint64_t) cfg["iana:sourceTransportPort"], VALUE_DST_PORT); // sourceTransportPort
+    EXPECT_EQ( cfg["iana:sourceIPv6Address"], VALUE_DST_IP6);              // sourceIPv6Address
+    EXPECT_EQ((uint64_t) cfg["iana:destinationTransportPort"], VALUE_SRC_PORT); // destinationTransportPort
+    EXPECT_EQ( cfg["iana:destinationIPv6Address"], VALUE_SRC_IP6);         // destinationIPv6Address
+    EXPECT_EQ((uint64_t) cfg["iana:protocolIdentifier"], VALUE_PROTO);     // protocolIdentifier
+    EXPECT_EQ((uint64_t) cfg["iana:flowStartNanoseconds"], VALUE_TS_FST_R);  // flowStartNanoseconds
+    EXPECT_EQ((uint64_t) cfg["iana:flowEndNanoseconds"], VALUE_TS_LST_R);    // flowEndNanoseconds
+    EXPECT_EQ(cfg["iana:applicationName"], VALUE_APP_NAME);                // applicationName
+    EXPECT_EQ(cfg["iana:applicationDescription"], VALUE_APP_DSC);          // applicationDescription
+    free(buff);
+}
+
 // Convert Data Record with flag FDS_CD2J_NUMERIC_ID
 TEST_F(Drec_biflow, numID)
 {

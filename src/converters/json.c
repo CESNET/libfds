@@ -836,24 +836,21 @@ to_proto(struct context *buffer, const struct fds_drec_field *field)
  * \breaf Auxiliary function for converting record fields with multiple occurrence
  *
  * The values are stored into a simple JSON array identified by the field ID.
- * \param[in] rec    IPFIX Data Record with the fields
- * \param[in] buffer Buffer
- * \param[in] fn     Convert function applied on the values
- * \param[in] en     Enterprise Number of the field
- * \param[in] id     Information Element ID of the field
+ * \param[in] rec       IPFIX Data Record with the fields
+ * \param[in] buffer    Buffer
+ * \param[in] fn        Convert function applied on the values
+ * \param[in] en        Enterprise Number of the field
+ * \param[in] id        Information Element ID of the field
+ * \param[in] iter_flag Data Record iterator flags
  *
  * \return #FDS_OK on success
  * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
- *
-*/
+ */
 static int
 multi_fields(const struct fds_drec *rec, struct context *buffer,
-    converter_fn fn, uint32_t en, uint16_t id)
+    converter_fn fn, uint32_t en, uint16_t id, uint16_t iter_flag)
 {
-    // Inicialization of iterator
-    uint16_t iter_flag = (buffer->flags & FDS_CD2J_IGNORE_UNKNOWN) ? FDS_DREC_UNKNOWN_SKIP : 0;
-    iter_flag |= (buffer->flags & FDS_CD2J_BIFLOW_REVERSE) ? FDS_DREC_BIFLOW_REV : 0;
-
+    // Inicialization of an iterator
     struct fds_drec_iter iter_mul_f;
     fds_drec_iter_init(&iter_mul_f, (struct fds_drec *) rec, iter_flag);
 
@@ -986,12 +983,11 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
     unsigned int added = 0;
     int ret_code;
 
-    // Try to convert each field in the record
-    uint16_t iter_flag = (buffer->flags & FDS_CD2J_IGNORE_UNKNOWN) ? FDS_DREC_UNKNOWN_SKIP : 0;
-
-    // If flag FDS_CD2J_BIFLOW_REVERSE is set,
-    // then will be added flag FDS_DREC_BIFLOW_REV for every field
-    iter_flag |= (buffer->flags & FDS_CD2J_BIFLOW_REVERSE) ? FDS_DREC_BIFLOW_REV : 0;
+    // Initialize iterator flags
+    uint16_t iter_flag = 0;
+    iter_flag |= (buffer->flags & FDS_CD2J_IGNORE_UNKNOWN) ? FDS_DREC_UNKNOWN_SKIP : 0;
+    iter_flag |= (buffer->flags & FDS_CD2J_BIFLOW_REVERSE) ? FDS_DREC_BIFLOW_REV   : 0;
+    iter_flag |= (buffer->flags & FDS_CD2J_REVERSE_SKIP)   ? FDS_DREC_REVERSE_SKIP : 0;
 
     struct fds_drec_iter iter;
     fds_drec_iter_init(&iter, (struct fds_drec *) rec, iter_flag);
@@ -1038,7 +1034,7 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
         char *writer_pos = buffer->write_begin;
         if ((field_flags & FDS_TFIELD_MULTI_IE) != 0 && (field_flags & FDS_TFIELD_LAST_IE) != 0) {
             // Conversion of the field with multiple occurrences
-           ret_code = multi_fields(rec, buffer, fn, def->en, def->id);
+           ret_code = multi_fields(rec, buffer, fn, def->en, def->id, iter_flag);
            if (ret_code != FDS_OK) {
                return ret_code;
            }

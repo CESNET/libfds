@@ -140,7 +140,7 @@ buffer_append(struct context *buffer, const char *str)
 {
     const size_t len = strlen(str) + 1; // "\0"
 
-    int ret_code = buffer_reserve(buffer, buffer_used(buffer) + len + 1); // +1 for error with invalid size
+    int ret_code = buffer_reserve(buffer, buffer_used(buffer) + len);
     if (ret_code != FDS_OK) {
         return ret_code;
     }
@@ -850,7 +850,7 @@ static int
 multi_fields(const struct fds_drec *rec, struct context *buffer,
     converter_fn fn, uint32_t en, uint16_t id, uint16_t iter_flag)
 {
-    // Inicialization of an iterator
+    // Initialization of an iterator
     struct fds_drec_iter iter_mul_f;
     fds_drec_iter_init(&iter_mul_f, (struct fds_drec *) rec, iter_flag);
 
@@ -865,7 +865,7 @@ multi_fields(const struct fds_drec *rec, struct context *buffer,
     // Looking for multi fields with the given ID
     while (fds_drec_iter_next(&iter_mul_f) != FDS_EOC) {
         const struct fds_tfield *def = iter_mul_f.field.info;
-        char *writer_pos = buffer->write_begin;
+        const size_t writer_offset = buffer_used(buffer);
 
         // Check the ID and enterprise number
         if (def->id != id || def->en != en) {
@@ -877,7 +877,8 @@ multi_fields(const struct fds_drec *rec, struct context *buffer,
         switch (ret_code) {
         // Recover from a conversion error
         case FDS_ERR_ARG:
-            buffer->write_begin = writer_pos;
+            // Conversion error: return to the previous position (note: realloc() might happened)
+            buffer->write_begin = buffer->buffer_begin + writer_offset;
             ret_code = buffer_append(buffer, "null");
             if (ret_code != FDS_OK) {
                 return ret_code;
@@ -886,7 +887,7 @@ multi_fields(const struct fds_drec *rec, struct context *buffer,
         case FDS_OK:
             break;
         default:
-           // Other errors -> completly out
+           // Other errors -> completely out
            return ret_code;
         }
 
@@ -903,7 +904,7 @@ multi_fields(const struct fds_drec *rec, struct context *buffer,
         continue;
     }
 
-    // add "]" in the end if trehe are no more fields with same ID or EN
+    // add "]" in the end if there are no more fields with same ID or EN
     ret_code = buffer_append(buffer, "]" );
     if (ret_code != FDS_OK) {
         return ret_code;
@@ -969,7 +970,7 @@ get_converter(const struct fds_drec_field *field)
 }
 
 /**
- * \breaf Function for iterating throught Information Elements
+ * \breaf Function for iterating through Information Elements
  * \param[in] rec    IPFIX Data Record to convert
  * \param[in] buffer Buffer
  *
@@ -1031,13 +1032,10 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
         }
 
         // Convert the field
-        char *writer_pos = buffer->write_begin;
+        const size_t writer_offset = buffer_used(buffer);
         if ((field_flags & FDS_TFIELD_MULTI_IE) != 0 && (field_flags & FDS_TFIELD_LAST_IE) != 0) {
             // Conversion of the field with multiple occurrences
            ret_code = multi_fields(rec, buffer, fn, def->en, def->id, iter_flag);
-           if (ret_code != FDS_OK) {
-               return ret_code;
-           }
         } else {
            ret_code = fn(buffer, &iter.field);
         }
@@ -1045,7 +1043,8 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
         switch (ret_code) {
         // Recover from a conversion error
         case FDS_ERR_ARG:
-            buffer->write_begin = writer_pos;
+            // Conversion error: return to the previous position (note: realloc() might happened)
+            buffer->write_begin = buffer->buffer_begin + writer_offset;
             ret_code = buffer_append(buffer, "null");
             if (ret_code != FDS_OK) {
                 return ret_code;
@@ -1056,7 +1055,7 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
             added++;
             continue;
         default:
-            // Other erros -> completly out
+            // Other errors -> completely out
             return ret_code;
         }
     }
@@ -1065,9 +1064,9 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
 }
 
 /**
- * \breaf Function for adding seamntic for strucutred datatype
+ * \breaf Function for adding semantic for structured datatype
  * \param[in] buffer Buffer
- * \param[in] sematic Sematic value
+ * \param[in] semantic Semantic value
  *
  * \return #FDS_OK on success
  * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
@@ -1100,11 +1099,12 @@ add_sematic(struct context *buffer, int semantic) {
 }
 
 /**
- * \brief Procces basicList data type
+ * \brief Process basicList data type
  *
  * \param[in] field  An IPFIX field to convert
  * \param[in] buffer Buffer
  * \return #FDS_OK on success
+ * \return #FDS_ERR_ARG if the basicList is malformed
  * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
 int
@@ -1114,35 +1114,17 @@ to_blist(struct context *buffer, const struct fds_drec_field *field)
     int added = 0;
     struct fds_blist_iter blist_iter;
 
-    ret_code = buffer_append(buffer,"{\"@type\":\"basicList\",\"semantic\":\"");
+    ret_code = buffer_append(buffer,"{\"@type\":\"basicList\",\"data\":[");
     if (ret_code != FDS_OK) {
         return ret_code;
     }
 
     fds_blist_iter_init(&blist_iter, (struct fds_drec_field *) field, buffer->mgr);
-
-    // Add sematic
-    ret_code = add_sematic(buffer, blist_iter.semantic);
-    if (ret_code != FDS_OK) {
-        return ret_code;
-    }
-
-    ret_code = buffer_append(buffer,"\",\"data\":[");
-    if (ret_code != FDS_OK) {
-        return ret_code;
-    }
-
-    // Prepare converter for fields in the list
-    // FIXME: This uses type extracted during iterator initialization, but it isn't guaranteed!
-    converter_fn fn;
-    if (blist_iter.field.info->def == NULL) {
-        fn = &to_octet;
-    } else {
-        fn = get_converter(&blist_iter.field);
-    }
+    converter_fn fn = NULL;
 
     // Add values from the list
-    while (fds_blist_iter_next(&blist_iter) == FDS_OK) {
+    int rc_iter;
+    while ((rc_iter = fds_blist_iter_next(&blist_iter)) == FDS_OK) {
         if (added > 0) {
             // Add comma
             ret_code = buffer_append(buffer,",");
@@ -1151,14 +1133,19 @@ to_blist(struct context *buffer, const struct fds_drec_field *field)
             }
         }
 
+        if (fn == NULL) {
+            // The first record -> determine the converter
+            fn = get_converter(&blist_iter.field);
+        }
+
         // Convert the field
-        char *writer_pos = buffer->write_begin;
+        const size_t writer_offset = buffer_used(buffer);
         ret_code = fn(buffer, &blist_iter.field);
 
         switch (ret_code) {
-            // Recover from a conversion error
         case FDS_ERR_ARG:
-            buffer->write_begin = writer_pos;
+            // Conversion error: return to the previous position (note: realloc() might happened)
+            buffer->write_begin = buffer->buffer_begin + writer_offset;
             ret_code = buffer_append(buffer, "null");
             if (ret_code != FDS_OK) {
                 return ret_code;
@@ -1168,12 +1155,41 @@ to_blist(struct context *buffer, const struct fds_drec_field *field)
             added++;
             continue;
         default:
-            // Other erros -> completly out
+            // Other errors ->completely out
             return ret_code;
         }
     }
 
-    ret_code = buffer_append(buffer,"]}");
+    if (rc_iter != FDS_EOC) {
+        // Iterator failed!
+        return FDS_ERR_ARG;
+    }
+
+    // Add semantic and Field ID
+    ret_code = buffer_append(buffer, "],\"semantic\":\"");
+    if (ret_code != FDS_OK) {
+        return ret_code;
+    }
+
+    ret_code = add_sematic(buffer, blist_iter.semantic);
+    if (ret_code != FDS_OK) {
+        return ret_code;
+    }
+
+    ret_code = buffer_append(buffer,"\",\"fieldID\":");
+    if (ret_code != FDS_OK) {
+        return ret_code;
+    }
+
+    ret_code = add_field_name(buffer, &blist_iter.field);
+    if (ret_code != FDS_OK) {
+        return ret_code;
+    }
+
+    // We have to "remove" the additional colon after the identifier
+    --buffer->write_begin;
+
+    ret_code = buffer_append(buffer,"}");
     if (ret_code != FDS_OK){
         return ret_code;
     }
@@ -1182,11 +1198,12 @@ to_blist(struct context *buffer, const struct fds_drec_field *field)
 }
 
 /**
- * \brief Procces subTemplateList datatype
+ * \brief Process subTemplateList datatype
  *
  * \param[in] field  An IPFIX field to convert
  * \param[in] buffer Buffer
  * \return #FDS_OK on success
+ * \return #FDS_ERR_ARG if the subTemplateList is malformed
  * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
 int
@@ -1203,7 +1220,7 @@ to_stlist(struct context *buffer, const struct fds_drec_field *field)
 
     fds_stlist_iter_init(&stlist_iter, (struct fds_drec_field *) field, buffer->snap, 0);
 
-    // Add sematic
+    // Add semantic
     ret_code = add_sematic(buffer, stlist_iter.semantic);
     if (ret_code != FDS_OK) {
         return ret_code;
@@ -1215,7 +1232,8 @@ to_stlist(struct context *buffer, const struct fds_drec_field *field)
     }
 
     // Add records from the list
-    while (fds_stlist_iter_next(&stlist_iter) == FDS_OK) {
+    int rc_iter;
+    while ((rc_iter = fds_stlist_iter_next(&stlist_iter)) == FDS_OK) {
         if (added > 0) {
             // Add comma
             ret_code = buffer_append(buffer,",");
@@ -1224,7 +1242,7 @@ to_stlist(struct context *buffer, const struct fds_drec_field *field)
             }
         }
 
-        // Add "{" in the beginig of each structure
+        // Add "{" in the beginning of each structure
         ret_code = buffer_append(buffer,"{");
         if (ret_code != FDS_OK) {
             return ret_code;
@@ -1235,13 +1253,18 @@ to_stlist(struct context *buffer, const struct fds_drec_field *field)
             return ret_code;
         }
 
-        // Add "{" in the beginig of each structure
+        // Add "{" in the beginning of each structure
         ret_code = buffer_append(buffer,"}");
         if (ret_code != FDS_OK) {
             return ret_code;
         }
 
         added++;
+    }
+
+    if (rc_iter != FDS_EOC) {
+        // Iterator failed!
+        return FDS_ERR_ARG;
     }
 
     ret_code = buffer_append(buffer,"]}");
@@ -1253,11 +1276,12 @@ to_stlist(struct context *buffer, const struct fds_drec_field *field)
 }
 
 /**
- * \brief Procces subTemplteMultiList datatype
+ * \brief Process subTemplteMultiList datatype
  *
  * \param[in] field An IPFIX field to convert
  * \param[in] buffer Buffer
  * \return #FDS_OK on success
+ * \return #FDS_ERR_ARG if the basicList is malformed
  * \return #FDS_ERR_NOMEM or #FDS_ERR_BUFFER in case of a memory allocation error
  */
 int
@@ -1273,7 +1297,7 @@ to_stMulList(struct context *buffer, const struct fds_drec_field *field)
 
     fds_stmlist_iter_init(&stMulList_iter, (struct fds_drec_field *) field, buffer->snap, 0);
 
-    // Add sematic
+    // Add semantic
     ret_code = add_sematic(buffer, stMulList_iter.semantic);
     if (ret_code != FDS_OK) {
         return ret_code;
@@ -1286,7 +1310,10 @@ to_stMulList(struct context *buffer, const struct fds_drec_field *field)
 
     // Loop through blocks in the list
     int added = 0;
-    while (fds_stmlist_iter_next_block(&stMulList_iter) == FDS_OK) {
+    int rc_block;
+    int rc_rec;
+
+    while ((rc_block = fds_stmlist_iter_next_block(&stMulList_iter)) == FDS_OK) {
         // Separate fields
         if (added > 0) {
             // Add comma
@@ -1303,7 +1330,7 @@ to_stMulList(struct context *buffer, const struct fds_drec_field *field)
 
         // Loop through individual records in the current block
         int added_in_block = 0;
-        while (fds_stmlist_iter_next_rec(&stMulList_iter) == FDS_OK) {
+        while ((rc_rec = fds_stmlist_iter_next_rec(&stMulList_iter)) == FDS_OK) {
             // Separate fields
             if (added_in_block > 0) {
                 // Add comma
@@ -1331,12 +1358,22 @@ to_stMulList(struct context *buffer, const struct fds_drec_field *field)
             added_in_block++;
         }
 
+        if (rc_rec != FDS_EOC) {
+            // Something went wrong!
+            break;
+        }
+
         // Add closing bracket for block
         ret_code = buffer_append(buffer,"]");
         if (ret_code != FDS_OK) {
             return ret_code;
         }
         added++;
+    }
+
+    if (rc_block != FDS_EOC || rc_rec != FDS_EOC) {
+        // Iterator failed!
+        return FDS_ERR_ARG;
     }
 
     // Add closing bracket for field
@@ -1351,8 +1388,11 @@ to_stMulList(struct context *buffer, const struct fds_drec_field *field)
 /**
  * \brief Append the buffer with a name of an Information Element
  *
- * If the definition of a field is unknown or #FDS_CD2J_NUMERIC_ID flag is set,
- * numeric identification is added.
+ * Identification of the field is added in the long format i.e. '"<scope>:<id>":' or numeric
+ * format '"enXXidYY":'. Please, note that the colon is part of the added string.
+ * \note
+ *   If the definition of a field is unknown or #FDS_CD2J_NUMERIC_ID flag is set,
+ *   numeric identification is added.
  *
  * \param[in] buffer Buffer
  * \param[in] field Field identification to add
@@ -1365,13 +1405,13 @@ add_field_name(struct context *buffer, const struct fds_drec_field *field)
     const struct fds_iemgr_elem *def = field->info->def;
     bool num_id = ((buffer->flags & FDS_CD2J_NUMERIC_ID) != 0);
 
-    // If defenition of field is unknown or if flag FDS_CD2J_NUMERIC_ID is set,
-    // then identeficator will be in format "enXX:idYY"
+    // If definition of field is unknown or if flag FDS_CD2J_NUMERIC_ID is set,
+    // then identifier will be in format "enXX:idYY"
     if ((def == NULL) || (num_id)) {
         static const size_t scope_size = 32;
         char raw_name[scope_size];
 
-        // Max length of identeficator in format "enXX:idYY"
+        // Max length of identifier in format "enXX:idYY"
         // is "\"en" + 10x <en> + ":id" + 5x <id> + '\"\0'
         snprintf(raw_name, scope_size, "\"en%" PRIu32 ":id%" PRIu16 "\":", field->info->en,
             field->info->id);
@@ -1383,7 +1423,7 @@ add_field_name(struct context *buffer, const struct fds_drec_field *field)
         return FDS_OK;
     }
 
-    // Add a string identeficator
+    // Add a string identifier
     const size_t scope_size = strlen(def->scope->name);
     const size_t elem_size = strlen(def->name);
 
@@ -1409,7 +1449,7 @@ int
 fds_drec2json(const struct fds_drec *rec, uint32_t flags, const fds_iemgr_t *ie_mgr, char **str,
     size_t *str_size)
 {
-    // Allocate a memory if neccessary
+    // Allocate a memory if necessary
     bool null_buffer = false;
     if (*str == NULL) {
         null_buffer = true;

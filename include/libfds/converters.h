@@ -1438,7 +1438,7 @@ enum fds_convert_drec2json {
  *
  * @param[in]     rec      IPFIX Data Record to convert
  * @param[in]     flags    Conversion flags (see ::fds_convert_drec2json)
- * @patam[in]     ie_mgr   Information Element manager (necessary for decoding
+ * @param[in]     ie_mgr   Information Element manager (necessary for decoding
  *                         basicLists, can be NULL)
  * @param[out]    str      Output buffer where the JSON string will be stored
  * @param[in,out] str_size Size of the output buffer

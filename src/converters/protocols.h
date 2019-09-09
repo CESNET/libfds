@@ -1,10 +1,10 @@
 /**
- * \file src/plugins/output/json/src/protocols.hpp
+ * \file src/converters/protocols.h
  * \author Petr Velan <petr.velan@cesnet.cz>
  * \brief Header for cpp file containing array of IP protocol names
  * generated from /etc/protocols
  *
- * Copyright (C) 2015-2018 CESNET, z.s.p.o.
+ * Copyright (C) 2015-2019 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

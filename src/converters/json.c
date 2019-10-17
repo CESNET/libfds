@@ -1475,7 +1475,11 @@ fds_drec2json(const struct fds_drec *rec, uint32_t flags, const fds_iemgr_t *ie_
 
     // Convert the record
     int ret_code;
-    ret_code = buffer_append(&record,"{\"@type\":\"ipfix.entry\",");
+    if (rec->tmplt->type == FDS_TYPE_TEMPLATE_OPTS) {
+        ret_code = buffer_append(&record,"{\"@type\":\"ipfix.optionsEntry\",");
+    } else {
+        ret_code = buffer_append(&record, "{\"@type\":\"ipfix.entry\",");
+    }
     if (ret_code != FDS_OK) {
         goto error;
     }

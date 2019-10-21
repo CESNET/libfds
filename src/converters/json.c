@@ -1311,7 +1311,7 @@ to_stMulList(struct context *buffer, const struct fds_drec_field *field)
     // Loop through blocks in the list
     int added = 0;
     int rc_block;
-    int rc_rec;
+    int rc_rec = FDS_EOC; // Default value (the block might be empty)
 
     while ((rc_block = fds_stmlist_iter_next_block(&stMulList_iter)) == FDS_OK) {
         // Separate fields

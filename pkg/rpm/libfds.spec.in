@@ -12,7 +12,7 @@ Packager:       @CPACK_PACKAGE_CONTACT@
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}
 BuildRequires:  gcc >= 4.8, gcc-c++ >= 4.8, cmake >= 2.8.8, make, git
-BuildRequires:  libxml2-devel, python2-docutils, lz4-devel libzstd-devel
+BuildRequires:  libxml2-devel, lz4-devel libzstd-devel
 Requires:       libxml2, lz4, libzstd
 
 %description

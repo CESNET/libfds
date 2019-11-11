@@ -229,8 +229,7 @@ to_octet(struct context *buffer, const struct fds_drec_field *field)
 {
     if (field->size <= 8) {
         // Print as unsigned integer
-        to_uint(buffer, field);
-        return FDS_OK;
+        return to_uint(buffer, field);
     }
 
     const size_t mem_req = (2 * field->size) + 5U; // "0x" + 2 chars per byte + 2x "\"" + "\0"

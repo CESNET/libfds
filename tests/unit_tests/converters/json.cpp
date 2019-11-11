@@ -966,15 +966,16 @@ protected:
         trec.add_field( 11, 2);             // destinationTransportPort
         trec.add_field( 82, ipfix_trec::SIZE_VAR); // interfaceName
         trec.add_field( 82, 0);             // interfaceName (second occurrence)
+        trec.add_field(32000, ipfix_trec::SIZE_VAR); // undefined field (octetArray)
         trec.add_field(1001,2);             // myBool
 
         // Prepare an IPFIX Data Record
         ipfix_drec drec{};
         drec.append_ip(VALUE_DST_IP4);
         drec.append_uint(VALUE_DST_PORT, 2);
-        drec.append_string(VALUE_IFC1); // empty string (only header)
-        drec.append_string(VALUE_IFC2);
-        drec.append_bool(VALUE_MY_BOOL);
+        drec.append_string(VALUE_IFC1);     // empty string (only header)
+        drec.var_header(0);                 // zero size octetArray
+        drec.append_uint(VALUE_MY_BOOL, 2); // invalid size (bool must be 1 byte)
 
         register_template(trec);
         drec_create(256, drec);
@@ -982,8 +983,6 @@ protected:
 
     std::string VALUE_DST_IP4    = "8.8.8.8";
     std::string VALUE_IFC1       = "qwert";           // empty string
-    std::string VALUE_IFC2       = "enp0s31f6";
-    uint16_t    VALUE_SRC_PORT   = 65000;
     uint16_t    VALUE_DST_PORT   = 80;
     bool        VALUE_MY_BOOL    = true;
 
@@ -1011,11 +1010,12 @@ TEST_F(Drec_invalid, invalidField)
    EXPECT_TRUE(cfg["iana:protocolIdentifier"].is_null());
    EXPECT_TRUE(cfg["iana:tcpControlBits"].is_null());
    EXPECT_TRUE(cfg["iana:sourceMacAddress"].is_null());
+   EXPECT_TRUE(cfg["en0:id32000"].is_null());
 
    free(buff);
 }
 
-//  Test for adding null to multifield in case of unvalid field
+//  Test for adding null to multifield in case of invalid field
 TEST_F(Drec_invalid, nullInMulti)
 {
     constexpr size_t BSIZE = 2U;

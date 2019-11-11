@@ -1388,7 +1388,7 @@ enum fds_convert_drec2json {
      */
     FDS_CD2J_FORMAT_PROTO    = (1U << 5),
     /**
-     * Ingore non-printable charactes (newline, tab, control charactes, etc.)
+     * Ignore non-printable characters (newline, tab, control characters, etc.)
      * in IPFIX string fields instead of escaping them.
      */
     FDS_CD2J_NON_PRINTABLE   = (1U << 6),
@@ -1402,7 +1402,13 @@ enum fds_convert_drec2json {
      * Convert all timestamps to ISO 8601 textual representation of UTC with
      * milliseconds, e.g. "2019-05-22T22:34:57.828Z"
      */
-    FDS_CD2J_TS_FORMAT_MSEC  = (1U << 8)
+    FDS_CD2J_TS_FORMAT_MSEC  = (1U << 8),
+    /**
+     * Always convert IPFIX octetArray field as hexadecimal value in network
+     * byte order i.e. never try to interpret is as unsigned integer.
+     * For example, "0x8BADF00D".
+     */
+    FDS_CD2J_OCTETS_NOINT    = (1U << 9)
 };
 
 /**
@@ -1421,7 +1427,11 @@ enum fds_convert_drec2json {
  *     format "enXX:idYY", where XX is an Enterprise Number and YY is
  *     an Information Element ID.
  *   - Fields with unknown definition of their Information Elements are
- *     interpreted as octetArray (i.e. hexadecimal value in network byte order).
+ *     interpreted as octetArray.
+ *   - Fields with octetArray type are interpreted as unsigned integer if their
+ *     size is less or equal to 8 bytes. Fields with the size above the limit
+ *     are formatted as hexadecimal value in network byte order. To change this
+ *     behavior, see the conversion flags.
  *   - If conversion of an IPFIX field of the Data Record fails (for example,
  *     due to invalid size or value), "null" is used as its value.
  *   - All timestamps are formatted as number of milliseconds from UNIX Epoch.
@@ -1446,7 +1456,7 @@ enum fds_convert_drec2json {
  * \return On success returns a number of characters (excluding the termination
  *   null byte) placed into the buffer \p str. Therefore, if the result is
  *   greater that or equal to zero, conversion was successful (Note: the null
- *   byte has been also successfuly added at the end of the JSON string)
+ *   byte has been also successfully added at the end of the JSON string)
  * \return #FDS_ERR_BUFFER if the length of the result string (including the
  *   termination null byte) would exceed \p str_size and #FDS_CD2J_ALLOW_REALLOC
  *   flag is not set. The context written to the output buffer \p str is

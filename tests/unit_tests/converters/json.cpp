@@ -625,6 +625,7 @@ protected:
         trec.add_field(1005,8);             // myMInf
         trec.add_field(1006,8);             // myNan
         trec.add_field(56, 6);              // sourceMacAddress
+        trec.add_field(1007, ipfix_trec::SIZE_VAR); // myOctetArray
         trec.add_field(95,10);              // applicationId
 
         // Prepare an IPFIX Data Record
@@ -655,6 +656,7 @@ protected:
         drec.append_float(VALUE_MY_MINF,8);
         drec.append_float(VALUE_MY_NAN, 8);
         drec.append_mac(VALUE_SRC_MAC);
+        drec.append_octets(VALUE_MY_OCTETS.c_str(), (uint16_t) 6, true);
         drec.append_octets(VALUE_APP_ID.c_str(),(uint16_t)10, false);
 
         register_template(trec);
@@ -663,7 +665,7 @@ protected:
 
     std::string VALUE_SRC_IP4    = "127.0.0.1";
     std::string VALUE_SAMP_NAME1  = "\xc2\xa1\xc3\xbd";
-    std::string VALUE_SAMP_NAME2  = "\xFF\xEE"; // invalid characterss
+    std::string VALUE_SAMP_NAME2  = "\xFF\xEE"; // invalid characters
     std::string VALUE_SAMP_NAME3  = "\xef\xbf\xa6"; // FULLWIDTH WON SIGN (3 bytes)
     std::string VALUE_SAMP_NAME4  = "\xf0\x90\x8e\xa0"; // OLD PERSIAN SIGN A (4 bytes)
     std::string VALUE_DST_IP4    = "8.8.8.8";
@@ -686,11 +688,13 @@ protected:
     double      VALUE_MY_FLOAT32 = 0.5678;
     signed      VALUE_MY_INT     = 1006;
     std::string VALUE_SRC_MAC    = "01:12:1F:13:11:8A";
+    std::string VALUE_MY_OCTETS  = "\x1E\xA3\xAB\xAD\xC0\xDE"; // 33688308793566
+    uint64_t    VALUE_MY_OCTETS_NUM = 33688308793566ULL;
     std::string VALUE_APP_ID     = "\x33\x23\x24\x30\x31\x32\x34\x35\x36\x37"; // 3#$0124567
 
 };
 
-// Test for diferent data types
+// Test of different data types
 TEST_F(Drec_extra, testTypes)
 {
     constexpr size_t BSIZE = 10U;
@@ -706,12 +710,12 @@ TEST_F(Drec_extra, testTypes)
     EXPECT_EQ((double)cfg["iana:myFloat32"], VALUE_MY_FLOAT32);
     EXPECT_EQ(cfg["iana:myBool"], VALUE_MY_BOOL);
     EXPECT_EQ((signed)cfg["iana:myInt"], VALUE_MY_INT);
+    EXPECT_EQ(cfg["iana:myOctetArray"], VALUE_MY_OCTETS_NUM); // interpreted as number
     EXPECT_EQ(cfg["iana:sourceMacAddress"], VALUE_SRC_MAC);
-
     free(buff);
 }
 
-// Test for non printable characters (FDS_CD2J_NON_PRINTABLE)
+// Test of non printable characters (FDS_CD2J_NON_PRINTABLE)
 TEST_F(Drec_extra, nonPrintable)
 {
     constexpr size_t BSIZE = 10U;
@@ -728,7 +732,7 @@ TEST_F(Drec_extra, nonPrintable)
     free(buff);
 }
 
-// Test for eskaping characters
+// Test of escaping characters
 TEST_F(Drec_extra, printableChar)
 {
     constexpr size_t BSIZE = 10U;
@@ -746,7 +750,7 @@ TEST_F(Drec_extra, printableChar)
     free(buff);
 }
 
-// Test for NAN, +INF, -INF values
+// Test of NAN, +INF, -INF values
 TEST_F(Drec_extra, extraValue)
 {
     constexpr size_t BSIZE = 5U;
@@ -769,7 +773,7 @@ TEST_F(Drec_extra, extraValue)
     free(buff);
 }
 
-// Test for other ASCII characters
+// Test of other ASCII characters
 TEST_F(Drec_extra, otherChar)
 {
     constexpr size_t BSIZE = 5U;
@@ -795,7 +799,7 @@ TEST_F(Drec_extra, otherChar)
     free(buff);
 }
 
-// Test for other MAC adress
+// Test of other MAC address
 TEST_F(Drec_extra, macAdr)
 {
     constexpr size_t BSIZE = 5U;
@@ -813,12 +817,12 @@ TEST_F(Drec_extra, macAdr)
     free(buff);
 }
 
-// Test for octet values
+// Test of octet values (FDS_CD2J_OCTETS_NOINT)
 TEST_F(Drec_extra, octVal)
 {
     constexpr size_t BSIZE = 5U;
     char* buff = (char*) malloc(BSIZE);
-    uint32_t flags = FDS_CD2J_ALLOW_REALLOC;
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC | FDS_CD2J_OCTETS_NOINT;
     size_t buff_size = BSIZE;
 
     int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
@@ -826,6 +830,7 @@ TEST_F(Drec_extra, octVal)
     EXPECT_NE(buff_size, BSIZE);
     Config cfg = parse_string(buff, JSON, "drec2json");
     EXPECT_EQ((std::string)cfg["iana:applicationId"], "0x33232430313234353637");
+    EXPECT_EQ((std::string)cfg["iana:myOctetArray"], "0x1EA3ABADC0DE");
 
     free(buff);
 }

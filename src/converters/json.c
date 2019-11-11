@@ -227,7 +227,7 @@ to_uint(struct context *buffer, const struct fds_drec_field *field)
 static int
 to_octet(struct context *buffer, const struct fds_drec_field *field)
 {
-    if (field->size <= 8) {
+    if (field->size <= 8 && (buffer->flags & FDS_CD2J_OCTETS_NOINT) == 0) {
         // Print as unsigned integer
         return to_uint(buffer, field);
     }

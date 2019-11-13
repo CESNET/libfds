@@ -1042,7 +1042,7 @@ TEST_F(Drec_invalid, nullInMulti)
     free(buff);
 }
 
-// Test fot string with size 0
+// Test for string with size 0
 TEST_F(Drec_invalid, zeroSizeStr)
 {
     constexpr size_t BSIZE = 2U;
@@ -1061,6 +1061,22 @@ TEST_F(Drec_invalid, zeroSizeStr)
    EXPECT_NE(std::find(cfg_arr.begin(), cfg_arr.end(), ""), cfg_arr.end());
 
    free(buff);
+}
+
+// Test for octetArray with size 0 and disabled integer conversion
+TEST_F(Drec_invalid, zeroSizeOctetArray)
+{
+    constexpr size_t BSIZE = 2U;
+    char* buff = (char*) malloc(BSIZE);
+    uint32_t flags = FDS_CD2J_ALLOW_REALLOC | FDS_CD2J_OCTETS_NOINT; // do not use int conversion!
+    size_t buff_size = BSIZE;
+
+    int rc = fds_drec2json(&m_drec, flags, m_iemgr.get(), &buff, &buff_size);
+    ASSERT_GT(rc, 0);
+    EXPECT_EQ(size_t(rc), strlen(buff));
+    Config cfg = parse_string(buff, JSON, "drec2json");
+    EXPECT_TRUE(cfg["en0:id32000"].is_null());
+    free(buff);
 }
 
 // Testing return of error code FDS_ERR_BUFFER

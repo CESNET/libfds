@@ -227,11 +227,17 @@ to_uint(struct context *buffer, const struct fds_drec_field *field)
 static int
 to_octet(struct context *buffer, const struct fds_drec_field *field)
 {
-    if (field->size <= 8 && (buffer->flags & FDS_CD2J_OCTETS_NOINT) == 0) {
+    if (field->size == 0) {
+        // Empty field cannot be converted -> null
+        return FDS_ERR_ARG;
+    }
+
+    if ((buffer->flags & FDS_CD2J_OCTETS_NOINT) == 0 && field->size <= 8) {
         // Print as unsigned integer
         return to_uint(buffer, field);
     }
 
+    // Print as hexadecimal number
     const size_t mem_req = (2 * field->size) + 5U; // "0x" + 2 chars per byte + 2x "\"" + "\0"
 
     int ret_code = buffer_reserve(buffer, buffer_used(buffer) + mem_req);

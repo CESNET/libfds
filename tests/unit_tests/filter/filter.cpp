@@ -1,471 +1,555 @@
 #include <libfds.h>
 #include <gtest/gtest.h>
-#include <map>
-#include <string>
-#include <algorithm>
+#include <iostream>
 
-struct Value {
-    enum fds_filter_data_type type;
-    enum fds_filter_data_type subtype;
-    union fds_filter_value value;
+class Filter : public ::testing::Test {
+public:
+    fds_filter_opts_t *opts = nullptr;
+    fds_filter_t *filter = nullptr;
+    void *user_ctx = nullptr;
 
-    void set_uint(uint32_t u) {
-        type = FDS_FDT_UINT;
-        subtype = FDS_FDT_NONE;
-        value.uint_ = u;
+    Filter() {
+        opts = fds_filter_create_default_opts();
+        assert(opts);
     }
 
-    void set_int(int32_t i) {
-        type = FDS_FDT_INT;
-        subtype = FDS_FDT_NONE;
-        value.int_ = i;
+    Filter(Filter &) = delete;
+    Filter(Filter &&) = delete;
+
+    ~Filter() {
+        fds_filter_destroy(filter);
+        fds_filter_destroy_opts(opts);
     }
 
-    void set_str(const char *str, int len) {
-        type = FDS_FDT_STR;
-        subtype = FDS_FDT_NONE;
-        value.string.chars = new char[len];
-        std::memcpy(value.string.chars, str, len);
-        value.string.length = len;
-    }
 
-    void set_ip_address(int version, uint8_t *address, int bit_length) {
-        std::memset(&value, sizeof(value), 0);
-        value.ip_address.version = version;
-        value.ip_address.prefix_length = bit_length;
-        std::memcpy(value.ip_address.bytes, address, (bit_length + 7) / 8);
-    }
-
-    void set_mac_address(uint8_t *address) {
-        std::memcpy(value.mac_address, address, 6);
-    }
-
-    void set_list(std::vector<Value> list) {
-        type = FDS_FDT_LIST;
-        subtype = FDS_FDT_
-        this->list.items = new union fds_filter_value[list.size()];
-        for (int i = 0; i < list.size(); i++) {
-
+    int compile(const char *expr) {
+        fds_filter_destroy(filter);
+        filter = nullptr;
+        int ret = fds_filter_compile(&filter, expr, opts);
+        if (ret != FDS_FILTER_OK) {
+            return ret;
         }
-        this->list.items.length = list.size();
+        fds_filter_set_user_ctx(filter, user_ctx);
+        return FDS_FILTER_OK;
     }
 
-    Value(const Value &other) {
-        type = other->data_type;
-        subtype = other.subtype;
-        if (type == FDS_FDT_STR) {
-            set_str(other.)
-        } else if (type == FDS_FDT_LIST) {
-            value.list.items = new union fds_filter_value[other.list.length];
-            for (int i = 0; i < value.list.length)
-            value.list.length = other.value.list.length;
+    int evaluate(const char *expr) {
+        int ret = compile(expr);
+        if (ret != FDS_FILTER_OK) {
+            return ret;
+        }
+        ret = fds_filter_evaluate(filter, nullptr);
+        return ret;
+    }
+
+    int evaluate() {
+        return fds_filter_evaluate(filter, nullptr);
+    }
+};
+
+TEST_F(Filter, literals_int) {
+    EXPECT_EQ(compile("1"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("-1"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("10000"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("465464894616548498"), FDS_FILTER_OK);
+    EXPECT_LT(compile("465464894a616548498"), FDS_FILTER_OK);
+}
+
+TEST_F(Filter, literals_int_bases) {
+    EXPECT_EQ(compile("0x123"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0xF123AF"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("-0xF123AF"), FDS_FILTER_OK);
+    EXPECT_LT(compile("0xF123AG"), FDS_FILTER_OK);
+    EXPECT_LT(compile("0xGF123AG"), FDS_FILTER_OK);
+
+    EXPECT_EQ(compile("0b000"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0b11"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("-0b11"), FDS_FILTER_OK);
+    EXPECT_LT(compile("0b12"), FDS_FILTER_OK);
+}
+
+TEST_F(Filter, literals_float) {
+    EXPECT_EQ(compile("1.0"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("-1.0"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("10000.0"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("154.145489"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.2e+10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.2E+10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.2E-10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.2E10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.2e10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile(".2e10"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("1.e10"), FDS_FILTER_OK);
+}
+
+TEST_F(Filter, literals_string) {
+    EXPECT_EQ(compile("\"aaaaaaaaaaaaa\""), FDS_FILTER_OK);
+    EXPECT_LT(compile("\"aaaaaaaaaaaaa"), FDS_FILTER_OK);
+    EXPECT_LT(compile("aaaaaaaaaaaaa\""), FDS_FILTER_OK);
+    EXPECT_EQ(compile("\"\""), FDS_FILTER_OK);
+    EXPECT_EQ(compile("\"\\\"\""), FDS_FILTER_OK);
+}
+
+TEST_F(Filter, literals_ipv4_address) {
+    EXPECT_EQ(compile("127.0.0.1"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("127.0.0.1/32"), FDS_FILTER_OK);
+    EXPECT_LT(compile("127.0.0.1/"), FDS_FILTER_OK);
+    EXPECT_LT(compile("127.0.0."), FDS_FILTER_OK);
+    EXPECT_LT(compile("127.0..1"), FDS_FILTER_OK);
+    EXPECT_LT(compile("127...1"), FDS_FILTER_OK);
+    EXPECT_LT(compile(".0.0.1"), FDS_FILTER_OK);
+    EXPECT_LT(compile("300.1.1.1"), FDS_FILTER_OK);
+    EXPECT_LT(compile("127.0.0.1.2"), FDS_FILTER_OK);
+    EXPECT_LT(compile("127.0.0.1/33"), FDS_FILTER_OK);
+    EXPECT_LT(compile("127.0.0.1/"), FDS_FILTER_OK);
+    EXPECT_LT(compile("127.0.0.1/32.0"), FDS_FILTER_OK);
+    EXPECT_LT(compile("127.0.0.1/-8"), FDS_FILTER_OK);
+    EXPECT_LT(compile("127.0.1/.8"), FDS_FILTER_OK);
+    EXPECT_LT(compile("256.6.6.6"), FDS_FILTER_OK);
+    EXPECT_LT(compile("254.-6.6.6"), FDS_FILTER_OK);
+    EXPECT_LT(compile("255.6.a.6"), FDS_FILTER_OK);
+    EXPECT_LT(compile("2554.6.1.6"), FDS_FILTER_OK);
+    EXPECT_LT(compile("0000.6.1.6"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("255.255.255.255"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("255.255.255.255/32"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("255.255.255.255/1"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0.0.0.0"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0.0.0.0/32"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0.0.0.0/1"), FDS_FILTER_OK);
+}
+
+TEST_F(Filter, literals_ipv6_address) {
+    EXPECT_EQ(compile("0011:2233:4455:6677:8899:aabb:ccdd:eeff"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0011:2233:4455:6677:8899:aabb:ccdd:eeff/128"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0011:2233:4455:6677:8899:AABB:CCDD:EEFF"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0011:2233:4455:6677:8899:AabB:CcDd:eeFf"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0011:2233:4455:6677:8899:AabB:CcDd::"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("0011:2233:4455:6677:8899:AabB:CcDd::/128"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("::2233:4455:6677:8899:AabB:CcDd:eeff"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("::2233:4455:6677:8899:AabB:CcDd:eeff/128"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("2233:4455:6677::8899:AabB:CcDd:eeff"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("aa:bb:cc:dd:ee:ff:11::"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("aa:0:bb:eeaa:faf:a11::"), FDS_FILTER_OK);
+    EXPECT_LT(compile("aa:0:bb:eeaa:faf:::a11:22"), FDS_FILTER_OK);
+    EXPECT_LT(compile("aa:0:bb:eeaa:faf::::a11:22"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("faf:0:bb:c:dd:eeaa::/128"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("aa:0:baaa:a11:22::faf"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("aa:faf:a11:22::faf/128"), FDS_FILTER_OK);
+    EXPECT_LT(compile("aa:bb:cc:dd:11:11222::"), FDS_FILTER_OK);
+    EXPECT_LT(compile("ff::ff::ff"), FDS_FILTER_OK);
+    EXPECT_LT(compile("ff::/200"), FDS_FILTER_OK);
+    EXPECT_LT(compile("ffah::"), FDS_FILTER_OK);
+}
+
+TEST_F(Filter, literals_mac_address) {
+    EXPECT_EQ(compile("aa:bb:cc:dd:ee:ff"), FDS_FILTER_OK);
+    EXPECT_EQ(compile("a2:11:cc:Dd:eE:FF"), FDS_FILTER_OK);
+    EXPECT_LT(compile("a2:11:cc:Dd:eE:FF:bb"), FDS_FILTER_OK);
+    EXPECT_LT(compile(":a2:11:cc:Dd:eE:FF"), FDS_FILTER_OK);
+    EXPECT_LT(compile("a2:11:cc:Dd:eE:FF:"), FDS_FILTER_OK);
+    EXPECT_LT(compile("a2:11:cc:Dd:eE"), FDS_FILTER_OK);
+    EXPECT_LT(compile("a2:11:cc:Dd:eE:"), FDS_FILTER_OK);
+    EXPECT_LT(compile(":a2:11:cc:Dd:eE"), FDS_FILTER_OK);
+    EXPECT_LT(compile("a2:11:cc:Dd:eE:gg"), FDS_FILTER_OK);
+    EXPECT_LT(compile("a2:-1:cc:Dd:eE:gg"), FDS_FILTER_OK);
+    EXPECT_LT(compile("111:44:55:66:77:88"), FDS_FILTER_OK);
+    EXPECT_LT(compile("1:44:55:66:77:88"), FDS_FILTER_OK);
+}
+
+TEST_F(Filter, comparsions_int) {
+    EXPECT_EQ(evaluate("1 == 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 != 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 < 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 > -1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 >= 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-100 < -50"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-100 <= -50"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-100 <= -100"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, comparsions_uint) {
+    EXPECT_EQ(evaluate("1u == 1u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1u != 2u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1u < 2u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1u >= 1u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("100u < 150u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("100u <= 150u"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("100u <= 100u"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, comparsions_float) {
+    EXPECT_EQ(evaluate("10.0 == 10.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("10.0 != 9.9"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("10.0 > 9.9"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("10.0 >= 9.9"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-10.0 < 9.9"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-10.0 <= 9.9"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-10.0 <= -10.0"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, comparsions_string) {
+    EXPECT_EQ(evaluate("\"hello\" == \"hello\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"hello world\" != \"hello\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"hello\" != \"world\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"\" == \"\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"hello\" != \"\""), FDS_FILTER_YES);
+    EXPECT_LT(compile("\"hello\" > \"world\""), FDS_FILTER_OK);
+    EXPECT_LT(compile("\"hello\" < \"world\""), FDS_FILTER_OK);
+    EXPECT_LT(compile("\"hello\" <= \"world\""), FDS_FILTER_OK);
+    EXPECT_LT(compile("\"hello\" >= \"world\""), FDS_FILTER_OK);
+}
+
+TEST_F(Filter, comparsions_ipv4_address_simple) {
+    EXPECT_EQ(evaluate("192.168.1.1 == 192.168.1.1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("192.168.1.1/32 == 192.168.1.1/32"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("192.168.1.1/32 != 192.168.1.0/32"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("192.168.1.1/32 != 191.168.1.1/32"), FDS_FILTER_YES);
+    EXPECT_LT(compile("192.168.1.1 > 191.168.1.1"), FDS_FILTER_OK);
+    EXPECT_LT(compile("192.168.1.1 < 191.168.1.1"), FDS_FILTER_OK);
+    EXPECT_LT(compile("192.168.1.1 >= 191.168.1.1"), FDS_FILTER_OK);
+    EXPECT_LT(compile("192.168.1.1 <= 191.168.1.1"), FDS_FILTER_OK);
+}
+
+TEST_F(Filter, comparsions_ipv4_address_subnet) {
+    EXPECT_EQ(evaluate("192.168.1.0/24 == 192.168.1.1/32"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("192.168.1.0/24 == 192.168.1.255/32"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("192.168.1.0/24 != 192.168.2.255/32"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("192.168.1.0/24 == 192.168.1.255/28"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("192.168.1.0/24 != 192.168.2.255/28"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("192.168.1.0/24 == 192.168.2.255/16"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, comparsions_ipv6_address_simple) {
+    EXPECT_EQ(evaluate("1122:3344:5566:7788:99aa:bbcc:ddee:ff00 == 1122:3344:5566:7788:99aa:bbcc:ddee:ff00"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788:99aa:bbcc:ddee:ff00 != 1122:3344:5566:7788:99aa:bbcc:ddee:ffff"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788:99aa:bbcc:ddee:ff00 != 0122:3344:5566:7788:99aa:bbcc:ddee:ff00"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788:99aa:bbcc:ddee:ff00/128 == 1122:3344:5566:7788:99aa:bbcc:ddee:ff00"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788:99aa:bbcc:ddee:ff00/128 == 1122:3344:5566:7788:99aa:bbcc:ddee:ff00/128"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:: == 1122::"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("::ff == ::ff"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("ff:: != ::ff"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("ff::/128 != ::ff/128"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("ff::/128 == ff::/128"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("ff::f != ff::"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, comparsions_ipv6_address_subnet) {
+    EXPECT_EQ(evaluate("1122:3344:5566:7788:0000:0000:0000:0000/64 == 1122:3344:5566:7788:99aa:bbcc:ddee:ff00/128"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788::/64 == 1122:3344:5566:7788:99aa:bbcc:ddee:ff00/128"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788::/64 == 1122:3344:5566:7788:99aa::/128"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788::/64 == 1122:3344:5566:7788:99aa::/96"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788::/64 == 1122:3344:5566:7788::/64"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788::/64 == 1122:3344::/32"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788::/64 != 0122:3344::/32"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788::/64 != ff::/128"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788::/64 != ff::/64"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788::/64 != ff::/16"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1122:3344:5566:7788::/64 == 1122::/16"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, comparsions_ipv4_with_ipv6_address) {
+    EXPECT_EQ(evaluate("192.168.1.0 != ff::"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("255.255.255.0/24 != ffff:ffff:ffff:ffff::/24"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, comparsions_mac_address) {
+    EXPECT_EQ(evaluate("00:11:22:33:44:55 == 00:11:22:33:44:55"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("00:11:22:33:44:55 != 00:11:22:33:44:66"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, number_suffixes) {
+    EXPECT_EQ(evaluate("1ns == 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1us == 1000ns"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1ms == 1000us"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1s == 1000ms"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1m == 60s"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1m == 60000ms"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1h == 60m"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1h == 3600s"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1d == 24h"), FDS_FILTER_YES);
+
+    EXPECT_EQ(evaluate("1B == 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1k == 1024B"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1M == 1024k"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1G == 1024M"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1T == 1024G"), FDS_FILTER_YES);
+
+    EXPECT_EQ(evaluate("1.0ns == 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0us == 1000ns"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0ms == 1000us"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0s == 1000ms"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0m == 60s"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0m == 60000ms"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0h == 60m"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0h == 3600s"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0d == 24h"), FDS_FILTER_YES);
+
+    EXPECT_EQ(evaluate("1.0k == 1024"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0M == 1024k"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0G == 1024M"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0T == 1024G"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, number_bases) {
+    EXPECT_EQ(evaluate("0xFF == 255"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0xFf == 255"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0xfF == 255"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0x0fF == 255"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0b01111111 == 127"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0b11111111 == 0xFF"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, float_extra) {
+    EXPECT_EQ(evaluate(".2 == 0.2"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("2. == 2.0"), FDS_FILTER_YES);
+    EXPECT_LT(evaluate(". == 0.0"), FDS_FILTER_OK);
+    EXPECT_EQ(evaluate("0. == 0.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate(".0 == 0.0"), FDS_FILTER_YES);
+    EXPECT_LT(evaluate(".e == 0.0"), FDS_FILTER_OK);
+    EXPECT_LT(evaluate("0.e == 0.0"), FDS_FILTER_OK);
+    EXPECT_EQ(evaluate("1.2e1 == 12.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.2e2 == 120.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.2e3 == 1200.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.2e+3 == 1200.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("120.0e-2 == 1.2"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("120.0e-3 == 0.12"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, arithmetic) {
+    EXPECT_EQ(evaluate("1 + 1 == 2"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 - 1 == 0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 - 10 == -9"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 + 1 == 0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 + 1 == 20 * 0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("2 * 2 + 2 * 4 == (3 + 3) * 2"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("6 / 3 == 2"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("6 / 3 * 3 == 6"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("11 / 2 == 5"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("11.0 / 2 == 5.5"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0 + 1.0 == 2.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("3.0 + 2.0 < 3.0 * 2.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("3.0 + 2 < 3.0 * 2"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 + 1 == -1.0 + 1.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 - 1 == -1.0 - 1.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 * 1 == -1.0 * 1.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 / 1 == -1.0 / 1.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("-1 + 1.0 == -1 + 1.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("3.33 * 3 < 10"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("5 % 2 == 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("5.0 % 2 == 1"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, lists_numbers) {
+    EXPECT_EQ(evaluate("1 in [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("2 in [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("3 in [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("4 in [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("5 in [1, 2, 3, 4]"), FDS_FILTER_NO);
+    EXPECT_EQ(evaluate("1 in []"), FDS_FILTER_NO);
+
+    EXPECT_EQ(evaluate("1.0 in [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.0 in [1, 2.0, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 in [1, 2.0, 3, 4]"), FDS_FILTER_YES);
+
+    EXPECT_LT(compile("1 in 1, 2, 3, 4]"), FDS_FILTER_OK);
+    EXPECT_LT(compile("1 in [1, 2, 3, 4"), FDS_FILTER_OK);
+    EXPECT_LT(compile("1 in [1, 2 3, 4]"), FDS_FILTER_OK);
+    EXPECT_LT(compile("1 in [1, 2, 3 4]"), FDS_FILTER_OK);
+    //EXPECT_LT(compile("1 in [1, 2, 3, 4,]"), FDS_FILTER_OK);
+    EXPECT_LT(compile("1 in [,1, 2, 3, 4]"), FDS_FILTER_OK);
+    EXPECT_LT(compile("1 in [1, 2. 3, 4]"), FDS_FILTER_OK);
+
+    EXPECT_EQ(evaluate("1u in [1, 2, 3, 4u]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1u in [1, 2, 3, 4]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 in [1u, 2, 3, 4]"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, lists_strings) {
+    EXPECT_EQ(evaluate("\"hello\" in [\"hello\", \"world\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not \"hello\" in [\"hello \", \"world\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not \"hello\" in [\" hello\", \"world\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"world\" in [\"hello\", \"world\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"world\" in [\"hello\", \"world\", \"!\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"world\" in [\"world\"]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not \"world\" in []"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, lists_ip_addresses) {
+    EXPECT_EQ(evaluate("192.168.1.1 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 192.168.0.1 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("10.123.4.5 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 11.2.2.2 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1.1.1.1 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("8.8.8.8 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 1.1.1.2 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 8.8.8.16 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not ff:: in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("192.168.1.0/28 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+
+    // ? should this be correct?
+    EXPECT_EQ(evaluate("192.168.1.0/16 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, lists_mac_addresses) {
+    EXPECT_EQ(evaluate("11:22:33:44:55:66 in [11:22:33:44:55:66, 11:22:33:44:55:77]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 11:22:33:44:55:88 in [11:22:33:44:55:66, 11:22:33:44:55:77]"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("11:22:33:44:55:66 in [11:22:33:44:55:77, 11:22:33:44:55:66]"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, string_operations) {
+    EXPECT_EQ(evaluate("\"hello world!\" contains \"hello\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"hello world!\" contains \"world\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"hello world!\" contains \" \""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("\"hello world!\" contains \"\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not \"hello world!\" contains \"foo\""), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, bitwise_operations) {
+    EXPECT_EQ(evaluate("0b11110000 | 0b01011111 == 0b11111111"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0b11110000 ^ 0b01011111 == 0b10101111"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0b11110000 & 0b01011111 == 0b01010000"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("~0b11110000 == 0b1111111111111111111111111111111111111111111111111111111100001111"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, bool_operations) {
+    EXPECT_EQ(evaluate("1 and 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not (1 and 0)"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not (0 and 1)"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0 or 1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("1 or 0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not (0 or 0)"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 0 or 0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not 0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("0 or ((1 or 0) and 1)"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("(not (0 and 1)) or ((1 or 0) and 1)"), FDS_FILTER_YES);
+}
+
+TEST_F(Filter, vars) {
+    int n;
+    user_ctx = &n;
+    fds_filter_opts_set_lookup_callback(opts,
+    [](const char *name, int *out_id, int *out_datatype, int *out_flags) -> int
+    {
+        if (strcmp(name, "ip") == 0) {
+            *out_id = 1;
+            *out_datatype = FDS_FILTER_DT_IP;
+            return FDS_FILTER_OK;
+        }
+        if (strcmp(name, "port") == 0) {
+            *out_id = 2;
+            *out_datatype = FDS_FILTER_DT_UINT;
+            return FDS_FILTER_OK;
+        }
+        if (strcmp(name, "bytes") == 0) {
+            *out_id = 3;
+            *out_datatype = FDS_FILTER_DT_UINT;
+            return FDS_FILTER_OK;
+        }
+        if (strcmp(name, "url") == 0) {
+            *out_id = 4;
+            *out_datatype = FDS_FILTER_DT_STR;
+            return FDS_FILTER_OK;
+        }
+        assert(false);
+    });
+    fds_filter_opts_set_const_callback(opts,
+    [](int id, fds_filter_value_t *out_value) -> void
+    {
+
+    });
+    fds_filter_opts_set_field_callback(opts,
+    [](void *user_ctx, bool reset_ctx, int id, fds_filter_value_t *out_value) -> int
+    {
+        int *n = static_cast<int *>(user_ctx);
+        if (reset_ctx) {
+            *n = 0;
+        }
+
+        if (id == 1) { // ip
+            switch (*n) {
+            case 0:
+                out_value->ip.prefix = 32;
+                out_value->ip.version = 4;
+                out_value->ip.addr[0] = 127;
+                out_value->ip.addr[1] = 0;
+                out_value->ip.addr[2] = 0;
+                out_value->ip.addr[3] = 1;
+                (*n)++;
+                return FDS_FILTER_OK_AND_MORE;
+            case 1:
+                out_value->ip.prefix = 32;
+                out_value->ip.version = 4;
+                out_value->ip.addr[0] = 10;
+                out_value->ip.addr[1] = 0;
+                out_value->ip.addr[2] = 0;
+                out_value->ip.addr[3] = 1;
+                (*n)++;
+                return FDS_FILTER_OK_AND_MORE;
+            case 2:
+                return FDS_FILTER_NOT_FOUND;
+            }
+        } else if (id == 2) { // port
+            switch (*n) {
+            case 0:
+                out_value->u = 80;
+                (*n)++;
+                return FDS_FILTER_OK_AND_MORE;
+            case 1:
+                out_value->u = 443;
+                (*n)++;
+                return FDS_FILTER_OK_AND_MORE;
+            case 2:
+                return FDS_FILTER_NOT_FOUND;
+            }
+        } else if (id == 3) { // bytes
+            switch (*n) {
+            case 0:
+                (*n)++;
+                out_value->u = 1024;
+                return FDS_FILTER_OK_AND_MORE;
+            case 1:
+                (*n)++;
+                out_value->u = 2048;
+                return FDS_FILTER_OK;
+            default:
+                return FDS_FILTER_NOT_FOUND;
+            }
+        } else if (id == 4) { // url
+            out_value->str.chars = NULL;
+            out_value->str.len = 0;
+            return FDS_FILTER_NOT_FOUND;
         } else {
-            value = other.value;
+            assert(false);
         }
-    }
-
-    Value(const Value &&other) {
-
-    }
-
-    Value(enum fds_filter_data_type type_, uint32_t u) {
-        assert(type_ == FDS_FDT_UINT);
-        type = FDS_FDT_UINT;
-        value.uint_ = u;
-    }
-
-    Value(enum fds_filter_data_type type_, int32_t i) {
-        type = type_;
-        value.uint_ = u;
-    }
+    });
+    EXPECT_EQ(evaluate("ip 127.0.0.1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not ip 127.0.0.0"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("ip 10.0.0.1"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not ip 10.0.0.2"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("port 80"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("port 443"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not port 22"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not port 1234"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("ip 127.0.0.1 and port 80"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("ip 127.0.0.1 and port 443"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("ip 10.0.0.1 and port 80"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("ip 10.0.0.1 and port 443"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not url \"google.com\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("not exists url"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("exists port"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("exists ip"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("url \"\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("exists url or url \"\""), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("bytes > 1024"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("bytes < 2048"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("bytes + 1 == 1025"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("bytes + 1 == 2049"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("bytes != 1024"), FDS_FILTER_YES);
+    EXPECT_EQ(evaluate("bytes * 2 == 2048"), FDS_FILTER_YES);
 }
 
 int main(int argc, char **argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
-}
-
-struct Filter {
-    struct identifier_data {
-        int id = -1;
-        fds_filter_data_type type = FDS_FDT_NONE;
-        bool is_constant;
-        std::vector<fds_filter_value> values;
-    };
-    std::map<std::string, identifier_data> identifiers;
-    int identifier_count = 0;
-    int counter = 0;
-    const char *filter_expr;
-    fds_filter_t *filter;
-
-    static int
-    lookup_callback(const char *name, void *user_context, struct fds_filter_identifier_attributes *attributes)
-    {
-        Filter *filter = reinterpret_cast<Filter *>(user_context);
-        if (filter->identifiers.find(name) == filter->identifiers.end()) {
-            return FDS_FILTER_FAIL;
-        }
-        identifier_data &data = filter->identifiers[name];
-        attributes->id = data.id;
-        attributes->data_type = data->data_type;
-        attributes->identifier_type = data.is_constant ? FDS_FIT_CONST : FDS_FIT_FIELD;
-        return FDS_FILTER_OK;
-    }
-
-    static void
-    const_callback(int id, void *user_context, union fds_filter_value *value)
-    {
-        Filter *filter = reinterpret_cast<Filter *>(user_context);
-        identifier_data data;
-        bool found = false;
-        for (auto &p : filter->identifiers) {
-            if (p.second.id == id) {
-                data = p.second;
-                found = true;
-                break;
-            }
-        }
-        assert(found);
-        *value = data.values[0];
-    }
-
-    static int
-    field_callback(int id, void *user_context, int reset_flag, void *input_data, union fds_filter_value *value)
-    {
-        Filter *filter = reinterpret_cast<Filter *>(user_context);
-        identifier_data data;
-        bool found = false;
-        for (auto &p : filter->identifiers) {
-            if (p.second.id == id) {
-                data = p.second;
-                found = true;
-                break;
-            }
-        }
-        assert(found);
-        if (reset_flag) {
-            filter->counter = 0;
-        }
-        int n_values = data.values.size();
-        if (filter->counter >= n_values) {
-            return FDS_FILTER_FAIL;
-        }
-        *value = data.values[filter->counter];
-        filter->counter++;
-        return filter->counter == n_values ? FDS_FILTER_OK : FDS_FILTER_OK_MORE;
-    }
-
-    Filter() {
-    }
-
-    void set_expression(const char *filter_expr) {
-        this->filter_expr = filter_expr;
-    }
-
-    void set_identifier(const char *name, fds_filter_data_type type, bool is_constant, std::vector<fds_filter_value> values) {
-        identifier_data data;
-        identifier_count++;
-        data.id = identifier_count;
-        data->data_type = type;
-        data.values = values;
-        data.is_constant = is_constant;
-        identifiers[name] = data;
-    }
-
-    int compile() {
-        filter = fds_filter_create();
-        if (filter == NULL) {
-            return 0;
-        }
-        fds_filter_set_lookup_callback(filter, lookup_callback);
-        fds_filter_set_const_callback(filter, const_callback);
-        fds_filter_set_field_callback(filter, field_callback);
-        fds_filter_set_user_context(filter, this);
-        int rc = fds_filter_compile(filter, filter_expr);
-        fds_filter_print_errors(filter, stderr);
-        return rc == FDS_FILTER_OK;
-    }
-
-    int evaluate() {
-        int rc = fds_filter_evaluate(filter, NULL);
-        fds_filter_print_errors(filter, stderr);
-        return rc == FDS_FILTER_YES;
-    }
-
-    int error_count() {
-        return fds_filter_get_error_count(filter);
-    }
-
-    int compile_and_evaluate() {
-        return compile() && evaluate();
-    }
-};
-
-TEST(Filter, ip_multiple_values_1)
-{
-    Filter filter;
-    filter.set_expression("ip 127.0.0.1");
-    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } },
-    });
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } },
-    });
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
-    });
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } }
-    });
-    EXPECT_FALSE(filter.compile_and_evaluate());
-}
-
-TEST(Filter, ip_multiple_values_2)
-{
-    Filter filter;
-    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } },
-    });
-    filter.set_expression("not ip 127.0.0.1");
-    EXPECT_TRUE(filter.compile());
-    EXPECT_FALSE(filter.evaluate());
-}
-
-// ip 127.0.0.1 and port 80
-// ip 127.0.0.1 or port 80
-// not ip 127.0.0.1 and not port 80
-// not ip 127.0.0.1 or not port 80
-// not (ip 127.0.0.1 or port 80)
-
-TEST(Filter, ip_port_multiple_values)
-{
-    Filter filter;
-    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 192, 168, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 85, 123, 45, 6 } } },
-    });
-    filter.set_identifier("port", FDS_FDT_UINT, false, {
-        (fds_filter_value) { .uint_ = 80 },
-        (fds_filter_value) { .uint_ = 443 },
-        (fds_filter_value) { .uint_ = 22 }
-    });
-
-    // Contains ip 127.0.0.1 and contains port 80
-    filter.set_expression("ip 127.0.0.1 and port 80");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    // Contains ip 127.0.0.1 and does not contain port 80
-    filter.set_expression("ip 127.0.0.1 and not port 80");
-    EXPECT_FALSE(filter.compile_and_evaluate());
-
-    // Contains ip 127.0.0.1 and does not contain port 60
-    filter.set_expression("ip 127.0.0.1 and not port 60");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    // Contains ip 127.0.1.1 and does not contain port 60
-    filter.set_expression("ip 127.0.1.1 and not port 60");
-    EXPECT_FALSE(filter.compile_and_evaluate());
-
-    // Does not contain ip 192.168.0.1 or does not contain port 443
-    filter.set_expression("not ip 192.168.0.1 or not port 443");
-    EXPECT_FALSE(filter.compile_and_evaluate());
-
-    // Does not contain ip 192.168.0.1 or does not contain port 55
-    filter.set_expression("not ip 192.168.0.1 or not port 55");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-}
-
-TEST(Filter, ip_port_undefined_field)
-{
-    Filter filter;
-    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, { });
-    filter.set_identifier("port", FDS_FDT_UINT, false, {
-        (fds_filter_value) { .uint_ = 80 },
-        (fds_filter_value) { .uint_ = 443 },
-        (fds_filter_value) { .uint_ = 22 }
-    });
-
-    // Contains ip 127.0.0.1
-    filter.set_expression("ip 127.0.0.1");
-    EXPECT_FALSE(filter.compile_and_evaluate());
-
-    // Contains ip 127.0.0.1 and contains port 80
-    filter.set_expression("ip 127.0.0.1 and port 80");
-    EXPECT_FALSE(filter.compile_and_evaluate());
-
-    // Does not contain ip 127.0.0.1 and contains port 80
-    filter.set_expression("not ip 127.0.0.1 and port 80");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    // Contains ip 127.0.0.1 and does not contain port 80
-    filter.set_expression("ip 127.0.0.1 and not port 80");
-    EXPECT_FALSE(filter.compile_and_evaluate());
-
-    // Does not contain ip 192.168.0.1 or does not contain port 443
-    filter.set_expression("not ip 192.168.0.1 or not port 443");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-}
-
-TEST(Filter, arithmetic)
-{
-    Filter filter;
-    filter.set_identifier("a", FDS_FDT_UINT, true, // Const
-                          { (fds_filter_value) { .uint_ = 10 } });
-    filter.set_identifier("b", FDS_FDT_UINT, true, // Const
-                          { (fds_filter_value) { .uint_ = 20 } });
-    filter.set_identifier("c", FDS_FDT_UINT, false, // Not const
-                          { (fds_filter_value) { .uint_ = 30 } });
-
-    filter.set_expression("10 + 20 == 30");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_expression("(10 * 20) + 30 > 100");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_expression("a + b == c");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_expression("(a * b) + c > 100");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_expression("60 * (a * b) + c > 100");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_expression("60 * ((a * b) + c) > 100");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-}
-
-TEST(Filter, list)
-{
-    Filter filter;
-    filter.set_identifier("a", FDS_FDT_UINT, true, // Const
-                          { (fds_filter_value) { .uint_ = 10 } });
-    filter.set_identifier("b", FDS_FDT_UINT, true, // Const
-                          { (fds_filter_value) { .uint_ = 20 } });
-    filter.set_identifier("c", FDS_FDT_UINT, false, // Not const
-                          { (fds_filter_value) { .uint_ = 30 } });
-
-    filter.set_expression("10 in [10, 20, 30]");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_expression("10 in [20, 10, 30]");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_expression("10 in [20, 30, 10]");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_expression("10 in [a, b, c]");
-    EXPECT_FALSE(filter.compile());
-
-    filter.set_expression("10 in [a, b]");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_expression("10 in []");
-    EXPECT_TRUE(filter.compile());
-    EXPECT_FALSE(filter.evaluate());
-
-    filter.set_expression("127.0.0.1 in [192.168.0.1, 127.0.0.1]");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-}
-
-TEST(Filter, identifiers_with_space)
-{
-    Filter filter;
-    filter.set_identifier("src ip", FDS_FDT_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 32, .bytes = { 127, 0, 0, 1 } } },
-    });
-    filter.set_expression("src ip 127.0.0.1");
-    EXPECT_TRUE(filter.compile());
-    EXPECT_TRUE(filter.evaluate());
-
-    filter.set_expression("not src ip 127.0.0.2");
-    EXPECT_TRUE(filter.compile());
-    EXPECT_TRUE(filter.evaluate());
-}
-
-TEST(Filter, ipv4_address_with_prefix_length)
-{
-    Filter filter;
-    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 4, .prefix_length = 24, .bytes = { 192, 168, 0, 1 } } },
-    });
-    filter.set_expression("ip 192.168.0.0/24");
-    EXPECT_TRUE(filter.compile());
-}
-
-TEST(Filter, ipv6_address_shortened)
-{
-    Filter filter;
-    filter.set_expression("::1");
-    EXPECT_TRUE(filter.compile());
-    filter.set_expression("1::");
-    EXPECT_TRUE(filter.compile());
-    filter.set_expression("f::f");
-    EXPECT_TRUE(filter.compile());
-    filter.set_expression("f::a::f");
-    EXPECT_FALSE(filter.compile());
-    filter.set_expression("f::1:2:3:4:56");
-    EXPECT_TRUE(filter.compile());
-}
-
-TEST(Filter, ipv6_address_with_prefix_length)
-{
-    Filter filter;
-    filter.set_expression("1:2:3:4::/64");
-    EXPECT_TRUE(filter.compile());
-    filter.set_expression("::f/120");
-    EXPECT_TRUE(filter.compile());
-}
-
-TEST(Filter, ipv6_address_basic)
-{
-    Filter filter;
-    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0xaa, 0xbb, 0xcc, 0xdd, 0x00 } } },
-        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0x11, 0x22, 0x33, 0x44, 0x55 } } },
-        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0xff, 0xff, 0xff, 0xff, 0xff } } },
-    });
-
-    filter.set_expression("ip aabb:ccdd::");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-    filter.set_expression("not ip 0011:2233:4455:6677:8899:aabb:ccdd:eeff");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-}
-
-TEST(Filter, ip_address_list_trie_optimization)
-{
-    Filter filter;
-
-    filter.set_expression("127.0.0.1 in [127.0.0.1, 192.168.1.25, 85.132.197.60, 1.1.1.1, 8.8.8.8, 4.4.4.4, 0011:2233:4455::]");
-    EXPECT_TRUE(filter.compile_and_evaluate());
-
-    filter.set_identifier("ip", FDS_FDT_IP_ADDRESS, false, {
-        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0xaa, 0xbb, 0xcc, 0xdd, 0x00 } } },
-        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0x11, 0x22, 0x33, 0x44, 0x55 } } },
-        (fds_filter_value) { .ip_address = { .version = 6, .prefix_length = 128, .bytes = { 0xff, 0xff, 0xff, 0xff, 0xff } } },
-    });
-
-    filter.set_expression("ip in [127.0.0.1, 192.168.1.25, 85.132.197.60, 1.1.1.1, 8.8.8.8, 4.4.4.4, 0011:2233:4455::]");
-    EXPECT_TRUE(filter.compile());
-    EXPECT_FALSE(filter.evaluate());
-    filter.set_expression("ip in [127.0.0.1, 192.168.1.25, aabb:ccdd::, 85.132.197.60, 1.1.1.1, 8.8.8.8, 4.4.4.4, 0011:2233:4455::]");
-    EXPECT_TRUE(filter.compile());
-    EXPECT_TRUE(filter.evaluate());
 }

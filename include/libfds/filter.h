@@ -1,306 +1,270 @@
-#ifndef LIBFDS_FILTER_API_H
-#define LIBFDS_FILTER_API_H
+#ifndef FDS_FILTER_INCLUDE_FILTER_H
+#define FDS_FILTER_INCLUDE_FILTER_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include <libfds/api.h>
+
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
-#define FDS_FILTER_FAIL    -1
+#define FDS_FILTER_ERR_LEXICAL   -10
+#define FDS_FILTER_ERR_SYNTAX    -11
+#define FDS_FILTER_ERR_SEMANTIC  -12
+#define FDS_FILTER_ERR_NOMEM     FDS_ERR_NOMEM
+#define FDS_FILTER_ERROR         -1
+#define FDS_FILTER_OK            FDS_OK
+#define FDS_FILTER_OK_AND_MORE   1
+#define FDS_FILTER_NOT_FOUND     2
 
-#define FDS_FILTER_OK       0
-#define FDS_FILTER_OK_MORE  1
+#define FDS_FILTER_YES  0
+#define FDS_FILTER_NO   1
 
-#define FDS_FILTER_YES      0
-#define FDS_FILTER_NO       1
+#define FDS_FILTER_FLAG_CONST    1
 
-typedef struct fds_filter fds_filter_t;
+struct fds_filter_error_s {
+    int code;
+    const char *message;
+    const char *cursor_begin;
+    const char *cursor_end;
+};
+typedef struct fds_filter_error_s fds_filter_error_t;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Data types and values
+
+typedef union fds_filter_value_u fds_filter_value_t;
+
+struct fds_filter_ip_s {
+    uint8_t version;
+    uint8_t prefix;
+    uint8_t addr[16];
+};
+
+struct fds_filter_str_s {
+    uint64_t len;
+    char *chars;
+};
+
+struct fds_filter_list_s {
+    uint64_t len;
+    fds_filter_value_t *items;
+};
+
+struct fds_filter_mac_s {
+    uint8_t addr[6];
+};
+
+typedef struct fds_filter_ip_s fds_filter_ip_t;
+typedef struct fds_filter_str_s fds_filter_str_t;
+typedef struct fds_filter_list_s fds_filter_list_t;
+typedef struct fds_filter_mac_s fds_filter_mac_t;
+typedef int64_t fds_filter_int_t;
+typedef uint64_t fds_filter_uint_t;
+typedef double fds_filter_float_t;
+typedef bool fds_filter_bool_t;
+
+union fds_filter_value_u {
+    fds_filter_ip_t ip;
+    fds_filter_mac_t mac;
+    fds_filter_list_t list;
+    fds_filter_str_t str;
+    fds_filter_int_t i;
+    fds_filter_uint_t u;
+    fds_filter_float_t f;
+    fds_filter_bool_t b;
+    void *p;
+};
+
+enum fds_filter_data_type_e {
+    FDS_FILTER_DT_ANY = -1,
+
+    FDS_FILTER_DT_NONE = 0,
+
+    FDS_FILTER_DT_INT,
+    FDS_FILTER_DT_UINT,
+    FDS_FILTER_DT_FLOAT,
+    FDS_FILTER_DT_STR,
+    FDS_FILTER_DT_BOOL,
+    FDS_FILTER_DT_IP,
+    FDS_FILTER_DT_MAC,
+
+    FDS_FILTER_DT_CUSTOM = 1 << 29,
+    FDS_FILTER_DT_LIST = 1 << 30,
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct fds_filter_s {
+    struct fds_filter_ast_node_s *ast;
+    struct fds_filter_eval_s *eval;
+    fds_filter_error_t *error;
+};
+
+typedef struct fds_filter_s fds_filter_t;
+typedef struct fds_filter_opts_s fds_filter_opts_t;
+
+
 
 /**
- * All the possible data types of a filter value
+ * Look up identifier for its data type and properties during compilation
  *
- * FDS_FDT_NONE and FDS_FDT_COUNT are special values that are not valid filter data types
+ * // TODO: args
+ *
+ * @return  FDS_FILTER_OK or FDS_FILTER_ERROR
  */
-enum fds_filter_data_type {
-    FDS_FDT_NONE = 0,
-    FDS_FDT_STR,
-    FDS_FDT_UINT,
-    FDS_FDT_INT,
-    FDS_FDT_FLOAT,
-    FDS_FDT_BOOL,
-    FDS_FDT_IP_ADDRESS,
-    FDS_FDT_MAC_ADDRESS,
-    FDS_FDT_LIST,
-    FDS_NUMBER_OF_FDT
-};
+typedef int fds_filter_lookup_callback_t(const char *name, int *out_id, int *out_datatype, int *out_flags);
 
 /**
- * Union representing all the possible values a filter can use
+ * Get the value of an identifier if it's const during compilation
+ *
+ * // TODO: args
+ *
+ *
  */
-union fds_filter_value {
-    struct {
-        char *chars;
-        uint64_t length;
-    } string;
-    struct {
-        union fds_filter_value *items;
-        uint64_t length;
-    } list;
-    uint8_t bool_;
-    uint64_t uint_;
-    int64_t int_;
-    double float_;
-    uint8_t bytes[18];
-    struct {
-		uint8_t version; // 4 or 6
-        uint8_t prefix_length;
-        uint8_t bytes[16];
-    } ip_address;
-    uint8_t mac_address[6];
-    void *pointer;
-};
-
-typedef union fds_filter_value fds_filter_value_t;
+typedef void fds_filter_const_callback_t(int id, fds_filter_value_t *out_value);
 
 /**
- * Possible AST node types
+ * Get the value of an identifier if it's field during evaluation
+ *
+ * Sets default value even if not found
+ *
+ * // TODO: args
+ *
+ * Returns one of FDS_FILTER_OK, FDS_FILTER_OK_AND_MORE, FDS_FILTER_NOT_FOUND
  */
-enum fds_filter_ast_node_type {
-    FDS_FANT_NONE = 0,
-    FDS_FANT_ADD,
-    FDS_FANT_MUL,
-    FDS_FANT_SUB,
-    FDS_FANT_DIV,
-    FDS_FANT_MOD,
-    FDS_FANT_UMINUS,
-    FDS_FANT_BITNOT,
-    FDS_FANT_BITAND,
-    FDS_FANT_BITOR,
-    FDS_FANT_BITXOR,
-    FDS_FANT_FLAGCMP,
-    FDS_FANT_NOT,
-    FDS_FANT_AND,
-    FDS_FANT_OR,
-    FDS_FANT_IMPLICIT,
-    FDS_FANT_EQ,
-    FDS_FANT_NE,
-    FDS_FANT_GT,
-    FDS_FANT_LT,
-    FDS_FANT_GE,
-    FDS_FANT_LE,
-    FDS_FANT_CONST,
-    FDS_FANT_IDENTIFIER,
-    FDS_FANT_LIST,
-    FDS_FANT_LIST_ITEM,
-    FDS_FANT_IN,
-    FDS_FANT_CONTAINS,
-    FDS_FANT_CAST,
-    FDS_FANT_ANY,
-    FDS_FANT_ROOT,
-    FDS_NUMBER_OF_FANT
+typedef int fds_filter_field_callback_t(void *user_ctx, bool reset_ctx, int id, fds_filter_value_t *out_value);
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// AST
+
+enum fds_filter_ast_flags_e {
+    FDS_FILTER_AST_FLAG_NONE = 0,
+    FDS_FILTER_AST_FLAG_DESTROY_VAL = 0x1,
+    FDS_FILTER_AST_FLAG_CONST_SUBTREE = 0x2,
+    FDS_FILTER_AST_FLAG_MULTIPLE_EVAL_SUBTREE = 0x4,
 };
 
-enum fds_filter_identifier_type {
-    FDS_FIT_FIELD,
-    FDS_FIT_CONST
-};
+struct fds_filter_ast_node_s {
+    const char *symbol;
+    union {
+        struct {
+            struct fds_filter_ast_node_s *left;
+            struct fds_filter_ast_node_s *right;
+        };
+        struct fds_filter_ast_node_s *operand;
+        struct {
+            struct fds_filter_ast_node_s *item;
+            struct fds_filter_ast_node_s *next;
+        };
+    };
 
-/**
- * The location of a node in the input text
- */
-struct fds_filter_location {
-    int first_line;
-    int last_line;
-    int first_column;
-    int last_column;
-};
+    union fds_filter_value_u value;
 
-/**
- * Node of an abstract syntax tree of the filter
- */
-struct fds_filter_ast_node {
-    enum fds_filter_ast_node_type node_type;
-
-    struct fds_filter_ast_node *parent;
-
-    struct fds_filter_ast_node *left;
-    struct fds_filter_ast_node *right;
-
-    const char *identifier_name;                     // The name of the identifier if the node type is identifier
-    int identifier_id;                               // The id of the identifier if the node type is identifier
-    enum fds_filter_identifier_type identifier_type; // The type of the identifier if the node type is identifier
-
-    bool is_trie;  // If the node contained a list of ip addresses that were optimized to a trie
-
-    bool is_flags; // If the node is a special "flags" value
-
-    enum fds_filter_data_type data_type;
-    enum fds_filter_data_type data_subtype; // In case of list
-    union fds_filter_value value;
-
-    struct fds_filter_location location; // The location of the node in the source code, only for error reporting purposes
-};
-
-struct fds_filter_identifier_attributes {
+    char *name;
     int id;
-    enum fds_filter_identifier_type identifier_type;
-    enum fds_filter_data_type data_type;
-    enum fds_filter_data_type data_subtype;
-    bool is_flags;
+
+    int data_type;
+    int flags;
+
+    // the position of the node in the input text, for error message purposes
+    const char *cursor_begin;
+    const char *cursor_end;
 };
 
-typedef int (*fds_filter_lookup_callback_t)
-(const char *name, void *user_context, struct fds_filter_identifier_attributes *attributes);
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-typedef void (*fds_filter_const_callback_t)
-(int id, void *user_context, union fds_filter_value *value);
 
-typedef int (*fds_filter_field_callback_t)
-(int id, void *user_context, int reset_flag, void *data, union fds_filter_value *value);
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Operations
 
-/**
- * Create an instance of a filter.
- *
- * @return The instance of the filter.
- */
-FDS_API fds_filter_t *
-fds_filter_create();
+enum fds_filter_op_flags_e {
+    FDS_FILTER_OP_FLAG_NONE = 0,
+    FDS_FILTER_OP_FLAG_DESTROY = 0x1,
+    FDS_FILTER_OP_FLAG_OVERRIDE = 0x2,
+};
 
-/**
- * Destroy an instance of a filter.
- *
- * @param   filter  The filter instance.
- */
+typedef void fds_filter_eval_func_t(fds_filter_value_t *left, fds_filter_value_t *right, fds_filter_value_t *result);
+
+struct fds_filter_operation_s {
+    const char *symbol;
+    int out_data_type;
+    int arg1_data_type;
+    int arg2_data_type;
+    fds_filter_eval_func_t *eval_func;
+    int flags;
+};
+
+#define FDS_FILTER_DEFINE_INFIX_OP(LEFT_DT, SYMBOL, RIGHT_DT, FUNC, OUT_DT) \
+    { .symbol = (SYMBOL), .arg1_data_type = (LEFT_DT), .arg2_data_type = (RIGHT_DT), .out_data_type = (OUT_DT), .eval_func = (FUNC) }
+#define FDS_FILTER_DEFINE_PREFIX_OP(SYMBOL, OPERAND_DT, FUNC, OUT_DT) \
+    { .symbol = (SYMBOL), .arg1_data_type = (OPERAND_DT), .arg2_data_type = FDS_FILTER_DT_NONE, .out_data_type = (OUT_DT), .eval_func = (FUNC) }
+#define FDS_FILTER_DEFINE_CAST_OP(FROM_DT, FUNC, TO_DT) \
+    { .symbol = "__cast__", .arg1_data_type = (FROM_DT), .arg2_data_type = FDS_FILTER_DT_NONE, .out_data_type = (TO_DT), .eval_func = (FUNC) }
+#define FDS_FILTER_DEFINE_CONSTRUCTOR(DT, FUNC) \
+    { .symbol = "__create__", .arg1_data_type = (DT), .arg2_data_type = FDS_FILTER_DT_NONE, .out_data_type = FDS_FILTER_DT_NONE, .eval_func = (FUNC) }
+#define FDS_FILTER_DEFINE_DESTRUCTOR(DT, FUNC) \
+    { .symbol = "__destroy__", .arg1_data_type = (DT), .arg2_data_type = FDS_FILTER_DT_NONE, .out_data_type = FDS_FILTER_DT_NONE, .eval_func = (FUNC) }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Options
+FDS_API struct fds_filter_opts_s *
+fds_filter_create_default_opts();
+
+FDS_API void
+fds_filter_opts_set_lookup_callback(fds_filter_opts_t *opts, fds_filter_lookup_callback_t *lookup_callback);
+
+FDS_API void
+fds_filter_opts_set_const_callback(fds_filter_opts_t *opts, fds_filter_const_callback_t *const_callback);
+
+FDS_API void
+fds_filter_opts_set_field_callback(fds_filter_opts_t *opts, fds_filter_field_callback_t *field_callback);
+
+FDS_API int
+fds_filter_opts_add_operation(fds_filter_opts_t *opts, struct fds_filter_operation_s operation);
+
+FDS_API int
+fds_filter_opts_extend_operations(fds_filter_opts_t *opts, struct fds_filter_operation_s *operations, size_t num_operations);
+
+FDS_API void
+fds_filter_destroy_opts(fds_filter_opts_t *opts);
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Main API
+
+FDS_API int
+fds_filter_compile(fds_filter_t **filter, const char *input_expr, fds_filter_opts_t *opts);
+
+FDS_API int
+fds_filter_evaluate(fds_filter_t *filter, void *data);
+
 FDS_API void
 fds_filter_destroy(fds_filter_t *filter);
 
-/**
- * Set the lookup callback of a filter.
- *
- * @param   filter          The filter instance.
- * @param   lookup_callback The lookup callback.
- */
-FDS_API void
-fds_filter_set_lookup_callback(fds_filter_t *filter, fds_filter_lookup_callback_t lookup_callback);
+FDS_API fds_filter_error_t *
+fds_filter_get_error(fds_filter_t *filter);
 
-/**
- * Set the const callback of a filter.
- *
- * @param   filter          The filter instance.
- * @param   const_callback  The const callback.
- */
 FDS_API void
-fds_filter_set_const_callback(fds_filter_t *filter, fds_filter_const_callback_t const_callback);
+fds_filter_set_user_ctx(fds_filter_t *filter, void *user_ctx);
 
-/**
- * Set the field callback of a filter.
- *
- * @param   filter          The filter instance.
- * @param   field_callback  The field callback.
- */
-FDS_API void
-fds_filter_set_field_callback(fds_filter_t *filter, fds_filter_field_callback_t field_callback);
-
-/**
- * Set the user context of a filter.
- *
- * The context is an arbitary value that is set by the user by this function, and is then passed as a parameter
- * to any subsequent calls of the data callback function. The purpose of this is to allow the user to store additional information
- * needed to correctly parse the data, for instance when parsing identifiers with multiple values to keep track of which values
- * have already been returned and which have not. This will most likely be a pointer to a struct that is to be defined, allocated
- * and then freed by the user.
- *
- * @param   filter       The filter instance.
- * @param   user_context The context.
- */
-FDS_API void
-fds_filter_set_user_context(fds_filter_t *filter, void *user_context);
-
-/**
- * Get the user context of a filter.
- *
- * @param   filter  The filter instance.
- * @return The context as set by the user or NULL if no context was set.
- */
 FDS_API void *
-fds_filter_get_user_context(fds_filter_t *filter);
+fds_filter_get_user_ctx(fds_filter_t *filter);
 
-/**
- * Compile a filter from the filter expression.
- *
- * The lookup callback and context (if needed by the lookup function) has to be properly set before the call to this function.
- *
- * @param filter            The filter instance.
- * @param filter_expression The filter expression.
- * @return 1 on success, 0 if any errors occured.
- */
-FDS_API int
-fds_filter_compile(fds_filter_t *filter, const char *filter_expression);
-
-/**
- * Evaluates the filter using the provided data.
- *
- * The filter has to be compiled and the data function has to be properly set before a call to this function.
- *
- * @param filter        The filter instance.
- * @param input_data    The input data.
- * @return FDS_API fds_filter_evaluate
- */
-FDS_API int
-fds_filter_evaluate(fds_filter_t *filter, void *input_data);
-
-/**
- * Gets the abstract syntax tree of a compiled filter
- *
- * @param   filter   The filter instance.
- * @return  A pointer to the root of the abstract syntax tree.
- */
-FDS_API const struct fds_filter_ast_node *
-fds_filter_get_ast(fds_filter_t *filter);
-
-/**
- * Gets the number of errors
- *
- * @param   filter  The filter instance.
- * @return  The error count.
- */
-FDS_API int
-fds_filter_get_error_count(fds_filter_t *filter);
-
-/**
- * Gets the error message of the Nth error
- *
- * @param filter    The filter instance.
- * @param index     The index of the error.
- * @return  The error message if the error exists, else NULL.
- */
-FDS_API const char *
-fds_filter_get_error_message(fds_filter_t *filter, int index);
-
-/**
- * Gets the location in the input text of the Nth error
- *
- * @param      filter       The filter instance.
- * @param      index        The index of the error.
- * @param[out] location     The location of the error in the input text.
- * @return  1 if the error exists and has a location set, else 0.
- */
-FDS_API int
-fds_filter_get_error_location(fds_filter_t *filter, int index, struct fds_filter_location *location);
-
-/**
- * Print errors, return the number of errors printed.
- *
- * @param   filter      The filter instance.
- * @param   out_stream  The output stream to print the errors to.
- * @return  Number of errors printed.
- */
-FDS_API int
-fds_filter_print_errors(fds_filter_t *filter, FILE *out_stream);
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // LIBFDS_FILTER_API_H
+
+#endif

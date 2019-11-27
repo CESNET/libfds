@@ -1,58 +1,29 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
-
-FIND_PACKAGE(BISON)
-FIND_PACKAGE(FLEX)
-
-set(bison_source ${CMAKE_CURRENT_BINARY_DIR}/parser.c)
-set(bison_header ${CMAKE_CURRENT_BINARY_DIR}/parser.h)
-set(flex_source ${CMAKE_CURRENT_BINARY_DIR}/scanner.c)
-set(flex_header ${CMAKE_CURRENT_BINARY_DIR}/scanner.h)
-
-if (BISON_FOUND)
-	add_custom_command(
-		OUTPUT ${bison_source} ${bison_header}
-		COMMAND ${BISON_EXECUTABLE}
-			--output-file=${bison_source}
-			--defines=${bison_header}
-			-t -d --warnings=all
-			${CMAKE_CURRENT_SOURCE_DIR}/parser.y
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/parser.y
-		COMMENT "Generating parser files"
-	)
-endif()
-
-if (FLEX_FOUND)
-	add_custom_command(
-		OUTPUT ${flex_source} ${flex_header}
-		COMMAND ${FLEX_EXECUTABLE}
-			--outfile=${flex_source}
-			--header-file=${flex_header}
-			-d
-			${CMAKE_CURRENT_SOURCE_DIR}/scanner.l
-		DEPENDS ${bison_header} ${CMAKE_CURRENT_SOURCE_DIR}/scanner.l
-		COMMENT "Generating scanner files"
-	)
-endif()
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
 add_library(filter_obj OBJECT
-	filter.h
-	filter.c
-	debug.h
-	ast.h
-	ast.c
-	error.c
-	preprocessor.c
-	semantic_analyzer.c
-	optimizer.c
-	evaluator_functions.h
-	evaluator_functions.c
-	evaluator.h
-	evaluator.c
-	${flex_header}
-	${flex_source}
-	${bison_header}
-	${bison_source}
+    array.h
+    type_set.h
+    common.h
+    values.h
+
+    operations.h
+    operations/float.c operations/float.h
+    operations/int.c operations/int.h
+    operations/ip.c operations/ip.h
+    operations/mac.c operations/mac.h
+    operations/str.c operations/str.h
+    operations/uint.c operations/uint.h
+    operations/other.c operations/other.h
+
+    error.h error.c
+
+    ast_common.h
+    ast_semantic.h ast_semantic.c
+
+    eval_common.h
+    eval_generator.h eval_generator.c
+    eval_evaluator.h eval_evaluator.c
+
+    filter.h filter.c
+    scanner.c scanner.h
+    parser.c parser.h
+    opts.c opts.h
 )

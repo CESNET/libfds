@@ -1,31 +1,42 @@
 #ifndef FDS_FILTER_ERROR_H
 #define FDS_FILTER_ERROR_H
 
+#include <stdio.h>
+#include <stdarg.h>
+
 #include <libfds.h>
 
-struct error {
-    char *message;
-    struct fds_filter_location location;
-};
+#define ERR_OK       FDS_FILTER_OK
+#define ERR_NOMEM    FDS_FILTER_ERR_NOMEM
+#define ERR_LEXICAL  FDS_FILTER_ERR_LEXICAL
+#define ERR_SYNTAX   FDS_FILTER_ERR_SYNTAX
+#define ERR_SEMANTIC FDS_FILTER_ERR_SEMANTIC
 
-struct error_list {
-    int count;
-    struct error *errors;
-};
+typedef struct fds_filter_error_s *error_t;
 
-struct error_list *
-create_error_list();
+extern const error_t NO_ERROR;
+extern const error_t MEMORY_ERROR;
 
-void
-no_memory_error(struct error_list *error_list);
+error_t
+create_error_v(int code, const char *fmt, va_list args);
 
-void
-add_error_message(struct error_list *error_list, const char *format, ...);
+error_t
+create_error(int code, const char *fmt, ...);
 
 void
-add_error_location_message(struct error_list *error_list, struct fds_filter_location location, const char *format, ...);
+destroy_error(error_t error);
 
-void
-destroy_error_list(struct error_list *error_list);
+error_t
+create_error_with_location(int code, const char *begin, const char *end, const char *fmt, ...);
+
+#define LEXICAL_ERROR(CURSOR, ...) \
+    create_error_with_location(ERR_LEXICAL, (CURSOR), (CURSOR) + 1, "lexical error: " __VA_ARGS__)
+
+#define SYNTAX_ERROR(TOKEN, ...) \
+    create_error_with_location(ERR_SYNTAX, (TOKEN)->cursor_begin, (TOKEN)->cursor_end, "syntax error: " __VA_ARGS__)
+
+#define SEMANTIC_ERROR(AST, ...) \
+    create_error_with_location(ERR_SEMANTIC, (AST)->cursor_begin, (AST)->cursor_end, "semantic error: " __VA_ARGS__)
+
 
 #endif // FDS_FILTER_ERROR_H

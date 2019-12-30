@@ -802,14 +802,33 @@ template_ies_biflow_src2dst(const fds_iemgr_t *iemgr, uint32_t pen, uint16_t *id
             uint16_t src_id; // Source Field
             uint16_t dst_id; // Destination Field
         } pairs[] = {
-            {  7,  11}, // sourceTransportPort    X destinationTransportPort
-            {  8,  12}, // sourceIPv4Address      X destinationIPv4Address
-            {  9,  13}, // sourceIPv4PrefixLength X destinationIPv4PrefixLength
-            { 27,  28}, // sourceIPv6Address      X destinationIPv6Address
-            { 29,  30}, // sourceIPv6PrefixLength X destinationIPv6PrefixLength
-            { 44,  45}, // sourceIPv4Prefix       X destinationIPv4Prefix
-            { 56,  80}, // sourceMacAddress       X destinationMacAddress
-            {170, 169}  // sourceIPv6Prefix       X destinationIPv6Prefix
+            {  7,  11}, // sourceTransportPort            X destinationTransportPort
+            {  8,  12}, // sourceIPv4Address              X destinationIPv4Address
+            {  9,  13}, // sourceIPv4PrefixLength         X destinationIPv4PrefixLength
+            { 10,  14}, // ingressInterface               X egressInterface
+            { 16,  17}, // bgpSourceAsNumber              X bgpDestinationAsNumber
+            { 27,  28}, // sourceIPv6Address              X destinationIPv6Address
+            { 29,  30}, // sourceIPv6PrefixLength         X destinationIPv6PrefixLength
+            { 44,  45}, // sourceIPv4Prefix               X destinationIPv4Prefix
+            { 56,  80}, // sourceMacAddress               X destinationMacAddress
+            { 58,  59}, // vlanId                         X postVlanId
+            { 81,  57}, // postSourceMacAddress           X postDestinationMacAddress
+            { 92,  93}, // srcTrafficIndex                X dstTrafficIndex
+            {128, 129}, // bgpNextAdjacentAsNumber        X bgpPrevAdjacentAsNumber
+            {170, 169}, // sourceIPv6Prefix               X destinationIPv6Prefix
+            {180, 181}, // udpSourcePort                  X udpDestinationPort
+            {182, 183}, // tcpSourcePort                  X tcpDestinationPort
+            {225, 226}, // postNATSourceIPv4Address       X postNATDestinationIPv4Address
+            {227, 228}, // postNAPTSourceTransportPort    X postNAPTDestinationTransportPort
+            {234, 235}, // ingressVRFID                   X egressVRFID
+            {281, 282}, // postNATSourceIPv6Address       X postNATDestinationIPv6Address
+            // Note: (ingress/egress)(Unicast/Multicast/Broadcast)PacketTotalCount ignored
+            {368, 369}, // ingressInterfaceType           X egressInterfaceType
+            {414, 415}, // dot1qCustomerSourceMacAddress  X dot1qCustomerDestinationMacAddress
+            // Note: sourceTransportPortsLimit doesn't have its counterpart
+            {484, 485}, // bgpSourceCommunityList         X bgpDestinationCommunityList
+            {487, 488}, // bgpSourceExtendedCommunityList X bgpDestinationExtendedCommunityList
+            {490, 491}  // bgpSourceLargeCommunityList    X bgpDestinationLargeCommunityList
         };
 
         uint16_t new_id = 0;

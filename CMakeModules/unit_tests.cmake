@@ -167,7 +167,7 @@ function(coverage_add_target)
 		COMMAND "${PATH_LCOV}" --directory . --zerocounters --quiet
 
 		# Run tests
-		COMMAND "${CMAKE_CTEST_COMMAND}" --quiet
+		COMMAND "${CMAKE_CTEST_COMMAND}"
 
 		# Capture the counters
 		COMMAND "${PATH_LCOV}"

@@ -99,6 +99,7 @@ endif()
 
 # ------------------------------------------------------------------------------
 # Status messages
+string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE_UPPER)
 MESSAGE(STATUS
 	"\n\n"
 	"libfds version...:   ${LIBFDS_VERSION}\n"

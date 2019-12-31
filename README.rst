@@ -1,3 +1,9 @@
+============= =============
+Master branch |BuildMaster|
+------------- -------------
+Devel branch  |BuildDevel|
+============= =============
+
 Flow Data Storage library
 =========================
 
@@ -37,11 +43,11 @@ First of all, install build dependencies of the library
 * Note: if ZSTD library (``libzstd-devel``) is not available, you can try to
   add official EPEL repository (``yum -y install epel-release``) and install
   it again. Alternatively, it's also possible to use embedded version
-  of the library by passing additional option ``-DUSE_SYSTEM_ZSTD=off`` 
+  of the library by passing additional option ``-DUSE_SYSTEM_ZSTD=off``
   to ``cmake ..`` while building.
 * Note: if LZ4 library (``lz4-devel``) is not available for your distribution
   or you prefer to use libfds embedded version, you can pass additional
-  option ``-DUSE_SYSTEM_LZ4=off`` to ``cmake ..`` 
+  option ``-DUSE_SYSTEM_LZ4=off`` to ``cmake ..``
 
 **Debian/Ubuntu:**
 
@@ -53,7 +59,7 @@ First of all, install build dependencies of the library
 * Note: if ZSTD library (``libzstd-dev``) or LZ4 library (``liblz4-dev``),
   is not available for your distribution or you prefer to use embedded
   versions of these libraries, you can pass additional option
-  ``-DUSE_SYSTEM_LZ4=off``, resp. ``-DUSE_SYSTEM_ZSTD=off`` to ``cmake ..`` 
+  ``-DUSE_SYSTEM_LZ4=off``, resp. ``-DUSE_SYSTEM_ZSTD=off`` to ``cmake ..``
   while building.
 
 Finally, build and install the library:
@@ -67,3 +73,7 @@ Finally, build and install the library:
     $ make
     # make install
 
+.. |BuildMaster| image:: https://github.com/CESNET/libfds/workflows/Build%20and%20tests/badge.svg?branch=master
+   :target: https://github.com/CESNET/libfds/tree/master
+.. |BuildDevel| image:: https://github.com/CESNET/libfds/workflows/Build%20and%20tests/badge.svg?branch=devel
+   :target: https://github.com/CESNET/libfds/tree/devel

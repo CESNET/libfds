@@ -17,7 +17,7 @@ Available components:
 - IPFIX Data type coverters (e.g. getters, setters, and to string)
 - Manager of Information Elements (i.e. id, name, type, etc. of IPFIX fields)
 - Simple XML parser with data type check (implemented as a wrapper over libxml2)
-- Flow file storage
+- Flow file storage (beta)
 
 The library doesn't contain support for receiving IPFIX over network and
 processing IPFIX Messages. However, all these features are provided by

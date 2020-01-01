@@ -8,12 +8,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: ['ubuntu:18.04', 'ubuntu:19.04', 'ubuntu:20.04', 'debian:stretch', 'debian:buster', 'debian:bullseye', 'centos:7', 'centos:8', 'fedora:28', 'fedora:29', 'fedora:30', 'fedora:31']
+        image: ['ubuntu:18.04', 'ubuntu:19.04', 'ubuntu:20.04', 'debian:stretch', 'debian:buster', 'debian:bullseye', 'centos:7', 'centos:8', 'fedora:29', 'fedora:30', 'fedora:31']
 
     name: Build on ${{ matrix.image }}
     container: ${{ matrix.image }}
     steps:
     - uses: actions/checkout@v1
+
     # Dependencies ---------------------------------------------------------------------------
     - name: Install dependencies (Ubuntu/Debian)
       if: startsWith(matrix.image, 'ubuntu') || startsWith(matrix.image, 'debian')
@@ -28,14 +29,16 @@ jobs:
     - name: Install depedencies (Fedora)
       if: startsWith(matrix.image, 'fedora')
       run: dnf -y install git gcc gcc-c++ cmake make libxml2-devel lz4-devel libzstd-devel
+
     # Build ----------------------------------------------------------------------------------
     # Note: Unit tests are disabled on CentOS7 due to outdated GCC version
-    - name: Prepare for build
-      run: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTS=$TESTS
+    - name: Build the project
+      run: |
+        mkdir build && cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTS=$TESTS
+        make && make install
       env:
         TESTS: ${{ startsWith(matrix.image, 'centos:7') != true }}
-    - name: Build the project
-      run: cd build && make
     - name: Run tests
       if: startsWith(matrix.image, 'centos:7') != true
       run: cd build && make test

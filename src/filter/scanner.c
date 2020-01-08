@@ -39,7 +39,7 @@ const char *symbols[] = {
 };
 
 void
-print_token(FILE *out, struct token_s *token)
+token_print(FILE *out, struct token_s *token)
 {
     switch (token->kind) {
         case TK_LITERAL:
@@ -1085,11 +1085,11 @@ next_token(struct scanner_s *scanner, struct token_s *out_token)
     destroy_error(err);
     destroy_error(next_err);
     destroy_token(next_token);
-    #ifdef FDS_FILTER_DEBUG_SCANNER
-    fprintf(stderr, "scanned token: ");
-    print_token(stderr, &token);
-    fprintf(stderr, "\n");
-    #endif
+
+    // fprintf(stderr, "scanned token: ");
+    // print_token(stderr, &token);
+    // fprintf(stderr, "\n");
+
     return NO_ERROR;
 }
 
@@ -1129,7 +1129,4 @@ init_scanner(struct scanner_s *scanner, const char *input)
         .input = input,
         .cursor = input
     };
-    #ifdef FDS_FILTER_DEBUG_SCANNER
-    fprintf(stderr, "scanner initialized with input: %s\n", input);
-    #endif
 }

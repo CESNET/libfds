@@ -5,17 +5,17 @@
 #include <stdbool.h>
 #include <string.h>
 
-struct array_s {
+typedef struct array {
     int item_size;
     int capacity;
     int num_items;
     void *items;
-};
+} array_s;
 
-static inline struct array_s
-array_make(int item_size)
+static inline array_s
+array_create(int item_size)
 {
-    return (struct array_s) {
+    return (array_s) {
         .item_size = item_size,
         .num_items = 0,
         .capacity = 0,
@@ -24,7 +24,7 @@ array_make(int item_size)
 }
 
 static inline bool
-array_reserve(struct array_s *array, int capacity)
+array_reserve(array_s *array, int capacity)
 {
     if (array->capacity >= capacity) {
         return true;
@@ -40,31 +40,31 @@ array_reserve(struct array_s *array, int capacity)
 }
 
 static inline void *
-array_item_at(struct array_s *array, int index)
+array_item_at(array_s *array, int index)
 {
     return (char *)array->items + (index * array->item_size);
 }
 
 static inline void
-array_set_items_at(struct array_s *array, int index, void *item, int num_items)
+array_set_items_at(array_s *array, int index, void *item, int num_items)
 {
     memcpy(array_item_at(array, index), item, array->item_size * num_items);
 }
 
 static inline void
-array_set_item_at(struct array_s *array, int index, void *item)
+array_set_item_at(array_s *array, int index, void *item)
 {
     array_set_items_at(array, index, item, 1);
 }
 
 static inline void
-array_move_items(struct array_s *array, int from_index, int to_index, int num_items)
+array_move_items(array_s *array, int from_index, int to_index, int num_items)
 {
     memmove(array_item_at(array, to_index), array_item_at(array, from_index), array->item_size * num_items);
 }
 
 static inline bool
-array_extend_front(struct array_s *array, void *item, int num_items)
+array_extend_front(array_s *array, void *item, int num_items)
 {
     if (!array_reserve(array, array->num_items + num_items)) {
         return false;
@@ -76,14 +76,14 @@ array_extend_front(struct array_s *array, void *item, int num_items)
 }
 
 static inline bool
-array_push_front(struct array_s *array, void *item)
+array_push_front(array_s *array, void *item)
 {
     return array_extend_front(array, item, 1);
 }
 
 
 static inline bool
-array_extend_back(struct array_s *array, void *item, int num_items)
+array_extend_back(array_s *array, void *item, int num_items)
 {
     if (!array_reserve(array, array->num_items + num_items)) {
         return false;
@@ -94,13 +94,13 @@ array_extend_back(struct array_s *array, void *item, int num_items)
 }
 
 static inline bool
-array_push_back(struct array_s *array, void *item)
+array_push_back(array_s *array, void *item)
 {
     return array_extend_back(array, item, 1);
 }
 
 static inline void
-array_destroy(struct array_s *array)
+array_destroy(array_s *array)
 {
     free(array->items);
 }

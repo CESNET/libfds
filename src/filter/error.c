@@ -1,6 +1,6 @@
 #include "error.h"
 
-const struct fds_filter_error_s memory_error = { .code = ERR_NOMEM, .message = "out of memory" };
+const fds_filter_error_s memory_error = { .code = FDS_ERR_NOMEM, .msg = "out of memory" };
 
 const error_t NO_ERROR = NULL;
 const error_t MEMORY_ERROR = &memory_error;
@@ -11,7 +11,7 @@ create_error_v(int code, const char *fmt, va_list args)
     va_list args_;
     va_copy(args_, args);
     size_t msg_len = vsnprintf(NULL, 0, fmt, args_);
-    error_t err = malloc(sizeof(struct fds_filter_error_s));
+    error_t err = malloc(sizeof(fds_filter_error_s));
     if (!err) { 
         va_end(args_);
         return MEMORY_ERROR;
@@ -26,7 +26,7 @@ create_error_v(int code, const char *fmt, va_list args)
     va_copy(args_, args);
     vsnprintf(msg, msg_len + 1, fmt, args_);
     msg[msg_len] = '\0';
-    err->message = msg;
+    err->msg = msg;
     err->code = code;
     va_end(args_);
     return err;
@@ -61,7 +61,7 @@ void
 destroy_error(error_t error)
 {
     if (error != NULL && error != NO_ERROR && error != MEMORY_ERROR) {
-        free(error->message);
+        free(error->msg);
         free(error);
     }
 }

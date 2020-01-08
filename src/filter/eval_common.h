@@ -7,82 +7,80 @@
 
 #include "array.h"
 #include "common.h"
+#include "error.h"
 #include "values.h"
 #include "operations.h"
 
-enum eval_opcode_e {
+typedef enum eval_opcode {
     EVAL_OP_NONE,
+    EVAL_OP_VALUE,
     EVAL_OP_AND,
     EVAL_OP_OR,
     EVAL_OP_NOT,
-    EVAL_OP_CALL,
-    EVAL_OP_LOOKUP,
+    EVAL_OP_CAST_CALL,
+    EVAL_OP_UNARY_CALL,
+    EVAL_OP_BINARY_CALL,
+    EVAL_OP_DATA_CALL,
     EVAL_OP_ANY,
     EVAL_OP_EXISTS
-};
+} eval_opcode_e;
 
-struct eval_node_s {
-    enum eval_opcode_e opcode;
-    int flags;
-    #ifndef NDEBUG
-    int data_type;
-    operation_s *operation;
-    #endif
-    value_t value;
+typedef struct eval_node {
+    eval_opcode_e opcode;
+
+    /// DEBUG INFO
+    int datatype;
+    fds_filter_op_s *operation;
+
+    fds_filter_value_u value;
     union {
-        fds_filter_eval_func_t *eval_function;
+        fds_filter_unary_fn_t *unary_fn;
+        fds_filter_binary_fn_t *binary_fn;
+        fds_filter_cast_fn_t *cast_fn;
+        fds_filter_destructor_fn_t *destructor_fn;
         int lookup_id;
     };
-    struct eval_node_s *parent;
+    struct eval_node *parent;
     union {
         struct {
-            struct eval_node_s *left;
-            struct eval_node_s *right;
+            struct eval_node *left;
+            struct eval_node *right;
         };
-        struct eval_node_s *child;
+        struct eval_node *child;
     };
-};
+} eval_node_s;
 
-struct eval_context_s {
-    fds_filter_field_callback_t *field_callback;
-    struct eval_node_s *reevaluate_node;
+typedef struct eval_runtime {
+    fds_filter_data_cb_t *data_cb;
+    eval_node_s *reevaluate_node;
     bool reset_lookup;
     void *data;
     void *user_ctx;
-};
-
-struct destroy_pair_s {
-    fds_filter_eval_func_t *destroy_func;
-    value_t *value;
-};
-
-struct fds_filter_eval_s {
-    struct eval_node_s *root;
-    struct eval_context_s ctx;
-    struct array_s destructors;
-};
+} eval_runtime_s;
 
 
-
-static inline struct eval_node_s *
+static inline eval_node_s *
 create_eval_node()
 {
-    struct eval_node_s *en = calloc(1, sizeof(struct eval_node_s));
+    eval_node_s *en = calloc(1, sizeof(eval_node_s));
     return en;
 }
 
 static inline void
-destroy_eval_node(struct eval_node_s *en)
+destroy_eval_node(eval_node_s *en)
 {
     if (!en) {
         return;
     }
     // TODO: destroy value?
+    if (en->opcode == EVAL_OP_NONE && en->destructor_fn) {
+        en->destructor_fn(&en->value);
+    }
     free(en);
 }
 
 static inline void
-destroy_eval_tree(struct eval_node_s *root)
+destroy_eval_tree(eval_node_s *root)
 {
     if (!root) {
         return;
@@ -92,38 +90,26 @@ destroy_eval_tree(struct eval_node_s *root)
     destroy_eval_node(root);
 }
 
-static inline void
-destroy_eval(struct fds_filter_eval_s *eval)
-{
-    if (!eval) {
-        return;
-    }
-    ARRAY_FOR_EACH(&eval->destructors, struct destroy_pair_s, dp) {
-        dp->destroy_func(dp->value, NULL, NULL);
-    }
-    array_destroy(&eval->destructors);
-    destroy_eval_tree(eval->root);
-    free(eval);
-}
-
 static inline const char *
 eval_opcode_to_str(int opcode)
 {
     switch (opcode) {
-    case EVAL_OP_NONE:   return "none";
-    case EVAL_OP_AND:    return "and";
-    case EVAL_OP_OR:     return "or";
-    case EVAL_OP_NOT:    return "not";
-    case EVAL_OP_CALL:   return "call";
-    case EVAL_OP_LOOKUP: return "lookup";
-    case EVAL_OP_ANY:    return "any";
-    case EVAL_OP_EXISTS: return "exists";
-    default:             return "unknown";
+    case EVAL_OP_NONE:         return "none";
+    case EVAL_OP_AND:          return "and";
+    case EVAL_OP_OR:           return "or";
+    case EVAL_OP_NOT:          return "not";
+    case EVAL_OP_UNARY_CALL:   return "unary_call";
+    case EVAL_OP_BINARY_CALL:  return "binary_call";
+    case EVAL_OP_CAST_CALL:    return "cast_call";
+    case EVAL_OP_DATA_CALL:    return "data_call";
+    case EVAL_OP_ANY:          return "any";
+    case EVAL_OP_EXISTS:       return "exists";
+    default:                   return "unknown";
     }
 }
 
 static inline void
-print_eval_tree_one(FILE *out, struct eval_node_s *node, int indent_level)
+print_eval_tree_rec(FILE *out, eval_node_s *node, int indent_level)
 {
     #define PRINT_INDENT()    for (int i = 0; i < indent_level; i++) { fprintf(out, "  "); }
 
@@ -134,11 +120,13 @@ print_eval_tree_one(FILE *out, struct eval_node_s *node, int indent_level)
     PRINT_INDENT();
 
     fprintf(out, "(%s, ", eval_opcode_to_str(node->opcode));
-    fprintf(out, "data type: %s, value: ", data_type_to_str(node->data_type));
+    fprintf(out, "data type: %s, value: ", data_type_to_str(node->datatype));
     #ifndef NDEBUG
-    // if (node->data_type == DT_BOOL)
-    print_value(out, node->data_type, &node->value);
-    if (node->opcode == EVAL_OP_CALL) {
+    // if (node->datatype == DT_BOOL)
+    print_value(out, node->datatype, &node->value);
+    if (node->opcode == EVAL_OP_UNARY_CALL 
+        || node->opcode == EVAL_OP_BINARY_CALL 
+        || node->opcode == EVAL_OP_CAST_CALL) {
         fprintf(out, ", ");
         print_operation(out, node->operation);
     }
@@ -149,8 +137,8 @@ print_eval_tree_one(FILE *out, struct eval_node_s *node, int indent_level)
     if (node->left || node->right) {
         fprintf(out, "\n");
     }
-    print_eval_tree_one(out, node->left, indent_level + 1);
-    print_eval_tree_one(out, node->right, indent_level + 1);
+    print_eval_tree_rec(out, node->left, indent_level + 1);
+    print_eval_tree_rec(out, node->right, indent_level + 1);
 
     if (node->left || node->right) {
         PRINT_INDENT();
@@ -162,9 +150,16 @@ print_eval_tree_one(FILE *out, struct eval_node_s *node, int indent_level)
 }
 
 static inline void
-print_eval_tree(FILE *out, struct eval_node_s *root)
+print_eval_tree(FILE *out, eval_node_s *root)
 {
-    print_eval_tree_one(out, root, 0);
+    print_eval_tree_rec(out, root, 0);
 }
+
+error_t
+generate_eval_tree(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_tree);
+
+void
+evaluate_eval_tree(eval_node_s *root, eval_runtime_s *runtime);
+
 
 #endif // FDS_FILTER_EVAL_COMMON_H

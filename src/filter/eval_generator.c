@@ -1,315 +1,459 @@
-#include "eval_generator.h"
-
+#include "eval_common.h"
+#include "ast_common.h"
 #include "common.h"
 #include "error.h"
 #include "opts.h"
 #include "values.h"
 #include "operations.h"
 
-#define OPTIMIZE_CONSTANT_SUBTREES  0
-
+/**
+ * Deletes all references to a value from a eval tree
+ * 
+ * \param value the value
+ * \param tree  the eval tree
+ */
 static void
-unref_value_from_eval_tree(value_t *value, struct eval_node_s *tree)
+delete_value_from_et(fds_filter_value_u *value, eval_node_s *tree)
 {
     if (!tree) {
         return;
     }
-    unref_value_from_eval_tree(value, tree->left);
-    unref_value_from_eval_tree(value, tree->right);
+    delete_value_from_et(value, tree->left);
+    delete_value_from_et(value, tree->right);
+    
     // if the value matches by value zero it out
-    if (memcmp(&tree->value, value, sizeof(value_t)) == 0) {
-        tree->value = (value_t){};
+    if (memcmp(&tree->value, value, sizeof(fds_filter_value_u)) == 0) {
+        tree->value = (fds_filter_value_u){};
     }
 }
 
-static void
-destruct_unfinished_list(opts_s *opts, int data_type, value_t *items, int num_items)
+/**
+ * Generate and evaluate an AST once and return the resulting value of its root
+ * 
+ * \param[in] ast       the AST
+ * \param[in] opts      the filter opts
+ * \param[out] out_val  the resulting value
+ * \return error type
+ */ 
+static error_t
+ast_to_literal(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, fds_filter_value_u *out_val)
 {
-    operation_s *destructor = find_destructor(&opts->operations, data_type);
+    eval_node_s *root;
+    error_t err = generate_eval_tree(ast, opts, &root);
+    if (err != NO_ERROR) {
+        return err;
+    }
+
+    eval_runtime_s runtime = {};
+    evaluate_eval_tree(root, &runtime); // Evaluation cannot fail
+
+    *out_val = root->value; // Copy the value 
+    delete_value_from_et(out_val, root); // Delete it so it doesn't get destructed
+
+    destroy_eval_tree(root);
+
+    return NO_ERROR;
+}
+
+/**
+ * Destroy a value by calling its destructor function if it has any
+ * 
+ * \param op_list   the list of operations
+ * \param datatype  the data type of the value
+ * \param value     pointer to the value to destruct
+ */
+static void
+call_destructor_for_value(array_s *op_list, int datatype, fds_filter_value_u *value)
+{
+    fds_filter_op_s *destructor = find_destructor(op_list, datatype);
+    if (destructor) {
+        destructor->destructor_fn(value);
+    }
+}
+
+/**
+ * Properly destruct a partially constructed list that hasn't been finished due to an error
+ * 
+ * \param op_list    the list of operations
+ * \param item_dt    the datatype of the list items
+ * \param items      the list items
+ * \param num_items  the number of properly constructed items
+ */
+static void
+call_destructor_for_list_items(array_s *op_list, int item_dt, fds_filter_value_u *items, int num_items)
+{
+    fds_filter_op_s *destructor = find_destructor(op_list, item_dt);
     if (destructor) {
         for (int i = 0; i < num_items; i++) {
-            destructor->eval_func(&items[i], NULL, NULL);
+            destructor->destructor_fn(&items[i]);
         }
     }
     free(items);
 }
 
+/**
+ * Convert an AST linked list to a real list
+ * 
+ * \param[in]  ast       the ast node of the linked list
+ * \param[in]  opts      the filter options
+ * \param[in]  env       the eval env
+ * \param[out] out_list  the resulting list
+ * \return error type
+ */  
 static error_t
-transform_ast_list_to_literal_list(ast_node_s *ast_node, opts_s *opts, struct fds_filter_eval_s *eval, fds_filter_list_t *out_list)
+list_to_literal(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, fds_filter_list_t *out_list)
 {
-    // the ast node must be a list
-    assert(is_ast_node_of_symbol(ast_node, "__list__"));
+    // The ast node must be a list
+    assert(ast_node_symbol_is(ast, "__list__"));
 
-    // count the number of items
-    int n_items = 0;
-    for (ast_node_s *li = ast_node->operand; li != NULL; li = li->next) {
-        n_items++;
+    out_list->len = 0;
+    out_list->items = NULL;
+
+    // Count the number of items
+    for (fds_filter_ast_node_s *li = ast->child; li != NULL; li = li->next) {
+        out_list->len++;
     }
 
-    // if empty list
-    if (n_items == 0) {
-        out_list->items = NULL;
-        out_list->len = 0;
+    // In case the list is empty there is nothing to do...
+    if (out_list == 0) {
         return NO_ERROR;
     }
 
-    // allocate space for the items
-    value_u *items = calloc(n_items, sizeof(value_u));
-    if (!items) {
+    // Allocate space for the items
+    out_list->items = calloc(out_list->len, sizeof(value_u));
+    if (!out_list->items) {
         return MEMORY_ERROR;
     }
 
-    // evaluate each list item node and populate the list
+    // Evaluate each list item node and populate the list
     int idx = 0;
-    for (ast_node_s *li = ast_node->operand; li != NULL; li = li->next) {
-        struct fds_filter_eval_s *item_eval;
-        error_t err = generate_eval_tree(li->item, opts, &item_eval);
+    for (fds_filter_ast_node_s *li = ast->child; li != NULL; li = li->next) {
+        assert(idx < out_list->len);
+
+        error_t err = ast_to_literal(li->item, opts, &out_list->items[idx]);
         if (err != NO_ERROR) {
-            destruct_unfinished_list(opts, ast_node->operand->data_type, items, n_items);
+            call_destructor_for_list_items(&opts->op_list, ast->child->datatype, out_list->items, idx);
             return err;
         }
-
-        evaluate(item_eval, NULL);
-        // TODO: error check?
-        items[idx] = item_eval->root->value;
-        // delete references from the children subtrees to the value
-        unref_value_from_eval_tree(&items[idx], item_eval->root);
         idx++;
-
-        destroy_eval(item_eval);
-    }
-
-    // assign the eval node
-    out_list->items = items;
-    out_list->len = n_items;
-
-    return NO_ERROR;
-}
-
-static void
-call_constructor_if_any(opts_s *opts, int data_type, value_t *value)
-{
-    operation_s *constructor = find_constructor(&opts->operations, data_type);
-    if (!constructor) {
-        return;
-    }
-    constructor->eval_func(value, NULL, NULL);
-}
-
-static error_t
-push_destructor_if_any(opts_s *opts, struct fds_filter_eval_s *eval, int data_type, value_t *value)
-{
-    operation_s *destructor = find_destructor(&opts->operations, data_type);
-    if (!destructor) {
-        return NO_ERROR;
-    }
-    struct destroy_pair_s dp = { .destroy_func = destructor->eval_func, .value = value };
-    if (!array_push_front(&eval->destructors, &dp)) {
-        return MEMORY_ERROR;
     }
     return NO_ERROR;
 }
 
 static error_t
-generate_eval_tree_recursively(ast_node_s *ast_node, opts_s *opts, struct fds_filter_eval_s *eval, struct eval_node_s **out_eval_node)
+generate_children(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_left, eval_node_s **out_right);
+
+/**
+ * Process `__root__` ast node
+ */
+static error_t
+process_root_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
 {
-    if (!ast_node) {
-        *out_eval_node = NULL;
-        return NO_ERROR;
-    }
-
-    if (is_ast_node_of_symbol(ast_node, "__root__")) {
-        struct eval_node_s *child_node;
-        error_t err = generate_eval_tree_recursively(ast_node->operand, opts, eval, &child_node);
-        if (err != NO_ERROR) {
-            return err;
-        }
-        if (!(ast_node->operand->flags & AST_FLAG_MULTIPLE_EVAL_SUBTREE)) {
-            *out_eval_node = child_node;
-            return NO_ERROR;
-        }
-
-        // If the tree needs multiple evaluations and it's not handled by any of the child nodes
-        // we have to provide a special node for the root
-        struct eval_node_s *eval_node = create_eval_node();
-        if (!eval_node) {
-            destroy_eval_tree(child_node);
-            // TODO: destructors
-            return MEMORY_ERROR;
-        }
-        eval_node->opcode = EVAL_OP_ANY;
-        eval_node->child = child_node;
-        #ifndef NDEBUG
-        eval_node->data_type = DT_BOOL;
-        #endif
-        *out_eval_node = eval_node;
-        return NO_ERROR;
-    }
-
-    if (is_ast_node_of_symbol(ast_node, "exists")) {
-        assert(is_ast_node_of_symbol(ast_node->operand, "__name__"));
-        struct eval_node_s *eval_node = create_eval_node();
-        if (!eval_node) {
-            return MEMORY_ERROR;
-        }
-        eval_node->opcode = EVAL_OP_EXISTS;
-        eval_node->lookup_id = ast_node->operand->id;
-        #ifndef NDEBUG
-        eval_node->data_type = ast_node->data_type;
-        #endif
-        *out_eval_node = eval_node;
-        return NO_ERROR;
-    }
-
-    if (is_ast_node_of_symbol(ast_node, "__literal__")) {
-        struct eval_node_s *eval_node = create_eval_node();
-        if (!eval_node) {
-            return MEMORY_ERROR;
-        }
-        eval_node->opcode = EVAL_OP_NONE;
-        eval_node->value = ast_node->value;
-        // The destruction of the value is now handled by the destructor rather than the AST
-        ast_node->flags &= ~AST_FLAG_DESTROY_VAL; 
-        call_constructor_if_any(opts, ast_node->data_type, &eval_node->value);
-        error_t err = push_destructor_if_any(opts, eval, ast_node->data_type, &eval_node->value);
-        if (err != NO_ERROR) {
-            destroy_eval_node(eval_node);
-            return err;
-        }
-        #ifndef NDEBUG
-        eval_node->data_type = ast_node->data_type;
-        #endif
-        *out_eval_node = eval_node;
-        return NO_ERROR;
-    }
-
-    if (is_ast_node_of_symbol(ast_node, "__name__")) {
-        struct eval_node_s *eval_node = create_eval_node();
-        if (!eval_node) {
-            return MEMORY_ERROR;
-        }
-        eval_node->opcode = EVAL_OP_LOOKUP;
-        eval_node->lookup_id = ast_node->id;
-        #ifndef NDEBUG
-        eval_node->data_type = ast_node->data_type;
-        #endif
-        *out_eval_node = eval_node;
-        return NO_ERROR;
-    }
-
-    if (is_ast_node_of_symbol(ast_node, "__list__")) {
-        struct eval_node_s *eval_node = create_eval_node();
-        if (!eval_node) {
-            return MEMORY_ERROR;
-        }
-
-        error_t err;
-        err = transform_ast_list_to_literal_list(ast_node, opts, eval, &eval_node->value.list);
-        if (err != NO_ERROR) {
-            destroy_eval_node(eval_node);
-            return err;
-        }
-
-        err = push_destructor_if_any(opts, eval, ast_node->data_type, &eval_node->value);
-        if (err != NO_ERROR) {
-            destruct_unfinished_list(opts, ast_node->operand->data_type, eval_node->value.list.items, eval_node->value.list.len);
-            destroy_eval_node(eval_node);
-            return err;
-        }
-
-        call_constructor_if_any(opts, ast_node->data_type, &eval_node->value);
-        #ifndef NDEBUG
-        eval_node->data_type = ast_node->data_type;
-        #endif
-        *out_eval_node = eval_node;
-        return NO_ERROR;
-    }
-
-    struct eval_node_s *left = NULL;
-    struct eval_node_s *right = NULL;
-    // process children if any
-    error_t err;
-    err = generate_eval_tree_recursively(ast_node->left, opts, eval, &left);
+    eval_node_s *child;
+    error_t err = generate_children(ast, opts, &child, NULL);
     if (err != NO_ERROR) {
-        // TODO: free
-        PTRACE("propagating error");
-        return err;
-    }
-    err = generate_eval_tree_recursively(ast_node->right, opts, eval, &right);
-    if (err != NO_ERROR) {
-        destroy_eval_tree(left);
-        // TODO: destructors
         return err;
     }
 
-    struct eval_node_s *eval_node = create_eval_node();
-    if (!eval_node) {
-        destroy_eval_tree(left);
-        destroy_eval_tree(right);
+    // Just propagate the node if the ANY node is not needed
+    if (!(ast->child->flags & AST_FLAG_MULTIPLE_EVAL_SUBTREE)) {
+        *out_eval_node = child;
+        return NO_ERROR;
+    }
+
+    // Can be evaluated multiple times so the ANY node is needed
+    eval_node_s *en = create_eval_node();
+    if (!en) {
+        destroy_eval_tree(child);
         return MEMORY_ERROR;
     }
+    en->opcode = EVAL_OP_ANY;   
+    en->datatype = DT_BOOL;
+    en->child = child;
+    child->parent = en;
+    *out_eval_node = en;
+    return NO_ERROR;
+}
 
-    if (is_ast_node_of_symbol(ast_node, "and")) {
-        eval_node->opcode = EVAL_OP_AND;
-    } else if (is_ast_node_of_symbol(ast_node, "or")) {
-        eval_node->opcode = EVAL_OP_OR;
-    } else if (is_ast_node_of_symbol(ast_node, "not")) {
-        eval_node->opcode = EVAL_OP_NOT;
+/**
+ * Process `__constructor__` ast node
+ */
+static error_t
+process_constructor_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+{
+    // Must be const, should be assured by semantic analysis
+    assert(ast->flags & AST_FLAG_CONST_SUBTREE);
+
+    fds_filter_value_u orig_val, constructed_val;
+
+    // Evaluate the subtree under the constructor node and get its value
+    error_t err = ast_to_literal(ast->child, opts, &orig_val);
+    if (err != NO_ERROR) {
+        return err;
+    }
+
+    // Find the constructor and try to call it
+    fds_filter_op_s *constructor = find_constructor(&opts->op_list, ast->child->datatype, ast->datatype);
+    int rc = constructor->constructor_fn(&orig_val, &constructed_val);
+    // ??? Should the original value be destructed every time or only if the constructor failed?
+    call_destructor_for_value(&opts->op_list, ast->child->datatype, &orig_val);
+    if (rc != FDS_OK) {
+        return SEMANTIC_ERROR(ast, "value could not be constructed");
+    }
+
+    // Create node for the constructed value
+    eval_node_s *en = create_eval_node();
+    if (!en) {
+        call_destructor_for_value(&opts->op_list, ast->datatype, &constructed_val);
+        return MEMORY_ERROR;
+    }
+    en->opcode = EVAL_OP_NONE;
+    en->datatype = ast->datatype;
+    en->value = constructed_val;
+    fds_filter_op_s *destructor = find_destructor(&opts->op_list, ast->datatype);
+    if (destructor) {
+        en->destructor_fn = destructor->destructor_fn;
+    }
+    *out_eval_node = en;
+    return NO_ERROR;
+}
+
+/**
+ * Process `exists` ast node
+ */
+static error_t
+process_exists_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+{
+    // Must have a __name__ node as its only child
+    assert(ast_node_symbol_is(ast->child, "__name__"));
+
+    // Create exists node
+    eval_node_s *en = create_eval_node();
+    if (!en) {
+        return MEMORY_ERROR;
+    }
+    en->opcode = EVAL_OP_EXISTS;
+    en->lookup_id = ast->child->id;
+    en->datatype = ast->datatype;
+    *out_eval_node = en;
+    return NO_ERROR;
+}
+
+/**
+ * Process `__name__` node
+ */
+static error_t
+process_name_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+{
+    eval_node_s *en = create_eval_node();
+    if (!en) {
+        return MEMORY_ERROR;
+    }
+    // Is the name a constant or a variable?
+    if (ast->flags & AST_FLAG_CONST_SUBTREE) {
+        en->opcode = EVAL_OP_NONE;
+        en->value = ast->value;
     } else {
-        eval_node->opcode = EVAL_OP_CALL;
-        operation_s *op = find_operation(&opts->operations, ast_node->symbol, ast_node->data_type,
-            ast_node->left ? ast_node->left->data_type : DT_NONE, ast_node->right ? ast_node->right->data_type : DT_NONE);
-        #ifndef NDEBUG
-        eval_node->operation = op;
-        #endif
-        assert(op);
-        eval_node->eval_function = op->eval_func;
-        // plan destructor calling if the op needs it
-        if (op->flags & OP_FLAG_DESTROY) {
-            error_t err = push_destructor_if_any(opts, eval, ast_node->data_type, &eval_node->value);
-            if (err != NO_ERROR) {
-                destroy_eval_node(eval_node);
-                PTRACE("propagating error");
-                return err;
-            }
+        en->opcode = EVAL_OP_DATA_CALL;
+    }
+    en->lookup_id = ast->id;
+    en->datatype = ast->datatype;
+    *out_eval_node = en;
+    return NO_ERROR;
+}
+
+/**
+ * Process `__literal__` node
+ */
+static error_t
+process_literal_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+{
+    eval_node_s *en = create_eval_node();
+    if (!en) {
+        return MEMORY_ERROR;
+    }
+    en->opcode = EVAL_OP_NONE;
+    en->value = ast->value;
+    fds_filter_op_s *destructor = find_destructor(&opts->op_list, ast->datatype);
+    if (destructor) {
+        en->destructor_fn = destructor->destructor_fn;
+    }
+    // The destruction of the value is now handled by the eval tree instead of AST
+    ast->flags &= ~AST_FLAG_DESTROY_VAL;
+    en->datatype = ast->datatype;
+    *out_eval_node = en;
+    return NO_ERROR;
+}
+
+/**
+ * Process `__list__` node
+ */
+static error_t
+process_list_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+{   
+    eval_node_s *en = create_eval_node();
+    if (!en) {
+        return MEMORY_ERROR;
+    }
+
+    // Transform the abstract list to real list
+    error_t err = list_to_literal(ast, opts, &en->value.list);
+    if (err != NO_ERROR) {
+        destroy_eval_node(en);
+        return err;
+    }
+    en->opcode = EVAL_OP_NONE;
+    fds_filter_op_s *destructor = find_destructor(&opts->op_list, ast->datatype);
+    if (destructor) {
+        en->destructor_fn = destructor->destructor_fn;
+    }
+    en->datatype = ast->datatype;
+    *out_eval_node = en;
+    return NO_ERROR;
+}
+
+/**
+ * Process logical operation node
+ */
+static error_t
+process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+{
+    eval_node_s *en = create_eval_node();
+    if (!en) {
+        return MEMORY_ERROR;
+    }
+
+    if (ast_node_symbol_is(ast, "not")) {
+        en->opcode = EVAL_OP_NOT;
+        error_t err = generate_children(ast, opts, &en->child, NULL);
+        if (err != NO_ERROR) {
+            destroy_eval_node(en);
+            return err;
         }
+        en->child->parent = en;
+    } else if (ast_node_symbol_is(ast, "and")) {
+        en->opcode = EVAL_OP_AND;
+        error_t err = generate_children(ast, opts, &en->left, &en->right);
+        if (err != NO_ERROR) {
+            destroy_eval_node(en);
+            return err;
+        }
+        en->left->parent = en;
+        en->right->parent = en;
+    } else if (ast_node_symbol_is(ast, "or")) {
+        en->opcode = EVAL_OP_OR;
+        error_t err = generate_children(ast, opts, &en->left, &en->right);
+        if (err != NO_ERROR) {
+            destroy_eval_node(en);
+            return err;
+        }
+        en->left->parent = en;
+        en->right->parent = en;
     }
 
-    #ifndef NDEBUG
-    eval_node->data_type = ast_node->data_type;
-    #endif
+    *out_eval_node = en;
+    return NO_ERROR;
+}
 
-    eval_node->left = left;
-    eval_node->right = right;
-    if (left) {
-        left->parent = eval_node;
+/**
+ * Process function call node
+ */
+static error_t
+process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+{
+    eval_node_s *en = create_eval_node();
+    if (!en) {
+        return MEMORY_ERROR;
     }
-    if (right) {
-        right->parent = eval_node;
-    }
-    *out_eval_node = eval_node;
 
+    if (ast_node_symbol_is(ast, "__cast__")) {
+        en->opcode = EVAL_OP_CAST_CALL;
+        error_t err = generate_children(ast, opts, &en->child, NULL);
+        if (err != NO_ERROR) {
+            destroy_eval_node(en);
+            return err;
+        }
+        en->child->parent = en;
+        fds_filter_op_s *op = find_op(&opts->op_list, "__cast__", ast->datatype, ast->child->datatype, DT_NONE); 
+        en->cast_fn = op->cast_fn;
+        en->operation = op;
+        en->datatype = ast->datatype;
+    } else if (is_unary_ast_node(ast)) {
+        en->opcode = EVAL_OP_UNARY_CALL;
+        error_t err = generate_children(ast, opts, &en->child, NULL);
+        if (err != NO_ERROR) {
+            destroy_eval_node(en);
+            return err;
+        }
+        en->child->parent = en;
+        fds_filter_op_s *op = find_op(&opts->op_list, ast->symbol, ast->datatype, ast->child->datatype, DT_NONE);
+        en->unary_fn = op->unary_fn;
+        en->operation = op;
+        en->datatype = ast->datatype;
+    } else if (is_binary_ast_node(ast)) {
+        en->opcode = EVAL_OP_BINARY_CALL;
+        error_t err = generate_children(ast, opts, &en->left, &en->right);
+        if (err != NO_ERROR) {
+            destroy_eval_node(en);
+            return err;
+        }
+        en->left->parent = en;
+        en->right->parent = en;
+        fds_filter_op_s *op = find_op(&opts->op_list, ast->symbol, ast->datatype, ast->left->datatype, ast->right->datatype);
+        en->binary_fn = op->binary_fn;
+        en->operation = op;
+        en->datatype = ast->datatype;
+    }
+    
+    *out_eval_node = en;
     return NO_ERROR;
 }
 
 error_t
-generate_eval_tree(ast_node_s *ast, opts_s *opts, struct fds_filter_eval_s **out_eval)
+generate_eval_tree(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
 {
-    struct fds_filter_eval_s *eval = calloc(1, sizeof(struct fds_filter_eval_s));
-    if (!eval) {
-        PTRACE("memory error");
-        return MEMORY_ERROR;
+    if (ast_node_symbol_is(ast, "__root__")) {
+        return process_root_node(ast, opts, out_eval_node);
+    } else if (ast_node_symbol_is(ast, "exists")) {
+        return process_exists_node(ast, opts, out_eval_node);
+    } else if (ast_node_symbol_is(ast, "__literal__")) {
+        return process_literal_node(ast, opts, out_eval_node);
+    } else if (ast_node_symbol_is(ast, "__name__")) {
+        return process_name_node(ast, opts, out_eval_node);
+    } else if (ast_node_symbol_is(ast, "__list__")) {
+        return process_list_node(ast, opts, out_eval_node);
+    } else if (ast_node_symbol_is(ast, "__constructor__")) {
+        return process_constructor_node(ast, opts, out_eval_node);
+    } else if (ast_node_symbol_is(ast, "and") || ast_node_symbol_is(ast, "or") || ast_node_symbol_is(ast, "not")) {
+        return process_logical_node(ast, opts, out_eval_node);
+    } else {
+        return process_fcall_node(ast, opts, out_eval_node);
     }
-    eval->ctx.field_callback = opts->field_callback;
-    eval->destructors = array_make(sizeof(struct destroy_pair_s));
+}
 
-    error_t err = generate_eval_tree_recursively(ast, opts, eval, &eval->root);
+static error_t
+generate_children(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_left, eval_node_s **out_right)
+{
+    if (!out_left) {
+        assert(!out_right);
+        return NO_ERROR;
+    }
+
+    error_t err = generate_eval_tree(ast->left, opts, out_left);
     if (err != NO_ERROR) {
-        // TODO: free
-        PTRACE("propagating error");
         return err;
     }
 
-    *out_eval = eval;
+    if (!out_right) {
+        return NO_ERROR;
+    }
+
+    err = generate_eval_tree(ast->right, opts, out_right);
+    if (err != NO_ERROR) {
+        destroy_eval_tree(*out_left);
+        return err;
+    }
+
     return NO_ERROR;
 }
+

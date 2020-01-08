@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct fds_trie fds_trie_t;
 
@@ -40,9 +41,9 @@ fds_trie_add(struct fds_trie *trie, int ip_version, uint8_t *address, int bit_le
  * @param   ip_version      The IP version (4 or 6).
  * @param   address_bytes   The address.
  * @param   bit_length      The length of the address in bits.
- * @return  1 if the address was found, 0 otherwise.
+ * @return  true if the address was found, false otherwise.
  */
-FDS_API int
+FDS_API bool
 fds_trie_find(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int bit_length);
 
 /**

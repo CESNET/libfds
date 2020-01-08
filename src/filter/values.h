@@ -5,8 +5,7 @@
 
 #include <libfds.h>
 
-typedef union fds_filter_value_u value_u;
-typedef value_u value_t;
+typedef fds_filter_value_u value_u;
 
 // typedef struct fds_filter_ip_s ip_s;
 // typedef struct fds_filter_str_s str_s;
@@ -22,7 +21,6 @@ typedef value_u value_t;
 // typedef fds_filter_float_t float_t;
 // typedef fds_filter_bool_t bool_t;
 
-typedef enum fds_filter_data_type_e data_type_e;
 #define DT_ANY FDS_FILTER_DT_ANY
 #define DT_NONE FDS_FILTER_DT_NONE
 #define DT_INT FDS_FILTER_DT_INT
@@ -38,6 +36,10 @@ typedef enum fds_filter_data_type_e data_type_e;
 static inline const char *
 data_type_to_str(int data_type)
 {
+    if (data_type & DT_CUSTOM) {
+        return "unknown custom type";
+    }
+
     switch (data_type) {
     case DT_NONE:            return "none";
     case DT_INT:             return "int";
@@ -55,7 +57,7 @@ data_type_to_str(int data_type)
     case DT_LIST | DT_STR:   return "list of str";
     case DT_LIST | DT_IP:    return "list of ip";
     case DT_LIST | DT_MAC:   return "list of mac";
-    default:                 return "unknown";
+    default:                 return "invalid type";
     }
 }
 
@@ -131,7 +133,7 @@ print_bool(FILE *out, fds_filter_bool_t b)
 }
 
 static inline void
-print_value(FILE *out, int data_type, value_t *value)
+print_value(FILE *out, int data_type, fds_filter_value_u *value)
 {
     if (data_type & DT_LIST) {
         fprintf(out, "[ ");
@@ -143,15 +145,20 @@ print_value(FILE *out, int data_type, value_t *value)
         return;
     }
 
+    if (data_type & DT_CUSTOM) {
+        fprintf(out, "unknown custom value");
+        return;
+    }
+
     switch (data_type) {
-    case DT_INT:   print_int(out, value->i);    break;
-    case DT_UINT:  print_uint(out, value->u);   break;
-    case DT_FLOAT: print_float(out, value->f);  break;
-    case DT_BOOL:  print_bool(out, value->b);   break;
-    case DT_STR:   print_str(out, &value->str); break;
-    case DT_IP:    print_ip(out, &value->ip);   break;
-    case DT_MAC:   print_mac(out, &value->mac); break;
-    default:       fprintf(out, "unknown");     break;
+    case DT_INT:   print_int(out, value->i);      break;
+    case DT_UINT:  print_uint(out, value->u);     break;
+    case DT_FLOAT: print_float(out, value->f);    break;
+    case DT_BOOL:  print_bool(out, value->b);     break;
+    case DT_STR:   print_str(out, &value->str);   break;
+    case DT_IP:    print_ip(out, &value->ip);     break;
+    case DT_MAC:   print_mac(out, &value->mac);   break;
+    default:       fprintf(out, "invalid value"); break;
     }
 }
 
@@ -173,7 +180,7 @@ destroy_list(int data_type, fds_filter_list_t *list)
 }
 
 static inline void
-destroy_value(int data_type, value_t *value)
+destroy_value(int data_type, fds_filter_value_u *value)
 {
     if (data_type & DT_LIST) {
         destroy_list(data_type, &value->list);

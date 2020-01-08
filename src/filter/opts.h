@@ -5,14 +5,12 @@
 
 #include "array.h"
 
-struct fds_filter_opts_s {
-    fds_filter_lookup_callback_t *lookup_callback;
-    fds_filter_const_callback_t *const_callback;
-    fds_filter_field_callback_t *field_callback;
+typedef struct fds_filter_opts {
+    fds_filter_lookup_cb_t *lookup_cb;
+    fds_filter_const_cb_t *const_cb;
+    fds_filter_data_cb_t *data_cb;
 
-    struct array_s operations;
-};
-
-typedef struct fds_filter_opts_s opts_s;
+    array_s op_list;
+} fds_filter_opts_t;
 
 #endif // FDS_FILTER_OPTS_H

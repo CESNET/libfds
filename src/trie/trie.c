@@ -382,7 +382,7 @@ fds_trie_add(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int 
 /**
  * Find if an ip address is in a trie
  */
-int
+bool
 fds_trie_find(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int bit_length)
 {
     assert((ip_version == 4 && bit_length <= 32) || (ip_version == 6 && bit_length <= 128));

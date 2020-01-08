@@ -21,7 +21,7 @@ struct token_s {
     union {
         struct {
             int data_type;
-            value_t value;
+            fds_filter_value_u value;
         } literal;
         const char *symbol;
         char *name;

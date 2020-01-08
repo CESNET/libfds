@@ -91,16 +91,15 @@ find_operator(enum op_kind_e kind, const char *symbol)
     return NULL;
 }
 
-error_t parse_prefix_expr(struct scanner_s *scanner, ast_node_s **out_ast);
+error_t parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast);
 
 error_t
-parse_infix_expr(struct scanner_s *scanner, int prec, ast_node_s **out_ast) {
+parse_infix_expr(struct scanner_s *scanner, int prec, fds_filter_ast_node_s **out_ast) {
     error_t err;
 
-    ast_node_s *ast;
+    fds_filter_ast_node_s *ast;
     err = parse_prefix_expr(scanner, &ast);
     if (err != NO_ERROR) {
-        PTRACE("propagating error");
         return err;
     }
 
@@ -110,7 +109,7 @@ parse_infix_expr(struct scanner_s *scanner, int prec, ast_node_s **out_ast) {
         err = next_token(scanner, &token);
         if (err != NO_ERROR) {
             destroy_ast(ast);
-            PTRACE("propagating error");
+
             return err;
         }
 
@@ -140,7 +139,7 @@ parse_infix_expr(struct scanner_s *scanner, int prec, ast_node_s **out_ast) {
             }
         }
 
-        ast_node_s *right_expr;
+        fds_filter_ast_node_s *right_expr;
         if (o->assoc == OP_ASSOC_LEFT) {
             // if the operation is left associative we want to only match operators with higher precedence
             // in the parsed subexpression that will be on the right side
@@ -177,16 +176,15 @@ parse_infix_expr(struct scanner_s *scanner, int prec, ast_node_s **out_ast) {
         }
         if (err != NO_ERROR) {
             destroy_ast(ast);
-            PTRACE("propagating error");
+
             return err;
         }
 
         // create the resulting node from the left and right expression
-        ast_node_s *new_ast = create_binary_ast_node(o->symbol, ast, right_expr);
+        fds_filter_ast_node_s *new_ast = create_binary_ast_node(o->symbol, ast, right_expr);
         if (!new_ast) {
             destroy_ast(ast);
             destroy_ast(right_expr);
-            PTRACE("memory error");
             return MEMORY_ERROR;
         }
         new_ast->cursor_begin = ast->cursor_begin;
@@ -199,14 +197,13 @@ parse_infix_expr(struct scanner_s *scanner, int prec, ast_node_s **out_ast) {
 }
 
 error_t
-parse_prefix_expr(struct scanner_s *scanner, ast_node_s **out_ast)
+parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
 {
     error_t err;
 
     struct token_s token;
     err = next_token(scanner, &token);
     if (err != NO_ERROR) {
-        PTRACE("propagating error");
         return err;
     }
 
@@ -216,24 +213,23 @@ parse_prefix_expr(struct scanner_s *scanner, ast_node_s **out_ast)
         consume_token(scanner);
 
         // parse the inner expression
-        ast_node_s *ast;
+        fds_filter_ast_node_s *ast;
         err = parse_infix_expr(scanner, 0, &ast);
         if (err != NO_ERROR) {
-            PTRACE("propagating error");
+
             return err;
         }
 
         err = next_token(scanner, &token);
         if (err != NO_ERROR) {
             destroy_ast(ast);
-            PTRACE("propagating error");
+
             return err;
         }
 
         // check for the closing )
         if (!token_is_symbol(token, ")")) {
             destroy_ast(ast);
-            PTRACE("syntax error");
             return SYNTAX_ERROR(&token, "expected )");
         }
 
@@ -254,28 +250,25 @@ parse_prefix_expr(struct scanner_s *scanner, ast_node_s **out_ast)
         consume_token(scanner);
         err = next_token(scanner, &token);
         if (err != NULL) {
-            PTRACE("propagating error");
+
             return err;
         }
 
         // remainder of the name has to follow
         if (!token_is(token, TK_NAME)) {
-            PTRACE("lexical error");
             return LEXICAL_ERROR(scanner, "expected name");
         }
 
         consume_token(scanner);
 
-        ast_node_s *ast = create_ast_node("__name__");
+        fds_filter_ast_node_s *ast = create_empty_ast_node("__name__");
         if (!ast) {
-            PTRACE("memory error");
             return MEMORY_ERROR;
         }
 
         ast->name = malloc(strlen(token.name) + strlen(prefix) + 2);
         if (!ast->name) {
             destroy_ast(ast);
-            PTRACE("memory error");
             return MEMORY_ERROR;
         }
         sprintf(ast->name, "%s %s", prefix, token.name);
@@ -297,23 +290,22 @@ parse_prefix_expr(struct scanner_s *scanner, ast_node_s **out_ast)
 
         err = next_token(scanner, &token);
         if (err != NO_ERROR) {
-            PTRACE("propagating error");
+
             return err;
         }
 
         // create an empty list
-        ast_node_s *list_node = create_ast_node("__list__");
+        fds_filter_ast_node_s *list_node = create_empty_ast_node("__list__");
         if (!list_node) {
-            PTRACE("memory error");
             return MEMORY_ERROR;
         }
         // where to allocate the next list item node
-        ast_node_s **item_node_ptr = &list_node->operand;
+        fds_filter_ast_node_s **item_node_ptr = &list_node->child;
 
         // loop until the closing ] is reached
         while (!token_is_symbol(token, "]")) {
             // match expression
-            ast_node_s *expr_node;
+            fds_filter_ast_node_s *expr_node;
             err = parse_infix_expr(scanner, 0, &expr_node);
             if (err != NO_ERROR) {
                 destroy_ast(list_node);
@@ -367,17 +359,16 @@ parse_prefix_expr(struct scanner_s *scanner, ast_node_s **out_ast)
         if (o) {
             consume_token(scanner);
 
-            ast_node_s *expr;
+            fds_filter_ast_node_s *expr;
             err = parse_infix_expr(scanner, o->prec + 1, &expr);
             if (err != NO_ERROR) {
-                PTRACE("propagating error");
+    
                 return err;
             }
 
-            ast_node_s *ast = create_unary_ast_node(o->symbol, expr);
+            fds_filter_ast_node_s *ast = create_unary_ast_node(o->symbol, expr);
             if (!ast) {
                 destroy_ast(expr);
-                PTRACE("memory error");
                 return MEMORY_ERROR;
             }
 
@@ -392,9 +383,8 @@ parse_prefix_expr(struct scanner_s *scanner, ast_node_s **out_ast)
     if (token_is(token, TK_NAME)) {
         consume_token(scanner);
 
-        ast_node_s *ast = create_ast_node("__name__");
+        fds_filter_ast_node_s *ast = create_empty_ast_node("__name__");
         if (!ast) {
-            PTRACE("memory error");
             return MEMORY_ERROR;
         }
         ast->name = token.name;
@@ -408,13 +398,12 @@ parse_prefix_expr(struct scanner_s *scanner, ast_node_s **out_ast)
     if (token_is(token, TK_LITERAL)) {
         consume_token(scanner);
 
-        ast_node_s *ast = create_ast_node("__literal__");
+        fds_filter_ast_node_s *ast = create_empty_ast_node("__literal__");
         if (!ast) {
-            PTRACE("memory error");
             return MEMORY_ERROR;
         }
         ast->value = token.literal.value;
-        ast->data_type = token.literal.data_type;
+        ast->datatype = token.literal.data_type;
         ast->flags |= AST_FLAG_CONST_SUBTREE;
         ast->flags |= AST_FLAG_DESTROY_VAL;
         ast->cursor_begin = token.cursor_begin;
@@ -424,23 +413,20 @@ parse_prefix_expr(struct scanner_s *scanner, ast_node_s **out_ast)
     }
 
     if (token_is(token, TK_END)) {
-        PTRACE("syntax error");
         return SYNTAX_ERROR(&token, "unexpected end of input");
     }
 
-    PTRACE("syntax error");
     return SYNTAX_ERROR(&token, "unexpected token");
 }
 
 error_t
-parse_filter(struct scanner_s *scanner, ast_node_s **out_ast)
+parse_filter(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
 {
     error_t err;
 
-    ast_node_s *ast;
+    fds_filter_ast_node_s *ast;
     err = parse_infix_expr(scanner, 0, &ast);
     if (err != NO_ERROR) {
-        PTRACE("propagating error");
         return err;
     }
 
@@ -448,20 +434,17 @@ parse_filter(struct scanner_s *scanner, ast_node_s **out_ast)
     err = next_token(scanner, &token);
     if (err != NO_ERROR) {
         destroy_ast(ast);
-        PTRACE("propagating error");
         return err;
     }
 
     if (!token_is(token, TK_END)) {
         destroy_ast(ast);
-        PTRACE("lexical error");
         return LEXICAL_ERROR(scanner, "expected end of input");
     }
 
-    ast_node_s *root_node = create_unary_ast_node("__root__", ast);
+    fds_filter_ast_node_s *root_node = create_unary_ast_node("__root__", ast);
     if (!root_node) {
         destroy_ast(ast);
-        PTRACE("memory error");
         return MEMORY_ERROR;
     }
     root_node->cursor_begin = ast->cursor_begin;

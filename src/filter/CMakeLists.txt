@@ -1,6 +1,5 @@
 add_library(filter_obj OBJECT
     array.h
-    type_set.h
     common.h
     values.h
 
@@ -15,12 +14,12 @@ add_library(filter_obj OBJECT
 
     error.h error.c
 
-    ast_common.h
-    ast_semantic.h ast_semantic.c
+    ast_common.h 
+    ast_semantic.c
 
     eval_common.h
-    eval_generator.h eval_generator.c
-    eval_evaluator.h eval_evaluator.c
+    eval_generator.c
+    eval_evaluator.c
 
     filter.h filter.c
     scanner.c scanner.h

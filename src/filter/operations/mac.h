@@ -3,7 +3,7 @@
 
 #include "../operations.h"
 
-extern const operation_s mac_operations[];
+extern const fds_filter_op_s mac_operations[];
 extern const int num_mac_operations;
 
 #endif // FDS_FILTER_OPERATIONS_MAC_H

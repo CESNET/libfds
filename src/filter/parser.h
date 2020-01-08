@@ -6,6 +6,6 @@
 #include "scanner.h"
 
 error_t
-parse_filter(struct scanner_s *scanner, ast_node_s **ast);
+parse_filter(struct scanner_s *scanner, fds_filter_ast_node_s **ast);
 
 #endif

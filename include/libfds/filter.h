@@ -115,6 +115,7 @@ typedef struct fds_filter_opts fds_filter_opts_t;
 /**
  * Look up identifier for its data type and properties during compilation of the filter
  *
+ * \param[in]  user_ctx      The user context set by fds_filter_set_user_ctx
  * \param[in]  name          The name of the identifier
  * \param[out] out_id        The id of the identifier that will be passed to the const/data callbacks.
  * \param[out] out_datatype  The data type of the identifier
@@ -125,17 +126,18 @@ typedef struct fds_filter_opts fds_filter_opts_t;
  *          FDS_NOTFOUND if the identifier name is not recognized, which results in a filter error
  */
 typedef int fds_filter_lookup_cb_t(
-    const char *name, int *out_id, int *out_datatype, int *out_flags);
+    void *user_ctx, const char *name, int *out_id, int *out_datatype, int *out_flags);
 
 /**
  * Get the value of a constant. 
  * An identifier is a constant if the FDS_FILTER_CONST_FLAG was set in the lookup callback. 
  *
+ * \param[in]  user_ctx   The user context set by fds_filter_set_user_ctx
  * \param[in]  id         The id provided by the user in the lookup callback 
  * \param[out] out_value  The value of the constant 
  *
  */
-typedef void fds_filter_const_cb_t(int id, fds_filter_value_u *out_value);
+typedef void fds_filter_const_cb_t(void *user_ctx, int id, fds_filter_value_u *out_value);
 
 /**
  * Get the value of a field during evaluation
@@ -187,7 +189,7 @@ typedef struct fds_filter_ast_node {
     char *name;
     int id;
 
-    int datatype; // The data type
+    int datatype;
     int flags;
 
     // the position of the node in the input text, for error message purposes
@@ -259,46 +261,47 @@ typedef struct fds_filter_op {
 } fds_filter_op_s;
 
 #define FDS_FILTER_DEF_BINARY_OP(LEFT_DT, SYMBOL, RIGHT_DT, FUNC, OUT_DT) \
-    {                                                                     \
+    ((fds_filter_op_s) {                                                  \
       .symbol         = (SYMBOL),                                         \
       .arg1_dt        = (LEFT_DT),                                        \
       .arg2_dt        = (RIGHT_DT),                                       \
       .out_dt         = (OUT_DT),                                         \
       .binary_fn      = (FUNC)                                            \
-    }                        
+    })                        
 #define FDS_FILTER_DEF_UNARY_OP(SYMBOL, OPERAND_DT, FUNC, OUT_DT)         \
-    {                                                                     \
+    ((fds_filter_op_s) {                                                  \
       .symbol         = (SYMBOL),                                         \
       .arg1_dt        = (OPERAND_DT),                                     \
       .arg2_dt        = FDS_FILTER_DT_NONE,                               \
       .out_dt         = (OUT_DT),                                         \
       .unary_fn       = (FUNC)                                            \
-    }                        
-
+    })                        
 #define FDS_FILTER_DEF_CAST(FROM_DT, FUNC, TO_DT)                         \
-    {                                                                     \
+    ((fds_filter_op_s) {                                                  \
       .symbol         = "__cast__",                                       \
       .arg1_dt        = (FROM_DT),                                        \
       .arg2_dt        = FDS_FILTER_DT_NONE,                               \
       .out_dt         = (TO_DT),                                          \
       .cast_fn        = (FUNC)                                            \
-    }
+    })
 #define FDS_FILTER_DEF_CONSTRUCTOR(FROM_DT, FUNC, TO_DT)                  \
-    {                                                                     \
+    ((fds_filter_op_s) {                                                  \
       .symbol         = "__constructor__",                                \
       .arg1_dt        = (FROM_DT),                                        \
       .arg2_dt        = FDS_FILTER_DT_NONE,                               \
       .out_dt         = (TO_DT),                                          \
       .constructor_fn = (FUNC)                                            \
-    }
+    })
 #define FDS_FILTER_DEF_DESTRUCTOR(DT, FUNC)                               \
-    {                                                                     \
+    ((fds_filter_op_s) {                                                  \
       .symbol         = "__destructor__",                                 \
       .arg1_dt        = (DT),                                             \
       .arg2_dt        = FDS_FILTER_DT_NONE,                               \
       .out_dt         = FDS_FILTER_DT_NONE,                               \
       .destructor_fn  = (FUNC)                                            \
-    }
+    })
+
+#define FDS_FILTER_END_OP_LIST  ((fds_filter_op_s) { .symbol = NULL })
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -347,22 +350,21 @@ fds_filter_opts_set_data_cb(fds_filter_opts_t *opts, fds_filter_data_cb_t *cb);
  * \param[in] opts  The options structure
  * \param[in] op    The operation
  * 
- * \return FDS_OK on success, error code on failure
+ * \return pointer to the new op on success, NULL on failure
  */ 
-FDS_API int
+FDS_API fds_filter_op_s *
 fds_filter_opts_add_op(fds_filter_opts_t *opts, fds_filter_op_s op);
 
 /**
  * Adds multiple filter operation
  * 
  * \param[in] opts    The options structure
- * \param[in] ops     The operations
- * \param[in] num_ops The number of operations in ops
+ * \param[in] ops     The operations with a FDS_FILTER_END_OP_LIST marking the end
  * 
- * \return FDS_OK on success, error code on failure
+ * \return pointer to the first new op on success, NULL on failure
  */ 
-FDS_API int
-fds_filter_opts_extend_ops(fds_filter_opts_t *opts, fds_filter_op_s *ops, size_t num_ops);
+FDS_API fds_filter_op_s *
+fds_filter_opts_extend_ops(fds_filter_opts_t *opts, const fds_filter_op_s *ops);
 
 /**
  * Destroys the options structure
@@ -371,6 +373,26 @@ fds_filter_opts_extend_ops(fds_filter_opts_t *opts, fds_filter_op_s *ops, size_t
  */
 FDS_API void
 fds_filter_destroy_opts(fds_filter_opts_t *opts);
+
+/**
+ * Set the user context
+ * 
+ * \param[in] opts      The opts
+ * \param[in] user_ctx  The user context
+ */
+FDS_API void
+fds_filter_opts_set_user_ctx(fds_filter_opts_t *opts, void *user_ctx);
+
+/**
+ * Get the user context
+ * 
+ * \param[in] opts   The opts
+ * \return the user context
+ */
+FDS_API void *
+fds_filter_opts_get_user_ctx(const fds_filter_opts_t *opts);
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -380,12 +402,16 @@ fds_filter_destroy_opts(fds_filter_opts_t *opts);
 /**
  * Creates the filter from an expression.
  * 
- * \param[out] filter   Pointer to where to allocate and construct the filter
- * \param[in]  expr     The filter expression
- * \param[in]  opts     The filter options
+ * \param[in]  expr         The filter expression
+ * \param[in]  opts         The filter options
+ * \param[out] out_filter   Pointer to where to allocate and construct the filter
+ * 
+ * User context is an arbitary pointer provided by the user that's passed to all subsequent 
+ * data callback calls as the user_ctx argument. It's intended to carry information about state 
+ * that's required for the data callback function to correctly parse the data.
  */
 FDS_API int
-fds_filter_create(fds_filter_t **filter, const char *expr, fds_filter_opts_t *opts);
+fds_filter_create(const char *expr, const fds_filter_opts_t *opts, fds_filter_t **out_filter);
 
 /**
  * Evaluates the filter on the provided data.
@@ -418,28 +444,6 @@ fds_filter_destroy(fds_filter_t *filter);
 FDS_API fds_filter_error_s *
 fds_filter_get_error(fds_filter_t *filter);
 
-/**
- * Sets the user context of a filter.
- * 
- * User context is an arbitary pointer provided by the user that's passed to all subsequent 
- * data callback calls as the user_ctx argument. It's intended to carry information about state 
- * that's required for the data callback function to correctly parse the data.
- * 
- * \param[in] filter    The filter
- * \param[in] user_ctx  The user context
- */
-FDS_API void
-fds_filter_set_user_ctx(fds_filter_t *filter, void *user_ctx);
-
-/**
- * Gets the user context of a filter as set by the fds_filter_set_user_ctx function.
- * 
- * \param[in] filter  The filter
- * 
- * \return The user context
- */
-FDS_API void *
-fds_filter_get_user_ctx(fds_filter_t *filter);
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef __cplusplus

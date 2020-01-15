@@ -1,5 +1,4 @@
 #include "mac.h"
-#include "../common.h"
 #include "../values.h"
 
 static inline bool
@@ -45,12 +44,6 @@ cast_mac_to_bool(fds_filter_value_u *_1, fds_filter_value_u *_2, fds_filter_valu
 }
 
 void
-cast_empty_list_to_mac_list(fds_filter_value_u *operand, fds_filter_value_u *result)
-{
-    result->list = operand->list;
-}
-
-void
 destroy_mac_list(fds_filter_value_u *operand)
 {
     free(operand->list.items);
@@ -65,9 +58,8 @@ const fds_filter_op_s mac_operations[] = {
 
     FDS_FILTER_DEF_CAST(DT_MAC, cast_mac_to_bool, DT_BOOL),
     FDS_FILTER_DEF_CAST(DT_LIST | DT_MAC, cast_mac_list_to_bool, DT_BOOL),
-    FDS_FILTER_DEF_CAST(DT_LIST | DT_NONE, cast_empty_list_to_mac_list, DT_LIST | DT_MAC),
 
     FDS_FILTER_DEF_DESTRUCTOR(DT_MAC | DT_LIST, destroy_mac_list),
-};
 
-const int num_mac_operations = CONST_ARR_SIZE(mac_operations);
+    FDS_FILTER_END_OP_LIST
+};

@@ -1,6 +1,5 @@
 #include "eval_common.h"
 #include "ast_common.h"
-#include "common.h"
 #include "error.h"
 #include "opts.h"
 #include "values.h"
@@ -63,7 +62,7 @@ ast_to_literal(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, fds_filter_v
  * \param value     pointer to the value to destruct
  */
 static void
-call_destructor_for_value(array_s *op_list, int datatype, fds_filter_value_u *value)
+call_destructor_for_value(fds_filter_op_s *op_list, int datatype, fds_filter_value_u *value)
 {
     fds_filter_op_s *destructor = find_destructor(op_list, datatype);
     if (destructor) {
@@ -80,7 +79,7 @@ call_destructor_for_value(array_s *op_list, int datatype, fds_filter_value_u *va
  * \param num_items  the number of properly constructed items
  */
 static void
-call_destructor_for_list_items(array_s *op_list, int item_dt, fds_filter_value_u *items, int num_items)
+call_destructor_for_list_items(fds_filter_op_s *op_list, int item_dt, fds_filter_value_u *items, int num_items)
 {
     fds_filter_op_s *destructor = find_destructor(op_list, item_dt);
     if (destructor) {
@@ -132,7 +131,7 @@ list_to_literal(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, fds_filter_
 
         error_t err = ast_to_literal(li->item, opts, &out_list->items[idx]);
         if (err != NO_ERROR) {
-            call_destructor_for_list_items(&opts->op_list, ast->child->datatype, out_list->items, idx);
+            call_destructor_for_list_items(opts->op_list, ast->child->datatype, out_list->items, idx);
             return err;
         }
         idx++;
@@ -193,10 +192,10 @@ process_constructor_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, ev
     }
 
     // Find the constructor and try to call it
-    fds_filter_op_s *constructor = find_constructor(&opts->op_list, ast->child->datatype, ast->datatype);
+    fds_filter_op_s *constructor = find_constructor(opts->op_list, ast->child->datatype, ast->datatype);
     int rc = constructor->constructor_fn(&orig_val, &constructed_val);
     // ??? Should the original value be destructed every time or only if the constructor failed?
-    call_destructor_for_value(&opts->op_list, ast->child->datatype, &orig_val);
+    call_destructor_for_value(opts->op_list, ast->child->datatype, &orig_val);
     if (rc != FDS_OK) {
         return SEMANTIC_ERROR(ast, "value could not be constructed");
     }
@@ -204,13 +203,13 @@ process_constructor_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, ev
     // Create node for the constructed value
     eval_node_s *en = create_eval_node();
     if (!en) {
-        call_destructor_for_value(&opts->op_list, ast->datatype, &constructed_val);
+        call_destructor_for_value(opts->op_list, ast->datatype, &constructed_val);
         return MEMORY_ERROR;
     }
     en->opcode = EVAL_OP_NONE;
     en->datatype = ast->datatype;
     en->value = constructed_val;
-    fds_filter_op_s *destructor = find_destructor(&opts->op_list, ast->datatype);
+    fds_filter_op_s *destructor = find_destructor(opts->op_list, ast->datatype);
     if (destructor) {
         en->destructor_fn = destructor->destructor_fn;
     }
@@ -274,7 +273,7 @@ process_literal_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
     }
     en->opcode = EVAL_OP_NONE;
     en->value = ast->value;
-    fds_filter_op_s *destructor = find_destructor(&opts->op_list, ast->datatype);
+    fds_filter_op_s *destructor = find_destructor(opts->op_list, ast->datatype);
     if (destructor) {
         en->destructor_fn = destructor->destructor_fn;
     }
@@ -303,7 +302,7 @@ process_list_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node
         return err;
     }
     en->opcode = EVAL_OP_NONE;
-    fds_filter_op_s *destructor = find_destructor(&opts->op_list, ast->datatype);
+    fds_filter_op_s *destructor = find_destructor(opts->op_list, ast->datatype);
     if (destructor) {
         en->destructor_fn = destructor->destructor_fn;
     }
@@ -374,7 +373,7 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
             return err;
         }
         en->child->parent = en;
-        fds_filter_op_s *op = find_op(&opts->op_list, "__cast__", ast->datatype, ast->child->datatype, DT_NONE); 
+        fds_filter_op_s *op = find_op(opts->op_list, "__cast__", ast->datatype, ast->child->datatype, DT_NONE); 
         en->cast_fn = op->cast_fn;
         en->operation = op;
         en->datatype = ast->datatype;
@@ -386,7 +385,7 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
             return err;
         }
         en->child->parent = en;
-        fds_filter_op_s *op = find_op(&opts->op_list, ast->symbol, ast->datatype, ast->child->datatype, DT_NONE);
+        fds_filter_op_s *op = find_op(opts->op_list, ast->symbol, ast->datatype, ast->child->datatype, DT_NONE);
         en->unary_fn = op->unary_fn;
         en->operation = op;
         en->datatype = ast->datatype;
@@ -399,7 +398,7 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
         }
         en->left->parent = en;
         en->right->parent = en;
-        fds_filter_op_s *op = find_op(&opts->op_list, ast->symbol, ast->datatype, ast->left->datatype, ast->right->datatype);
+        fds_filter_op_s *op = find_op(opts->op_list, ast->symbol, ast->datatype, ast->left->datatype, ast->right->datatype);
         en->binary_fn = op->binary_fn;
         en->operation = op;
         en->datatype = ast->datatype;

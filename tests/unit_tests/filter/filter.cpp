@@ -25,11 +25,11 @@ public:
     int compile(const char *expr) {
         fds_filter_destroy(filter);
         filter = nullptr;
-        int ret = fds_filter_create(&filter, expr, opts);
+        fds_filter_opts_set_user_ctx(opts, user_ctx);
+        int ret = fds_filter_create(expr, opts, &filter);
         if (ret != FDS_OK) {
             return ret;
         }
-        fds_filter_set_user_ctx(filter, user_ctx);
         return FDS_OK;
     }
 
@@ -425,7 +425,7 @@ TEST_F(Filter, vars) {
     int n;
     user_ctx = &n;
     fds_filter_opts_set_lookup_cb(opts,
-    [](const char *name, int *out_id, int *out_datatype, int *out_flags) -> int
+    [](void *user_ctx, const char *name, int *out_id, int *out_datatype, int *out_flags) -> int
     {
         if (strcmp(name, "ip") == 0) {
             *out_id = 1;
@@ -450,7 +450,7 @@ TEST_F(Filter, vars) {
         assert(false);
     });
     fds_filter_opts_set_const_cb(opts,
-    [](int id, fds_filter_value_u *out_value) -> void
+    [](void *user_ctx, int id, fds_filter_value_u *out_value) -> void
     {
 
     });

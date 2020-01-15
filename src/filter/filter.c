@@ -13,11 +13,12 @@
 #include "parser.h"
 #include "scanner.h"
 
+// fds_filter_create(fds_filter_t **filter, const char *expr, fds_filter_opts_t *opts)
 int
-fds_filter_create(fds_filter_t **filter, const char *expr, fds_filter_opts_t *opts)
+fds_filter_create(const char *expr, const fds_filter_opts_t *opts, fds_filter_t **out_filter)
 {
-    *filter = calloc(1, sizeof(fds_filter_t));
-    if (!*filter) {
+    *out_filter = calloc(1, sizeof(fds_filter_t));
+    if (!*out_filter) {
         return FDS_ERR_NOMEM;
     }
 
@@ -25,32 +26,33 @@ fds_filter_create(fds_filter_t **filter, const char *expr, fds_filter_opts_t *op
     init_scanner(&scanner, expr);
 
     printf("----- parse -----\n");
-    (*filter)->error = parse_filter(&scanner, &(*filter)->ast);
-    if ((*filter)->error != NO_ERROR) {
-        destroy_ast((*filter)->ast);
-        (*filter)->ast = NULL;
-        return (*filter)->error->code;
+    (*out_filter)->error = parse_filter(&scanner, &(*out_filter)->ast);
+    if ((*out_filter)->error != NO_ERROR) {
+        destroy_ast((*out_filter)->ast);
+        (*out_filter)->ast = NULL;
+        return (*out_filter)->error->code;
     }
-    print_ast(stdout, (*filter)->ast);
+    print_ast(stdout, (*out_filter)->ast);
 
     printf("----- semantic -----\n");
-    (*filter)->error = resolve_types((*filter)->ast, opts);
-    if ((*filter)->error != NO_ERROR) {
-        destroy_ast((*filter)->ast);
-        (*filter)->ast = NULL;
-        return (*filter)->error->code;
+    (*out_filter)->error = resolve_types((*out_filter)->ast, opts);
+    if ((*out_filter)->error != NO_ERROR) {
+        destroy_ast((*out_filter)->ast);
+        (*out_filter)->ast = NULL;
+        return (*out_filter)->error->code;
     }
-    print_ast(stdout, (*filter)->ast);
+    print_ast(stdout, (*out_filter)->ast);
 
     printf("----- generator -----\n");
-    (*filter)->error = generate_eval_tree((*filter)->ast, opts, &(*filter)->eval_root);
-    if ((*filter)->error != NO_ERROR) {
-        destroy_ast((*filter)->ast);
-        (*filter)->ast = NULL;
-        return (*filter)->error->code;
+    (*out_filter)->error = generate_eval_tree((*out_filter)->ast, opts, &(*out_filter)->eval_root);
+    if ((*out_filter)->error != NO_ERROR) {
+        destroy_ast((*out_filter)->ast);
+        (*out_filter)->ast = NULL;
+        return (*out_filter)->error->code;
     }
-    (*filter)->eval_runtime.data_cb = opts->data_cb;
-    print_eval_tree(stdout, (*filter)->eval_root);
+    (*out_filter)->eval_runtime.data_cb = opts->data_cb;
+    (*out_filter)->eval_runtime.user_ctx = opts->user_ctx;
+    print_eval_tree(stdout, (*out_filter)->eval_root);
 
     return FDS_OK;
 }
@@ -75,18 +77,6 @@ fds_filter_destroy(fds_filter_t *filter)
     destroy_ast(filter->ast);
     destroy_error(filter->error);
     free(filter);
-}
-
-void
-fds_filter_set_user_ctx(fds_filter_t *filter, void *user_ctx)
-{
-    filter->eval_runtime.user_ctx = user_ctx;
-}
-
-void *
-fds_filter_get_user_ctx(fds_filter_t *filter)
-{
-    return filter->eval_runtime.user_ctx;
 }
 
 error_t

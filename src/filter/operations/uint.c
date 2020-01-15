@@ -1,5 +1,4 @@
 #include "uint.h"
-#include "../common.h"
 #include "../values.h"
 
 void
@@ -129,12 +128,6 @@ cast_uint_list_to_bool(fds_filter_value_u *operand, fds_filter_value_u *result)
 }
 
 void
-cast_empty_list_to_uint_list(fds_filter_value_u *operand, fds_filter_value_u *result)
-{
-    result->list = operand->list;
-}
-
-void
 destroy_uint_list(fds_filter_value_u *operand)
 {
     free(operand->list.items);
@@ -165,8 +158,8 @@ const fds_filter_op_s uint_operations[] = {
 
     FDS_FILTER_DEF_CAST(DT_FLOAT, cast_float_to_uint, DT_UINT),
     FDS_FILTER_DEF_CAST(DT_UINT, cast_uint_to_bool, DT_BOOL),
-    FDS_FILTER_DEF_CAST(DT_LIST | DT_NONE, cast_empty_list_to_uint_list, DT_LIST | DT_UINT),
 
     FDS_FILTER_DEF_DESTRUCTOR(DT_UINT | DT_LIST, destroy_uint_list),
+
+    FDS_FILTER_END_OP_LIST
 };
-const int num_uint_operations = CONST_ARR_SIZE(uint_operations);

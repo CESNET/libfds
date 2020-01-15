@@ -1,4 +1,3 @@
-#include "common.h"
 #include "ast_common.h"
 #include "operations.h"
 
@@ -102,14 +101,14 @@ op_has_symbol(fds_filter_op_s *op, const char *symbol)
 }
 
 static bool
-try_match(array_s *op_list, fds_filter_ast_node_s *ast, int dt, bool cast_ok, 
+try_match(fds_filter_op_s *op_list, fds_filter_ast_node_s *ast, int dt, bool cast_ok, 
     int *out_dt, int *out_sub_dt);
 
 /**
  * Attempts to match all list items to the specified data type
  */
 static bool
-try_match_list(array_s *op_list, fds_filter_ast_node_s *ast, bool cast_ok, int dt, int *out_sub_dt)
+try_match_list_items(fds_filter_op_s *op_list, fds_filter_ast_node_s *ast, bool cast_ok, int dt, int *out_sub_dt)
 {
     if (!(dt & DT_LIST)) {
         return false;
@@ -132,7 +131,7 @@ try_match_list(array_s *op_list, fds_filter_ast_node_s *ast, bool cast_ok, int d
  * Attempts to match AST node to the specified data type
  */
 static bool
-try_match(array_s *op_list, fds_filter_ast_node_s *ast, int dt, bool cast_ok, 
+try_match(fds_filter_op_s *op_list, fds_filter_ast_node_s *ast, int dt, bool cast_ok, 
     int *out_dt, int *out_sub_dt)
 {
     // dt is the datatype we want to achieve
@@ -141,17 +140,17 @@ try_match(array_s *op_list, fds_filter_ast_node_s *ast, int dt, bool cast_ok,
     // We are matching an AST list, which can be tricky
     if (ast_node_symbol_is(ast, "__list__")) {
         // Exact match list items
-        if (try_match_list(op_list, ast, cast_ok, dt, out_sub_dt)) {
+        if (try_match_list_items(op_list, ast, cast_ok, dt, out_sub_dt)) {
             *out_dt = dt;
             return true;
         }
         // Check if there is a constructor or cast that has the output type of our desired type
         // and we can match all the list items to the input type
-        ARRAY_FOR_EACH(op_list, fds_filter_op_s, op) {
+        for (fds_filter_op_s *op = op_list; op->symbol != NULL; op++) {
             if ((op_has_symbol(op, "__constructor__") || (cast_ok && op_has_symbol(op, "__cast__")))
                     && op->out_dt == dt
                     && op->arg1_dt & DT_LIST) {
-                if (try_match_list(op_list, ast, cast_ok, op->arg1_dt, out_sub_dt)) {
+                if (try_match_list_items(op_list, ast, cast_ok, op->arg1_dt, out_sub_dt)) {
                     *out_dt = op->out_dt;
                     return true;
                 }
@@ -188,7 +187,7 @@ try_match(array_s *op_list, fds_filter_ast_node_s *ast, int dt, bool cast_ok,
  * or does nothing if the node is already the correct type
  */
 static error_t
-typeconv_node(fds_filter_ast_node_s **ast_ptr, array_s *op_list, int to_dt, bool cast_ok)
+typeconv_node(fds_filter_ast_node_s **ast_ptr, fds_filter_op_s *op_list, int to_dt, bool cast_ok)
 {
 
     // Empty list literal can be matched to any type, because there is no way to determine the type without any elements
@@ -226,7 +225,7 @@ typeconv_node(fds_filter_ast_node_s **ast_ptr, array_s *op_list, int to_dt, bool
  * Loops through AST list items and converts each item to the specified type 
  */
 static error_t
-typeconv_list_items(fds_filter_ast_node_s *ast, array_s *op_list, int to_dt, bool cast_ok)
+typeconv_list_items(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list, int to_dt, bool cast_ok)
 {
     assert(ast_node_symbol_is(ast, "__list__"));
     fds_filter_ast_node_s *li = ast->item; 
@@ -242,7 +241,7 @@ typeconv_list_items(fds_filter_ast_node_s *ast, array_s *op_list, int to_dt, boo
 }
 
 static bool
-match_unary_node(fds_filter_ast_node_s *ast, array_s *op_list, int dt, int child_dt, bool cast_ok, error_t *out_error)
+match_unary_node(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list, int dt, int child_dt, bool cast_ok, error_t *out_error)
 {
     int dt1, sub_dt1;
     if (!try_match(op_list, ast->child, child_dt, cast_ok, &dt1, &sub_dt1)) {
@@ -272,7 +271,7 @@ match_unary_node(fds_filter_ast_node_s *ast, array_s *op_list, int dt, int child
 }
 
 static bool
-match_binary_node(fds_filter_ast_node_s *ast, array_s *op_list, int dt, int to_dt1, int to_dt2, bool cast_ok, error_t *out_error)
+match_binary_node(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list, int dt, int to_dt1, int to_dt2, bool cast_ok, error_t *out_error)
 {
     int dt1, sub_dt1;
     if (!try_match(op_list, ast->left, to_dt1, cast_ok, &dt1, &sub_dt1)) {
@@ -320,11 +319,11 @@ match_binary_node(fds_filter_ast_node_s *ast, array_s *op_list, int dt, int to_d
 }
 
 static error_t
-match_unary_op(fds_filter_ast_node_s *ast, array_s *op_list)
+match_unary_op(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list)
 {
 
     // First iteration through the operations list - exact match or constructable
-    ARRAY_FOR_EACH(op_list, fds_filter_op_s, op) {
+    for (fds_filter_op_s *op = op_list; op->symbol != NULL; op++) {
         if (op_has_symbol(op, ast->symbol)) {
             error_t err;
             if (match_unary_node(ast, op_list, op->out_dt, op->arg1_dt, false, &err)) {
@@ -334,7 +333,7 @@ match_unary_op(fds_filter_ast_node_s *ast, array_s *op_list)
     }
 
     // Second iteration - also try casts
-    ARRAY_FOR_EACH(op_list, fds_filter_op_s, op) {
+    for (fds_filter_op_s *op = op_list; op->symbol != NULL; op++) {
         if (op_has_symbol(op, ast->symbol)) {
             error_t err;
             if (match_unary_node(ast, op_list, op->out_dt, op->arg1_dt, true, &err)) {
@@ -348,9 +347,9 @@ match_unary_op(fds_filter_ast_node_s *ast, array_s *op_list)
 }
 
 static error_t
-match_binary_op(fds_filter_ast_node_s *ast, array_s *op_list)
+match_binary_op(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list)
 {
-    ARRAY_FOR_EACH(op_list, fds_filter_op_s, op) {
+    for (fds_filter_op_s *op = op_list; op->symbol != NULL; op++) {
         if (op_has_symbol(op, ast->symbol)) {
             error_t err;
             if (match_binary_node(ast, op_list, op->out_dt, op->arg1_dt, op->arg2_dt, false, &err)) {
@@ -359,7 +358,7 @@ match_binary_op(fds_filter_ast_node_s *ast, array_s *op_list)
         }
     }
 
-    ARRAY_FOR_EACH(op_list, fds_filter_op_s, op) {
+    for (fds_filter_op_s *op = op_list; op->symbol != NULL; op++) {
         if (op_has_symbol(op, ast->symbol)) {
             error_t err;
             if (match_binary_node(ast, op_list, op->out_dt, op->arg1_dt, op->arg2_dt, true, &err)) {
@@ -413,8 +412,8 @@ resolve_types(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts)
 
     if (ast_node_symbol_is(ast, "and") || ast_node_symbol_is(ast, "or")) {
         error_t err;
-        if (match_binary_node(ast, &opts->op_list, DT_BOOL, DT_BOOL, DT_BOOL, false, &err)
-                || match_binary_node(ast, &opts->op_list, DT_BOOL, DT_BOOL, DT_BOOL, true, &err)) {
+        if (match_binary_node(ast, opts->op_list, DT_BOOL, DT_BOOL, DT_BOOL, false, &err)
+                || match_binary_node(ast, opts->op_list, DT_BOOL, DT_BOOL, DT_BOOL, true, &err)) {
             if (err != NO_ERROR) {
                 return err;
             }
@@ -427,8 +426,8 @@ resolve_types(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts)
 
     if (ast_node_symbol_is(ast, "not") || ast_node_symbol_is(ast, "__root__")) {        
         error_t err;
-        if (match_unary_node(ast, &opts->op_list, DT_BOOL, DT_BOOL, false, &err)
-                || match_unary_node(ast, &opts->op_list, DT_BOOL, DT_BOOL, true, &err)) {
+        if (match_unary_node(ast, opts->op_list, DT_BOOL, DT_BOOL, false, &err)
+                || match_unary_node(ast, opts->op_list, DT_BOOL, DT_BOOL, true, &err)) {
             if (err != NO_ERROR) {
                 return err;
             }
@@ -451,8 +450,8 @@ resolve_types(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts)
 
     if (ast_node_symbol_is(ast, "__name__")) {
         int flags = 0;
-        int rv = opts->lookup_cb(ast->name, &ast->id, &ast->datatype, &flags);
-        if (rv != FDS_OK) {
+        int rc = opts->lookup_cb(opts->user_ctx, ast->name, &ast->id, &ast->datatype, &flags);
+        if (rc != FDS_OK) {
             return SEMANTIC_ERROR(ast, "invalid name");
         }
         if (flags & FDS_FILTER_FLAG_CONST) {
@@ -464,9 +463,9 @@ resolve_types(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts)
     }
 
     if (ast->left && !ast->right) {
-        return match_unary_op(ast, &opts->op_list);
+        return match_unary_op(ast, opts->op_list);
     } else if (ast->left && ast->right) {
-        return match_binary_op(ast, &opts->op_list);
+        return match_binary_op(ast, opts->op_list);
     } else {
         return NO_ERROR;
     }

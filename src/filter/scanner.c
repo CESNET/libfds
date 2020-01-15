@@ -7,7 +7,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "common.h"
+#include "util.h"
 #include "error.h"
 #include "scanner.h"
 
@@ -201,7 +201,7 @@ xdigit_to_number(char c)
     if (c >= 'A' && c <= 'F') {
         return 10 + (c - 'A');
     }
-    ASSERT_UNREACHABLE();
+    assert(0 && "not a xdigit");
 }
 
 static bool

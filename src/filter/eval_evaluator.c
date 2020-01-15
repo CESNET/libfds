@@ -1,6 +1,5 @@
 #include <assert.h>
 
-#include "common.h"
 #include "eval_common.h"
 
 // Reevaluate the tree from the bottom node to top node (excluding the top node)
@@ -30,7 +29,7 @@ reevaluate_upwards(eval_runtime_s *runtime, eval_node_s *bottom_node, eval_node_
                 // runtime->reevaluate_node = node;
                 break;
             }
-            default: ASSERT_UNREACHABLE();
+            default: assert(0 && "invalid value");
             }
             break;
         }
@@ -46,7 +45,7 @@ reevaluate_upwards(eval_runtime_s *runtime, eval_node_s *bottom_node, eval_node_
             node->cast_fn(&node->left->value, &node->value);
             break;
         }
-        default: ASSERT_UNREACHABLE();
+        default: assert(0 && "invalid value");
         }
 
         // Reached the top node
@@ -99,7 +98,7 @@ evaluate_recursively(eval_runtime_s *runtime, eval_node_s *node)
             runtime->reset_lookup = false;
             break;
         }
-        default: ASSERT_UNREACHABLE();
+        default: assert(0 && "invalid value");
         }
         break;
     }
@@ -131,7 +130,7 @@ evaluate_recursively(eval_runtime_s *runtime, eval_node_s *node)
             node->value.b = false;
             break;
         }
-        default: ASSERT_UNREACHABLE();
+        default: assert(0 && "invalid value");
         }
         break;
     }
@@ -165,7 +164,7 @@ evaluate_recursively(eval_runtime_s *runtime, eval_node_s *node)
         node->value.b = !node->child->value.b;
         break;
     }
-    default: ASSERT_UNREACHABLE();
+    default: assert(0 && "invalid value");
     }
 }
 

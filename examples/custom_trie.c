@@ -40,7 +40,8 @@ ip_in_trie(fds_filter_value_u *left, fds_filter_value_u *right, fds_filter_value
 const fds_filter_op_s trie_ops[] = {
     FDS_FILTER_DEF_CONSTRUCTOR(FDS_FILTER_DT_IP | FDS_FILTER_DT_LIST, ip_list_to_trie, DT_TRIE),
     FDS_FILTER_DEF_DESTRUCTOR(DT_TRIE, destroy_trie),
-    FDS_FILTER_DEF_BINARY_OP(FDS_FILTER_DT_IP, "in", DT_TRIE, ip_in_trie, FDS_FILTER_DT_BOOL)
+    FDS_FILTER_DEF_BINARY_OP(FDS_FILTER_DT_IP, "in", DT_TRIE, ip_in_trie, FDS_FILTER_DT_BOOL),
+    FDS_FILTER_END_OP_LIST
 };
 
 int
@@ -50,7 +51,7 @@ main(int argc, char *argv[])
     int res;
     fds_filter_opts_t *opts = NULL;
     fds_filter_t *filter = NULL;
-
+    
     opts = fds_filter_create_default_opts();
     if (!opts) {
         printf("error: create default opts failed\n");
@@ -58,15 +59,14 @@ main(int argc, char *argv[])
         goto cleanup;
     }
 
-    res = fds_filter_opts_extend_ops(opts, trie_ops, 3);
-    if (res != FDS_OK) {
+    if (!fds_filter_opts_extend_ops(opts, trie_ops)) {
         printf("error: extend ops failed\n");
         exit_code = EXIT_FAILURE;
         goto cleanup;
     }
 
     const char *expr = "127.0.0.1 in [127.0.0.1, 127.0.0.2, 192.168.1.21, 1.1.1.1, 8.8.8.8, 4.4.4.4]";
-    res = fds_filter_create(&filter, expr, opts);
+    res = fds_filter_create(expr, opts, &filter);
     if (res != FDS_OK) {
         fds_filter_error_s *err = fds_filter_get_error(filter);
         printf("error creating filter: %d: %s\n", err->code, err->msg);

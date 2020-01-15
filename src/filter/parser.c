@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "ast_common.h"
-#include "common.h"
+#include "util.h"
 #include "parser.h"
 #include "scanner.h"
 #include "error.h"

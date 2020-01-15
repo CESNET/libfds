@@ -115,15 +115,15 @@ array_destroy(array_s *array)
          LOOP_VAR != array_item_at((ARRAY), (ARRAY)->num_items); \
          LOOP_VAR++)
 
-#define ARRAY_FIND(ARRAY, VAR, COND) \
-    { \
-        int found = 0; \
-        for ((VAR) = array_item_at((ARRAY), 0); \
-            (VAR) != array_item_at((ARRAY), (ARRAY)->num_items); \
-            (VAR)++) { \
-                if ((COND)) { found = 1; break; } \
-            } \
-            if (!found) { (VAR) = NULL; } \
-    }
+// #define ARRAY_FIND(ARRAY, VAR, COND) \
+//     { \
+//         int found = 0; \
+//         for ((VAR) = array_item_at((ARRAY), 0); \
+//             (VAR) != array_item_at((ARRAY), (ARRAY)->num_items); \
+//             (VAR)++) { \
+//                 if ((COND)) { found = 1; break; } \
+//             } \
+//             if (!found) { (VAR) = NULL; } \
+//     }
 
 #endif

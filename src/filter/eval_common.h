@@ -5,8 +5,6 @@
 
 #include <libfds.h>
 
-#include "array.h"
-#include "common.h"
 #include "error.h"
 #include "values.h"
 #include "operations.h"

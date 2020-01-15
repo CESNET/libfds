@@ -1,5 +1,4 @@
 #include "ip.h"
-#include "../common.h"
 #include "../values.h"
 
 static inline bool
@@ -58,12 +57,6 @@ cast_ip_list_to_bool(fds_filter_value_u *operand, fds_filter_value_u *result)
 }
 
 void
-cast_empty_list_to_ip_list(fds_filter_value_u *operand, fds_filter_value_u *result)
-{
-    result->list = operand->list;
-}
-
-void
 destroy_ip_list(fds_filter_value_u *operand)
 {
     free(operand->list.items);
@@ -78,8 +71,8 @@ const fds_filter_op_s ip_operations[] = {
 
     FDS_FILTER_DEF_CAST(DT_IP, cast_ip_to_bool, DT_BOOL),
     FDS_FILTER_DEF_CAST(DT_IP | DT_LIST, cast_ip_list_to_bool, DT_BOOL),
-    FDS_FILTER_DEF_CAST(DT_NONE | DT_LIST, cast_empty_list_to_ip_list, DT_IP | DT_LIST),
 
     FDS_FILTER_DEF_DESTRUCTOR(DT_IP | DT_LIST, destroy_ip_list),
+
+    FDS_FILTER_END_OP_LIST
 };
-const int num_ip_operations = CONST_ARR_SIZE(ip_operations);

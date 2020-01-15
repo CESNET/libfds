@@ -1,5 +1,4 @@
 #include "str.h"
-#include "../common.h"
 #include "../values.h"
 
 static inline bool
@@ -71,13 +70,6 @@ cast_str_to_bool(fds_filter_value_u *operand, fds_filter_value_u *result)
     result->b = operand->str.len > 0;
 }
 
-void
-cast_empty_list_to_str_list(fds_filter_value_u *operand, fds_filter_value_u *result)
-{
-    result->list = operand->list;
-}
-
-
 const fds_filter_op_s str_operations[] = {
     FDS_FILTER_DEF_BINARY_OP(DT_STR, "", DT_STR, eq_str, DT_BOOL),
     FDS_FILTER_DEF_BINARY_OP(DT_STR, "==", DT_STR, eq_str, DT_BOOL),
@@ -89,10 +81,9 @@ const fds_filter_op_s str_operations[] = {
 
     FDS_FILTER_DEF_CAST(DT_STR, cast_str_to_bool, DT_BOOL),
     FDS_FILTER_DEF_CAST(DT_LIST | DT_STR, cast_str_list_to_bool, DT_BOOL),
-    FDS_FILTER_DEF_CAST(DT_LIST | DT_NONE, cast_empty_list_to_str_list, DT_LIST | DT_STR),
 
     FDS_FILTER_DEF_DESTRUCTOR(DT_STR, destroy_str_),
     FDS_FILTER_DEF_DESTRUCTOR(DT_STR | DT_LIST, destroy_list_of_str),
-};
 
-const int num_str_operations = CONST_ARR_SIZE(str_operations);
+    FDS_FILTER_END_OP_LIST
+};

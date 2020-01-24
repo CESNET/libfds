@@ -64,12 +64,12 @@ static inline void
 evaluate_while_not_true(eval_runtime_s *runtime, eval_node_s *node)
 {
     evaluate_recursively(runtime, node);
-    printf("--- evaluate_while_not_true: 1 ---\n");
-    print_eval_tree(stdout, node);
+    //fprintf(stderr, "--- evaluate_while_not_true: 1 ---\n");
+    //print_eval_tree(stderr, node);
     while (!node->value.b && runtime->reevaluate_node) {
         reevaluate_upwards(runtime, runtime->reevaluate_node, node);
-        printf("--- evaluate_while_not_true: 2 ---\n");
-        print_eval_tree(stdout, node);
+        //fprintf(stderr, "--- evaluate_while_not_true: 2 ---\n");
+        //print_eval_tree(stderr, node);
     }
 }
 

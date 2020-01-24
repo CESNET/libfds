@@ -76,10 +76,6 @@ fds_filter_opts_add_op(fds_filter_opts_t *opts, fds_filter_op_s op)
 fds_filter_op_s *
 fds_filter_opts_extend_ops(fds_filter_opts_t *opts, const fds_filter_op_s *op_list)
 {
-    printf("XXXX: old: \n");
-    print_op_list(stdout, opts->op_list);
-    printf("XXXX: extending: \n");
-    print_op_list(stdout, op_list);
     int cnt = op_list_count(opts->op_list) + 1; // + 1 for the trailing null op
     int extend_cnt = op_list_count(op_list);
     void *tmp = realloc(opts->op_list, (cnt + extend_cnt) * sizeof(fds_filter_op_s));
@@ -89,8 +85,6 @@ fds_filter_opts_extend_ops(fds_filter_opts_t *opts, const fds_filter_op_s *op_li
     opts->op_list = tmp;
     memmove(opts->op_list + extend_cnt, opts->op_list, cnt * sizeof(fds_filter_op_s));
     memcpy(opts->op_list, op_list, extend_cnt * sizeof(fds_filter_op_s));
-    printf("XXXX: new: \n");
-    print_op_list(stdout, opts->op_list);
     return opts->op_list;
 }
 
@@ -130,10 +124,6 @@ fds_filter_create_default_opts()
     if (!fds_filter_opts_extend_ops(opts, mac_operations)) {
         goto error;    
     }
-
-    printf("---- op list start ----\n");
-    print_op_list(stdout, opts->op_list);
-    printf("---- op list end ----\n");
 
     return opts;
 

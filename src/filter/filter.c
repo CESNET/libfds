@@ -25,25 +25,35 @@ fds_filter_create(const char *expr, const fds_filter_opts_t *opts, fds_filter_t 
     struct scanner_s scanner;
     init_scanner(&scanner, expr);
 
-    printf("----- parse -----\n");
+#ifdef FDS_FILTER_DEBUG
+    fprintf(stderr, "----- parse -----\n");
+#endif
     (*out_filter)->error = parse_filter(&scanner, &(*out_filter)->ast);
     if ((*out_filter)->error != NO_ERROR) {
         destroy_ast((*out_filter)->ast);
         (*out_filter)->ast = NULL;
         return (*out_filter)->error->code;
     }
-    print_ast(stdout, (*out_filter)->ast);
+#ifdef FDS_FILTER_DEBUG
+    print_ast(stderr, (*out_filter)->ast);
+#endif
 
-    printf("----- semantic -----\n");
+#ifdef FDS_FILTER_DEBUG
+    fprintf(stderr, "----- semantic -----\n");
+#endif
     (*out_filter)->error = resolve_types((*out_filter)->ast, opts);
     if ((*out_filter)->error != NO_ERROR) {
         destroy_ast((*out_filter)->ast);
         (*out_filter)->ast = NULL;
         return (*out_filter)->error->code;
     }
-    print_ast(stdout, (*out_filter)->ast);
+#ifdef FDS_FILTER_DEBUG
+    print_ast(stderr, (*out_filter)->ast);
+#endif
 
-    printf("----- generator -----\n");
+#ifdef FDS_FILTER_DEBUG
+    fprintf(stderr, "----- generator -----\n");
+#endif
     (*out_filter)->error = generate_eval_tree((*out_filter)->ast, opts, &(*out_filter)->eval_root);
     if ((*out_filter)->error != NO_ERROR) {
         destroy_ast((*out_filter)->ast);
@@ -52,7 +62,9 @@ fds_filter_create(const char *expr, const fds_filter_opts_t *opts, fds_filter_t 
     }
     (*out_filter)->eval_runtime.data_cb = opts->data_cb;
     (*out_filter)->eval_runtime.user_ctx = opts->user_ctx;
-    print_eval_tree(stdout, (*out_filter)->eval_root);
+#ifdef FDS_FILTER_DEBUG
+    print_eval_tree(stderr, (*out_filter)->eval_root);
+#endif
 
     return FDS_OK;
 }
@@ -60,10 +72,14 @@ fds_filter_create(const char *expr, const fds_filter_opts_t *opts, fds_filter_t 
 bool
 fds_filter_eval(fds_filter_t *filter, void *data)
 {
-    printf("----- evaluate -----\n");
+#ifdef DEBUG
+    fprintf(stderr, "----- evaluate -----\n");
+#endif
     filter->eval_runtime.data = data;
     evaluate_eval_tree(filter->eval_root, &filter->eval_runtime);
-    print_eval_tree(stdout, filter->eval_root);
+#ifdef DEBUG
+    print_eval_tree(stderr, filter->eval_root);
+#endif
     return filter->eval_root->value.b;
 }
 

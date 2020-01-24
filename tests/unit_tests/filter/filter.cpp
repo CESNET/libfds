@@ -398,6 +398,7 @@ TEST_F(Filter, string_operations) {
     EXPECT_EQ(evaluate("\"hello world!\" contains \"world\""), true);
     EXPECT_EQ(evaluate("\"hello world!\" contains \" \""), true);
     EXPECT_EQ(evaluate("\"hello world!\" contains \"\""), true);
+    EXPECT_EQ(evaluate("not \"\" contains \"hello\""), true);
     EXPECT_EQ(evaluate("not \"hello world!\" contains \"foo\""), true);
 }
 

@@ -23,6 +23,9 @@ void
 contains_str(fds_filter_value_u *big, fds_filter_value_u *little, fds_filter_value_u *result)
 {
     result->b = false;
+    if (big->str.len < little->str.len) {
+        return;
+    }
     for (int i = 0; i <= big->str.len - little->str.len; i++) {
         if (memcmp(big->str.chars + i, little->str.chars, little->str.len) == 0) {
             result->b = true;

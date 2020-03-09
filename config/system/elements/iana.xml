@@ -1863,24 +1863,21 @@ and will be lost when the list is regenerated.
     </element>
     <element>
         <id>288</id>
-        <name>p2pTechnology
-</name>
+        <name>p2pTechnology</name>
         <dataType>string</dataType>
         <dataSemantics>default</dataSemantics>
         <status>current</status>
     </element>
     <element>
         <id>289</id>
-        <name>tunnelTechnology
-</name>
+        <name>tunnelTechnology</name>
         <dataType>string</dataType>
         <dataSemantics>default</dataSemantics>
         <status>current</status>
     </element>
     <element>
         <id>290</id>
-        <name>encryptedTechnology
-</name>
+        <name>encryptedTechnology</name>
         <dataType>string</dataType>
         <dataSemantics>default</dataSemantics>
         <status>current</status>
@@ -3242,6 +3239,76 @@ and will be lost when the list is regenerated.
         <name>globalAddressMappingHighThreshold</name>
         <dataType>unsigned32</dataType>
         <dataSemantics>identifier</dataSemantics>
+        <status>current</status>
+    </element>
+    <element>
+        <id>482</id>
+        <name>vpnIdentifier</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>default</dataSemantics>
+        <status>current</status>
+    </element>
+    <element>
+        <id>483</id>
+        <name>bgpCommunity</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>identifier</dataSemantics>
+        <status>current</status>
+    </element>
+    <element>
+        <id>484</id>
+        <name>bgpSourceCommunityList</name>
+        <dataType>basicList</dataType>
+        <dataSemantics>list</dataSemantics>
+        <status>current</status>
+    </element>
+    <element>
+        <id>485</id>
+        <name>bgpDestinationCommunityList</name>
+        <dataType>basicList</dataType>
+        <dataSemantics>list</dataSemantics>
+        <status>current</status>
+    </element>
+    <element>
+        <id>486</id>
+        <name>bgpExtendedCommunity</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>default</dataSemantics>
+        <status>current</status>
+    </element>
+    <element>
+        <id>487</id>
+        <name>bgpSourceExtendedCommunityList</name>
+        <dataType>basicList</dataType>
+        <dataSemantics>list</dataSemantics>
+        <status>current</status>
+    </element>
+    <element>
+        <id>488</id>
+        <name>bgpDestinationExtendedCommunityList</name>
+        <dataType>basicList</dataType>
+        <dataSemantics>list</dataSemantics>
+        <status>current</status>
+    </element>
+    <element>
+        <id>489</id>
+        <name>bgpLargeCommunity</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>default</dataSemantics>
+        <status>current</status>
+    </element>
+    <element>
+        <id>490</id>
+        <name>bgpSourceLargeCommunityList</name>
+        <dataType>basicList</dataType>
+        <dataSemantics>list</dataSemantics>
+        <status>current</status>
+    </element>
+    <element>
+        <id>491</id>
+        <name>bgpDestinationLargeCommunityList</name>
+        <dataType>basicList</dataType>
+        <dataSemantics>list</dataSemantics>
         <status>current</status>
     </element>
 </ipfix-elements>

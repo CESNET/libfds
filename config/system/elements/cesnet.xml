@@ -241,5 +241,53 @@
 		<name>Venom</name>
 		<dataType>unsigned8</dataType>
 	</element>
-
+        <element>
+		<id>1010</id>
+		<name>tlsRecordLength</name>
+		<dataType>signed16</dataType>
+		<dataSemantics>default</dataSemantics>
+		<units>octets</units>
+	</element>
+	<element>
+		<id>1011</id>
+		<name>tlsRecordTime</name>
+		<dataType>unsigned16</dataType>
+		<dataSemantics>default</dataSemantics>
+		<units>milliseconds</units>
+	</element>
+	<element>
+		<id>1012</id>
+		<name>tlsRecordContentType</name>
+		<dataType>unsigned8</dataType>
+		<dataSemantics>default</dataSemantics>
+		<units>none</units>
+	</element>
+	<element>
+		<id>1013</id>
+		<name>packetLength</name>
+		<dataType>signed16</dataType>
+		<dataSemantics>default</dataSemantics>
+		<units>octets</units>
+	</element>
+	<element>
+		<id>1014</id>
+		<name>packetTime</name>
+		<dataType>unsigned16</dataType>
+		<dataSemantics>default</dataSemantics>
+		<units>milliseconds</units>
+	</element>
+	<element>
+		<id>1015</id>
+		<name>packetFlag</name>
+		<dataType>signed8</dataType>
+		<dataSemantics>flags</dataSemantics>
+		<units>none</units>
+	</element>
+	<element>
+		<id>1016</id>
+		<name>packetDirection</name>
+		<dataType>signed8</dataType>
+		<dataSemantics>default</dataSemantics>
+		<units>none</units>
+	</element>
 </ipfix-elements>

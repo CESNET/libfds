@@ -11,7 +11,7 @@
 #include "error.h"
 #include "scanner.h"
 
-// supported suffixes for number literals
+// Supported suffixes for number literals
 const struct {
     const char *unit;
     uint64_t scale;
@@ -30,7 +30,7 @@ const struct {
     { "d", 24lu * 60lu * 60lu * 1000lu * 1000lu * 1000lu },
 };
 
-// strings that are treated as symbols
+// Strings that are treated as symbols
 const char *symbols[] = {
     "~", "not", "*", "/", "+", "-", "|", "&", "^", "%",
     "and", "or", "in", "contains", "exists", "[", "]", "(", ")", ",",
@@ -180,7 +180,7 @@ end:
     *out_error = NO_ERROR;
     struct token_s token = {};
     token.kind = TK_LITERAL;
-    token.literal.data_type = DT_IP;
+    token.literal.data_type = FDS_FDT_IP;
     token.literal.value.ip = ip;
     token.cursor_begin = *cursor;
     token.cursor_end = c;
@@ -339,7 +339,7 @@ end:
     ip.prefix = (uint8_t)prefix;
     struct token_s token = {};
     token.kind = TK_LITERAL;
-    token.literal.data_type = DT_IP;
+    token.literal.data_type = FDS_FDT_IP;
     token.literal.value.ip = ip;
     token.cursor_begin = *cursor;
     token.cursor_end = c;
@@ -395,7 +395,7 @@ scan_mac_address(const char **cursor, struct token_s *out_token, error_t *out_er
 
     struct token_s token = {};
     token.kind = TK_LITERAL;
-    token.literal.data_type = DT_MAC;
+    token.literal.data_type = FDS_FDT_MAC;
     token.literal.value.mac = mac;
     token.cursor_begin = *cursor;
     token.cursor_end = c;
@@ -513,7 +513,7 @@ end:
     *out_error = NO_ERROR;
     struct token_s token = {};
     token.kind = TK_LITERAL;
-    token.literal.data_type = DT_STR;
+    token.literal.data_type = FDS_FDT_STR;
     token.literal.value.str = str;
     token.cursor_begin = *cursor;
     token.cursor_end = c;
@@ -603,7 +603,7 @@ scan_number(const char **cursor, struct token_s *out_token, error_t *out_error)
             c++;
         }
         token.kind = TK_LITERAL;
-        token.literal.data_type = DT_INT;
+        token.literal.data_type = FDS_FDT_INT;
         token.literal.value.u = value;
         token.cursor_begin = *cursor;
         token.cursor_end = c;
@@ -628,7 +628,7 @@ scan_number(const char **cursor, struct token_s *out_token, error_t *out_error)
             c++;
         }
         token.kind = TK_LITERAL;
-        token.literal.data_type = DT_INT;
+        token.literal.data_type = FDS_FDT_INT;
         token.literal.value.u = value;
         token.cursor_begin = *cursor;
         token.cursor_end = c;
@@ -723,14 +723,14 @@ scan_number(const char **cursor, struct token_s *out_token, error_t *out_error)
         token.cursor_begin = *cursor;
         token.cursor_end = c;
         if (is_unsigned) {
-            token.literal.data_type = DT_UINT;
+            token.literal.data_type = FDS_FDT_UINT;
             // TODO: check overflow?
             token.literal.value.u = value * (uint64_t)scale;
         } else if (is_float) {
-            token.literal.data_type = DT_FLOAT;
+            token.literal.data_type = FDS_FDT_FLOAT;
             token.literal.value.f = ((double)value + dp_value) * pow(10, exp) * scale;
         } else {
-            token.literal.data_type = DT_INT;
+            token.literal.data_type = FDS_FDT_INT;
             // TODO: check overflow?
             token.literal.value.i = value * (int64_t)scale;
         }
@@ -859,15 +859,15 @@ scan_datetime(const char **cursor, struct token_s *out_token, error_t *out_error
 
 end: ;
     struct tm t = {
-        .tm_year = year,
-        .tm_mon = month,
+        .tm_year = year - 1900, // tm_year -> years since 1900
+        .tm_mon = month - 1, // tm_mon -> months since january
         .tm_mday = day,
         .tm_hour = hour,
         .tm_min = min,
         .tm_sec = sec,
     };
     time_t epoch_secs = is_localtime ? timelocal(&t) : timegm(&t); // XXXX: GNU/BSD extension
-    if (epoch_secs == (time_t)-1) {
+    if (epoch_secs == (time_t) -1) {
         *out_error = LEXICAL_ERROR(*cursor, "invalid datetime");
         return true;
     }
@@ -883,7 +883,7 @@ end: ;
 
     struct token_s token;
     token.kind = TK_LITERAL;
-    token.literal.data_type = DT_UINT;
+    token.literal.data_type = FDS_FDT_UINT;
     token.literal.value.u = epoch_nanosecs;
     token.cursor_begin = start_cursor;
     token.cursor_end = *cursor;
@@ -898,7 +898,7 @@ scan_bool(const char **cursor, struct token_s *out_token, error_t *out_error)
     struct token_s token = {};
     *out_error = NO_ERROR;
     token.kind = TK_LITERAL;
-    token.literal.data_type = DT_BOOL;
+    token.literal.data_type = FDS_FDT_BOOL;
     token.cursor_begin = *cursor;
     if (strncmp(*cursor, "true", 4) == 0) {
         *cursor += 4;
@@ -979,11 +979,11 @@ scan_token(const char **cursor, struct token_s *out_token, error_t *out_best_err
                 best_err_cursor = c;
             } else {
                 if (c > best_err_cursor) {
-                    destroy_error(best_err);
+                    error_destroy(best_err);
                     best_err = err;
                     best_err_cursor = c;
                 } else {
-                    destroy_error(err);
+                    error_destroy(err);
                 }
             }
         }
@@ -1045,7 +1045,7 @@ next_token(struct scanner_s *scanner, struct token_s *out_token)
 
     skip_whitespace(&cursor);
     if (!scan_token(&cursor, &next_token, &next_err)) {
-        destroy_error(next_err);
+        error_destroy(next_err);
         destroy_token(token);
         if (err != NO_ERROR) {
             return err;
@@ -1065,14 +1065,14 @@ next_token(struct scanner_s *scanner, struct token_s *out_token)
         || (next_token.kind == TK_SYMBOL && is_not_word_symbol(next_token.symbol)); // Second token is a non-word symbol
     if (!valid_token_pair) {
         if (err != NO_ERROR) {
-            destroy_error(next_err);
+            error_destroy(next_err);
             destroy_token(token);
             destroy_token(next_token);
             return err;
         } else {
             error_t ret_err = LEXICAL_ERROR(token.cursor_end, "invalid syntax");
-            destroy_error(err);
-            destroy_error(next_err);
+            error_destroy(err);
+            error_destroy(next_err);
             destroy_token(token);
             destroy_token(next_token);
             return ret_err;
@@ -1082,8 +1082,8 @@ next_token(struct scanner_s *scanner, struct token_s *out_token)
     scanner->token_ready = true;
     scanner->cursor = token.cursor_end;
     *out_token = token;
-    destroy_error(err);
-    destroy_error(next_err);
+    error_destroy(err);
+    error_destroy(next_err);
     destroy_token(next_token);
 
     // fprintf(stderr, "scanned token: ");
@@ -1115,7 +1115,7 @@ token_is_symbol(struct token_s token, const char *symbol)
 void
 destroy_token(struct token_s token)
 {
-    if (token.kind == TK_LITERAL && token.literal.data_type == DT_STR) {
+    if (token.kind == TK_LITERAL && token.literal.data_type == FDS_FDT_STR) {
         free(token.literal.value.str.chars);
     } else if (token.kind == TK_NAME) {
         free(token.name);

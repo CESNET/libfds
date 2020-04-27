@@ -155,7 +155,7 @@ process_root_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node
     }
 
     // Just propagate the node if the ANY node is not needed
-    if (!(ast->child->flags & AST_FLAG_MULTIPLE_EVAL_SUBTREE)) {
+    if (!(ast->child->flags & FDS_FAF_MULTIPLE_EVAL_SUBTREE)) {
         *out_eval_node = child;
         return NO_ERROR;
     }
@@ -167,7 +167,7 @@ process_root_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node
         return MEMORY_ERROR;
     }
     en->opcode = EVAL_OP_ANY;   
-    en->datatype = DT_BOOL;
+    en->datatype = FDS_FDT_BOOL;
     en->child = child;
     child->parent = en;
     *out_eval_node = en;
@@ -181,7 +181,7 @@ static error_t
 process_constructor_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
 {
     // Must be const, should be assured by semantic analysis
-    assert(ast->flags & AST_FLAG_CONST_SUBTREE);
+    assert(ast->flags & FDS_FAF_CONST_SUBTREE);
 
     fds_filter_value_u orig_val, constructed_val;
 
@@ -249,13 +249,15 @@ process_name_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node
         return MEMORY_ERROR;
     }
     // Is the name a constant or a variable?
-    if (ast->flags & AST_FLAG_CONST_SUBTREE) {
+    if (ast->flags & FDS_FAF_CONST_SUBTREE) {
         en->opcode = EVAL_OP_NONE;
-        en->value = ast->value;
+        printf("XXXX: calling const cb\n");
+        opts->const_cb(opts->user_ctx, ast->id, &en->value);
+        // TODO: destructor?
     } else {
         en->opcode = EVAL_OP_DATA_CALL;
+        en->lookup_id = ast->id;
     }
-    en->lookup_id = ast->id;
     en->datatype = ast->datatype;
     *out_eval_node = en;
     return NO_ERROR;
@@ -278,7 +280,7 @@ process_literal_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
         en->destructor_fn = destructor->destructor_fn;
     }
     // The destruction of the value is now handled by the eval tree instead of AST
-    ast->flags &= ~AST_FLAG_DESTROY_VAL;
+    ast->flags &= ~FDS_FAF_DESTROY_VAL;
     en->datatype = ast->datatype;
     *out_eval_node = en;
     return NO_ERROR;
@@ -330,6 +332,7 @@ process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
             return err;
         }
         en->child->parent = en;
+        en->datatype = FDS_FDT_BOOL;
     } else if (ast_node_symbol_is(ast, "and")) {
         en->opcode = EVAL_OP_AND;
         error_t err = generate_children(ast, opts, &en->left, &en->right);
@@ -339,6 +342,7 @@ process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
         }
         en->left->parent = en;
         en->right->parent = en;
+        en->datatype = FDS_FDT_BOOL;
     } else if (ast_node_symbol_is(ast, "or")) {
         en->opcode = EVAL_OP_OR;
         error_t err = generate_children(ast, opts, &en->left, &en->right);
@@ -348,6 +352,7 @@ process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
         }
         en->left->parent = en;
         en->right->parent = en;
+        en->datatype = FDS_FDT_BOOL;
     }
 
     *out_eval_node = en;
@@ -373,7 +378,7 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
             return err;
         }
         en->child->parent = en;
-        fds_filter_op_s *op = find_op(opts->op_list, "__cast__", ast->datatype, ast->child->datatype, DT_NONE); 
+        fds_filter_op_s *op = find_op(opts->op_list, "__cast__", ast->datatype, ast->child->datatype, FDS_FDT_NONE); 
         en->cast_fn = op->cast_fn;
         en->operation = op;
         en->datatype = ast->datatype;
@@ -385,7 +390,7 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
             return err;
         }
         en->child->parent = en;
-        fds_filter_op_s *op = find_op(opts->op_list, ast->symbol, ast->datatype, ast->child->datatype, DT_NONE);
+        fds_filter_op_s *op = find_op(opts->op_list, ast->symbol, ast->datatype, ast->child->datatype, FDS_FDT_NONE);
         en->unary_fn = op->unary_fn;
         en->operation = op;
         en->datatype = ast->datatype;

@@ -187,8 +187,6 @@ parse_infix_expr(struct scanner_s *scanner, int prec, fds_filter_ast_node_s **ou
             destroy_ast(right_expr);
             return MEMORY_ERROR;
         }
-        new_ast->cursor_begin = ast->cursor_begin;
-        new_ast->cursor_end = right_expr->cursor_end;
         ast = new_ast;
     }
 
@@ -261,7 +259,7 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
 
         consume_token(scanner);
 
-        fds_filter_ast_node_s *ast = create_empty_ast_node("__name__");
+        fds_filter_ast_node_s *ast = create_ast_node("__name__");
         if (!ast) {
             return MEMORY_ERROR;
         }
@@ -295,12 +293,13 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
         }
 
         // create an empty list
-        fds_filter_ast_node_s *list_node = create_empty_ast_node("__list__");
+        fds_filter_ast_node_s *list_node = create_ast_node("__list__");
         if (!list_node) {
             return MEMORY_ERROR;
         }
         // where to allocate the next list item node
         fds_filter_ast_node_s **item_node_ptr = &list_node->child;
+        fds_filter_ast_node_s *parent = list_node;
 
         // loop until the closing ] is reached
         while (!token_is_symbol(token, "]")) {
@@ -320,12 +319,15 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
             }
 
             // create the list item node
+            fds_filter_ast_node_s *parent_node = *item_node_ptr;
             *item_node_ptr = create_unary_ast_node("__listitem__", expr_node);
-            if (!*item_node_ptr) {
+            if (*item_node_ptr == NULL) {
                 destroy_ast(list_node);
                 destroy_ast(expr_node);
                 return MEMORY_ERROR;
             }
+            (*item_node_ptr)->parent = parent;
+            parent = *item_node_ptr;
             // where to create the next list item node
             item_node_ptr = &(*item_node_ptr)->next;
 
@@ -372,8 +374,6 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
                 return MEMORY_ERROR;
             }
 
-            ast->cursor_begin = cursor_begin;
-            ast->cursor_end = expr->cursor_end;
             *out_ast = ast;
             return NO_ERROR;
         }
@@ -383,7 +383,7 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
     if (token_is(token, TK_NAME)) {
         consume_token(scanner);
 
-        fds_filter_ast_node_s *ast = create_empty_ast_node("__name__");
+        fds_filter_ast_node_s *ast = create_ast_node("__name__");
         if (!ast) {
             return MEMORY_ERROR;
         }
@@ -398,14 +398,14 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
     if (token_is(token, TK_LITERAL)) {
         consume_token(scanner);
 
-        fds_filter_ast_node_s *ast = create_empty_ast_node("__literal__");
+        fds_filter_ast_node_s *ast = create_ast_node("__literal__");
         if (!ast) {
             return MEMORY_ERROR;
         }
         ast->value = token.literal.value;
         ast->datatype = token.literal.data_type;
-        ast->flags |= AST_FLAG_CONST_SUBTREE;
-        ast->flags |= AST_FLAG_DESTROY_VAL;
+        ast->flags |= FDS_FAF_CONST_SUBTREE;
+        ast->flags |= FDS_FAF_DESTROY_VAL;
         ast->cursor_begin = token.cursor_begin;
         ast->cursor_end = token.cursor_end;
         *out_ast = ast;

@@ -239,3 +239,9 @@ elements_remove_reverse(fds_iemgr_scope_inter* scope);
  */
 int
 element_destroy(fds_iemgr_t *mgr, uint32_t pen, uint16_t id);
+
+int
+element_add_alias_ref(fds_iemgr_elem *elem, fds_iemgr_alias *alias);
+
+int
+element_add_mapping_ref(fds_iemgr_elem *elem, fds_iemgr_mapping *mapping);

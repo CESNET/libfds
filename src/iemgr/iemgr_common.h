@@ -54,6 +54,8 @@
 #include <algorithm>
 #include <set>
 #include <memory>
+#include <unordered_set>
+#include <functional>
 #include <sys/stat.h>
 #include <libfds/iemgr.h>
 #include <libfds/xml_parser.h>
@@ -66,6 +68,8 @@ using std::set;
 using std::sort;
 using std::move;
 using std::to_string;
+
+#define ERRMSG_NOMEM    (string("Cannot allocate memory at ") + __FILE__ + ":" + to_string(__LINE__))   
 
 /** Maximal value of the uint32                                  */
 #define UINT32_LIMIT      (std::numeric_limits<uint32_t>::max()     )
@@ -104,6 +108,26 @@ struct fds_iemgr {
     vector<pair<string,   fds_iemgr_scope_inter *> > prefixes;
 
     /**
+     * A flat vector of all aliases
+     */ 
+    vector<fds_iemgr_alias *> aliases;
+    /**
+     * A flat vector of all mappings
+     */
+    vector<fds_iemgr_mapping *> mappings;
+
+    /**
+     * First is name of the alias, second points to the alias with that name.
+     * Names are sorted alphabetically.
+     */
+    vector<pair<string, fds_iemgr_alias *> > aliased_names;
+    /**
+     * First is match name of the mapping, second is the mapping.
+     * Sorted alphabetically by match name.
+     */
+    vector<pair<string, struct fds_iemgr_mapping *> > mapped_names; 
+
+    /**
      * These are used only as a temporary values for overwriting.
      * On the end of the parsing should be empty
      */
@@ -131,6 +155,18 @@ enum FDS_XML_ID {
     ELEM_DATA_UNIT,
     ELEM_STATUS,
     ELEM_BIFLOW,
+    ELEM_ALIAS,
+    ELEM_SOURCE,
+    SOURCE_MODE,
+    SOURCE_ID,
+    GROUP,
+    GROUP_NAME,
+    GROUP_MATCH,
+    GROUP_ITEM_LIST,
+    ITEM_LIST_MODE,
+    ITEM_LIST_ITEM,
+    ITEM_KEY,
+    ITEM_VALUE,
 };
 
 /** \cond DOXYGEN_SKIP_THIS */
@@ -288,6 +324,40 @@ void sort_vec(P& vector)
     sort(vector.begin(), vector.end());
 }
 
+template <typename T>
+T *
+array_push(T **items, std::size_t *items_cnt_ptr)
+{
+    void *tmp = std::realloc(*items, sizeof(T) * ((*items_cnt_ptr) + 1));
+    if (tmp == NULL) {
+        return NULL;
+    }
+    *items = (T *) tmp;
+    *items_cnt_ptr += 1;
+    T *last_item = (T *) &((*items)[*items_cnt_ptr - 1]);
+    return last_item;
+}
+
+template <typename T>
+T *
+copy_flat_array(T *items, std::size_t items_cnt)
+{
+    void *tmp = std::malloc(sizeof(T) * items_cnt);
+    if (tmp == nullptr) {
+        return nullptr;
+    }
+    std::memcpy(tmp, (void *) items, sizeof(T) * items_cnt);
+    return (T *) tmp;
+}
+
+template <typename T>
+T *
+vec_remap(const std::vector<T> &old_vec, std::vector<T> &new_vec, T *item)
+{
+    return item - &old_vec[0] + &new_vec[0];
+}
+
+
 /**
  * \brief Split string to prefix and suffix
  * \param str String with prefix and suffix separated by ':'
@@ -404,3 +474,12 @@ mgr_sort(fds_iemgr_t* mgr);
  */
 fds_iemgr_t*
 mgr_copy(const fds_iemgr_t* mgr);
+
+/**
+ * \brief Save modification time of a file to the manager
+ * \param[in,out] mgr  Manager
+ * \param[in]     path Path and name of the file e.g. 'tmp/user/elements/iana.xml'
+ * \return True on success, otherwise False
+ */
+bool
+mtime_save(fds_iemgr_t* mgr, const string& path);

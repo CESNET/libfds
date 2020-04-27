@@ -59,6 +59,7 @@
 #include <libfds/file.h>
 #include <libfds/ipfix_parsers.h>
 #include <libfds/ipfix_structs.h>
+#include <libfds/ipfix_filter.h>
 #include <libfds/template.h>
 #include <libfds/template_mgr.h>
 #include <libfds/xml_parser.h>

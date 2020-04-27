@@ -74,6 +74,12 @@ cast_uint_to_int(fds_filter_value_u *operand, fds_filter_value_u *result)
 }
 
 void
+cast_int_to_uint(fds_filter_value_u *operand, fds_filter_value_u *result)
+{
+    result->u = operand->i;
+}
+
+void
 cast_int_to_bool(fds_filter_value_u *operand, fds_filter_value_u *result)
 {
     result->b = operand->i != 0;
@@ -140,34 +146,35 @@ destroy_int_list(fds_filter_value_u *operand)
 }
 
 extern const fds_filter_op_s int_operations[] = {
-    FDS_FILTER_DEF_UNARY_OP("-", DT_INT, neg_int, DT_INT),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "+", DT_INT, add_int, DT_INT),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "-", DT_INT, sub_int, DT_INT),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "*", DT_INT, mul_int, DT_INT),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "/", DT_INT, div_int, DT_INT),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "%", DT_INT, mod_int, DT_INT),
+    FDS_FILTER_DEF_UNARY_OP("-", FDS_FDT_INT, neg_int, FDS_FDT_INT),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "+", FDS_FDT_INT, add_int, FDS_FDT_INT),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "-", FDS_FDT_INT, sub_int, FDS_FDT_INT),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "*", FDS_FDT_INT, mul_int, FDS_FDT_INT),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "/", FDS_FDT_INT, div_int, FDS_FDT_INT),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "%", FDS_FDT_INT, mod_int, FDS_FDT_INT),
 
-    FDS_FILTER_DEF_UNARY_OP("~", DT_INT, bitnot_int, DT_INT),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "|", DT_INT, bitor_int, DT_INT),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "&", DT_INT, bitand_int, DT_INT),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "^", DT_INT, bitxor_int, DT_INT),
+    FDS_FILTER_DEF_UNARY_OP("~", FDS_FDT_INT, bitnot_int, FDS_FDT_INT),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "|", FDS_FDT_INT, bitor_int, FDS_FDT_INT),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "&", FDS_FDT_INT, bitand_int, FDS_FDT_INT),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "^", FDS_FDT_INT, bitxor_int, FDS_FDT_INT),
 
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "", DT_INT, eq_int, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "==", DT_INT, eq_int, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "!=", DT_INT, ne_int, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "<", DT_INT, lt_int, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, ">", DT_INT, gt_int, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "<=", DT_INT, le_int, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, ">=", DT_INT, ge_int, DT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "", FDS_FDT_INT, eq_int, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "==", FDS_FDT_INT, eq_int, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "!=", FDS_FDT_INT, ne_int, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "<", FDS_FDT_INT, lt_int, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, ">", FDS_FDT_INT, gt_int, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "<=", FDS_FDT_INT, le_int, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, ">=", FDS_FDT_INT, ge_int, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_BINARY_OP(DT_INT, "in", DT_LIST | DT_INT, int_in_list, DT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "in", FDS_FDT_LIST | FDS_FDT_INT, int_in_list, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_CAST(DT_FLOAT, cast_float_to_int, DT_INT),
-    FDS_FILTER_DEF_CAST(DT_UINT, cast_uint_to_int, DT_INT),
-    FDS_FILTER_DEF_CAST(DT_INT, cast_int_to_bool, DT_BOOL),
-    FDS_FILTER_DEF_CAST(DT_INT | DT_LIST, cast_int_list_to_bool, DT_BOOL),
+    FDS_FILTER_DEF_CAST(FDS_FDT_FLOAT, cast_float_to_int, FDS_FDT_INT),
+    FDS_FILTER_DEF_CAST(FDS_FDT_UINT, cast_uint_to_int, FDS_FDT_INT),
+    FDS_FILTER_DEF_CAST(FDS_FDT_INT, cast_int_to_uint, FDS_FDT_UINT),
+    FDS_FILTER_DEF_CAST(FDS_FDT_INT, cast_int_to_bool, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_CAST(FDS_FDT_INT | FDS_FDT_LIST, cast_int_list_to_bool, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_DESTRUCTOR(DT_INT | DT_LIST, destroy_int_list),
+    FDS_FILTER_DEF_DESTRUCTOR(FDS_FDT_INT | FDS_FDT_LIST, destroy_int_list),
     
     FDS_FILTER_END_OP_LIST
 };

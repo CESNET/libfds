@@ -15,15 +15,14 @@ set(SUB_HEADERS
 	libfds/iemgr.h
 	libfds/drec.h
 	libfds/file.h
+	libfds/filter.h
 	libfds/ipfix_parsers.h
 	libfds/ipfix_structs.h
+	libfds/ipfix_filter.h
 	libfds/template.h
 	libfds/template_mgr.h
-	libfds/xml_parser.h
-
-	libfds/filter.h
-
 	libfds/trie.h
+	libfds/xml_parser.h
 )
 
 # Installation targets

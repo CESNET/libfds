@@ -89,7 +89,7 @@ evaluate_recursively(eval_runtime_s *runtime, eval_node_s *node)
         switch (rc) {
         case FDS_OK:
         case FDS_ERR_NOTFOUND: { // The callback should set a default value in this case
-            assert(!runtime->reevaluate_node);
+            runtime->reevaluate_node = NULL;
             runtime->reset_lookup = true;
             break;
         }

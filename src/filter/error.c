@@ -6,7 +6,7 @@ const error_t NO_ERROR = NULL;
 const error_t MEMORY_ERROR = &memory_error;
 
 error_t
-create_error_v(int code, const char *fmt, va_list args)
+error_create_variadic(int code, const char *fmt, va_list args)
 {
     va_list args_;
     va_copy(args_, args);
@@ -33,21 +33,21 @@ create_error_v(int code, const char *fmt, va_list args)
 }
 
 error_t
-create_error(int code, const char *fmt, ...)
+error_create(int code, const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    error_t err = create_error_v(code, fmt, args);
+    error_t err = error_create_variadic(code, fmt, args);
     va_end(args);
     return err;
 }
 
 error_t
-create_error_with_location(int code, const char *begin, const char *end, const char *fmt, ...)
+error_create_with_location(int code, const char *begin, const char *end, const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    error_t err = create_error_v(code, fmt, args);
+    error_t err = error_create_variadic(code, fmt, args);
     va_end(args);
     if (err == MEMORY_ERROR) {
         return err;
@@ -58,7 +58,7 @@ create_error_with_location(int code, const char *begin, const char *end, const c
 }
 
 void
-destroy_error(error_t error)
+error_destroy(error_t error)
 {
     if (error != NULL && error != NO_ERROR && error != MEMORY_ERROR) {
         free(error->msg);

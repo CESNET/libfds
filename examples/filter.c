@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     assert(opts);
 
     fds_filter_t *filter;
-    int ret = fds_filter_create(argv[1], opts, &filter);
+    int ret = fds_filter_create(&filter, argv[1], opts);
     if (ret != FDS_OK) {
         fds_filter_error_s *err = fds_filter_get_error(filter);
         printf("(%d) %s\n", err->code, err->msg);

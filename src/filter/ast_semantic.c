@@ -35,16 +35,16 @@ static void
 propagate_flags(fds_filter_ast_node_s *ast)
 {
     // If any of the children are multiple eval, the parent is also multiple eval
-    if ((ast->left && ast->left->flags & AST_FLAG_MULTIPLE_EVAL_SUBTREE) 
-            || (ast->right && ast->right->flags & AST_FLAG_MULTIPLE_EVAL_SUBTREE)) {
-        ast->flags |= AST_FLAG_MULTIPLE_EVAL_SUBTREE;
+    if ((ast->left && ast->left->flags & FDS_FAF_MULTIPLE_EVAL_SUBTREE) 
+            || (ast->right && ast->right->flags & FDS_FAF_MULTIPLE_EVAL_SUBTREE)) {
+        ast->flags |= FDS_FAF_MULTIPLE_EVAL_SUBTREE;
     }
     // If both children are constant, parent is also constant
-    if (ast->left                                                          // Has atleast one child
-            && ast->left->flags & AST_FLAG_CONST_SUBTREE                   // The child is constant subtree 
-            && (!ast->right || ast->right->flags & AST_FLAG_CONST_SUBTREE) // Right child is also constant subtree if there is one
+    if (ast->left                                                         // Has atleast one child
+            && ast->left->flags & FDS_FAF_CONST_SUBTREE                   // The child is constant subtree 
+            && (!ast->right || ast->right->flags & FDS_FAF_CONST_SUBTREE) // Right child is also constant subtree if there is one
         ) { 
-        ast->flags |= AST_FLAG_CONST_SUBTREE;
+        ast->flags |= FDS_FAF_CONST_SUBTREE;
     }
     
 }
@@ -59,6 +59,8 @@ insert_ast_node(fds_filter_ast_node_s **node_ptr)
     if (!node) {
         return NULL;
     }
+    node->parent = (*node_ptr)->parent;
+    (*node_ptr)->parent = node;
     node->child = *node_ptr;
     *node_ptr = node;
     return node;
@@ -110,18 +112,18 @@ try_match(fds_filter_op_s *op_list, fds_filter_ast_node_s *ast, int dt, bool cas
 static bool
 try_match_list_items(fds_filter_op_s *op_list, fds_filter_ast_node_s *ast, bool cast_ok, int dt, int *out_sub_dt)
 {
-    if (!(dt & DT_LIST)) {
+    if (!(dt & FDS_FDT_LIST)) {
         return false;
     }
-    int sub_dt = dt & ~DT_LIST;
-    *out_sub_dt = DT_NONE;
+    int sub_dt = dt & ~FDS_FDT_LIST;
+    *out_sub_dt = FDS_FDT_NONE;
     fds_filter_ast_node_s *li = ast->child;
     while (li) {
         int unused;
         if (!try_match(op_list, li->item, sub_dt, cast_ok, out_sub_dt, &unused)) {
             return false;
         }
-        assert(unused == DT_NONE);
+        assert(unused == FDS_FDT_NONE);
         li = li->next;
     }
     return true;
@@ -149,7 +151,7 @@ try_match(fds_filter_op_s *op_list, fds_filter_ast_node_s *ast, int dt, bool cas
         for (fds_filter_op_s *op = op_list; op->symbol != NULL; op++) {
             if ((op_has_symbol(op, "__constructor__") || (cast_ok && op_has_symbol(op, "__cast__")))
                     && op->out_dt == dt
-                    && op->arg1_dt & DT_LIST) {
+                    && op->arg1_dt & FDS_FDT_LIST) {
                 if (try_match_list_items(op_list, ast, cast_ok, op->arg1_dt, out_sub_dt)) {
                     *out_dt = op->out_dt;
                     return true;
@@ -162,22 +164,29 @@ try_match(fds_filter_op_s *op_list, fds_filter_ast_node_s *ast, int dt, bool cas
         // Exact match
         if (ast->datatype == dt) {
             *out_dt = dt;
-            *out_sub_dt = DT_NONE;
+            *out_sub_dt = FDS_FDT_NONE;
             return true;
         }
+        //printf("XXXX:\n");
+        //print_ast(stdout, ast);
+        //printf("XXXX: no exact match from %s to %s\n", data_type_to_str(ast->datatype), data_type_to_str(dt));
         // Constructor match
         fds_filter_op_s *op;
         if ((op = find_constructor(op_list, ast->datatype, dt))) {
             *out_dt = op->out_dt;
-            *out_sub_dt = DT_NONE;
+            *out_sub_dt = FDS_FDT_NONE;
             return true;
         }
+        //printf("XXXX: no constructor from %s to %s\n", data_type_to_str(ast->datatype), data_type_to_str(dt));
         // Cast match if ok
         if (cast_ok && (op = find_cast(op_list, ast->datatype, dt))) {
             *out_dt = op->out_dt;
-            *out_sub_dt = DT_NONE;
+            *out_sub_dt = FDS_FDT_NONE;
             return true;
         }
+        //if (cast_ok) {
+        //    printf("XXXX: no cast from %s to %s\n", data_type_to_str(ast->datatype), data_type_to_str(dt));
+        //}
         return false;
     }
 }
@@ -191,7 +200,7 @@ typeconv_node(fds_filter_ast_node_s **ast_ptr, fds_filter_op_s *op_list, int to_
 {
 
     // Empty list literal can be matched to any type, because there is no way to determine the type without any elements
-    if ((*ast_ptr)->datatype == DT_NONE && ast_node_symbol_is(*ast_ptr, "__list__")) {
+    if ((*ast_ptr)->datatype == FDS_FDT_NONE && ast_node_symbol_is(*ast_ptr, "__list__")) {
         (*ast_ptr)->datatype = to_dt;
         return NO_ERROR;
     }
@@ -236,7 +245,7 @@ typeconv_list_items(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list, int to
         }
         li = li->next;
     }
-    ast->datatype = DT_LIST | to_dt;
+    ast->datatype = FDS_FDT_LIST | to_dt;
     return NO_ERROR;
 }
 
@@ -250,7 +259,7 @@ match_unary_node(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list, int dt, i
 
     ast->datatype = dt;
 
-    if (sub_dt1 != DT_NONE) {
+    if (sub_dt1 != FDS_FDT_NONE) {
         error_t err = typeconv_list_items(ast->child, op_list, sub_dt1, cast_ok);
         if (err != NO_ERROR) {
             *out_error = err;
@@ -258,7 +267,7 @@ match_unary_node(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list, int dt, i
         }
     }
 
-    if (dt1 != DT_NONE) {
+    if (dt1 != FDS_FDT_NONE) {
         error_t err = typeconv_node(&ast->child, op_list, dt1, cast_ok);
         if (err != NO_ERROR) {
             *out_error = err;
@@ -273,6 +282,10 @@ match_unary_node(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list, int dt, i
 static bool
 match_binary_node(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list, int dt, int to_dt1, int to_dt2, bool cast_ok, error_t *out_error)
 {
+    //printf("XXXX: match_binary_node :: left: %s->%s :: right: %s->%s :: dt: %s\n",
+    //    data_type_to_str(ast->left->datatype), data_type_to_str(to_dt1),
+    //    data_type_to_str(ast->right->datatype), data_type_to_str(to_dt2),
+    //    data_type_to_str(dt));
     int dt1, sub_dt1;
     if (!try_match(op_list, ast->left, to_dt1, cast_ok, &dt1, &sub_dt1)) {
         return false;
@@ -285,28 +298,28 @@ match_binary_node(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list, int dt, 
 
     ast->datatype = dt;
     
-    if (sub_dt1 != DT_NONE) {
+    if (sub_dt1 != FDS_FDT_NONE) {
         error_t err = typeconv_list_items(ast->left, op_list, sub_dt1, cast_ok);
         if (err != NO_ERROR) {
             *out_error = err;
             return true;
         }
     }
-    if (sub_dt2 != DT_NONE) {
+    if (sub_dt2 != FDS_FDT_NONE) {
         error_t err = typeconv_list_items(ast->right, op_list, sub_dt2, cast_ok);
         if (err != NO_ERROR) {
             *out_error = err;
             return true;
         }
     }
-    if (dt1 != DT_NONE) {
+    if (dt1 != FDS_FDT_NONE) {
         error_t err = typeconv_node(&ast->left, op_list, dt1, cast_ok);
         if (err != NO_ERROR) {
             *out_error = err;
             return true;
         }
     }
-    if (dt2 != DT_NONE) {
+    if (dt2 != FDS_FDT_NONE) {
         error_t err = typeconv_node(&ast->right, op_list, dt2, cast_ok);
         if (err != NO_ERROR) {
             *out_error = err;
@@ -349,6 +362,9 @@ match_unary_op(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list)
 static error_t
 match_binary_op(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list)
 {
+    //printf("XXXX: matching binary op for ast:\n");
+    //print_ast(stdout, ast);
+
     for (fds_filter_op_s *op = op_list; op->symbol != NULL; op++) {
         if (op_has_symbol(op, ast->symbol)) {
             error_t err;
@@ -370,7 +386,63 @@ match_binary_op(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list)
     return invalid_op_err(ast);
 }
 
+const char *
+find_first_name(fds_filter_ast_node_s *ast)
+{
+    if (ast == NULL) {
+        return NULL;
+    }
+    const char *name;
+    name = find_first_name(ast->left);
+    if (name != NULL) {
+        return name;
+    }
+    name = find_first_name(ast->right);
+    if (name != NULL) {
+        return name;
+    }
+    if (ast_node_symbol_is(ast, "__name__")) {
+        return ast->name;
+    }
+    return NULL;
+}
 
+const char *
+find_other_name(fds_filter_ast_node_s *ast)
+{
+    if (ast->parent == NULL) {
+        return NULL;
+    }
+    fds_filter_ast_node_s *this_side = ast;
+    ast = ast->parent;
+    while (ast != NULL) {
+        bool is_cmp = 
+            ast_node_symbol_is(ast, "==") || 
+            ast_node_symbol_is(ast, "!=") || 
+            ast_node_symbol_is(ast, "<") || 
+            ast_node_symbol_is(ast, ">") || 
+            ast_node_symbol_is(ast, ">=") || 
+            ast_node_symbol_is(ast, "<=") || 
+            ast_node_symbol_is(ast, "contains") || 
+            ast_node_symbol_is(ast, "in") || 
+            ast_node_symbol_is(ast, "");
+        if (is_cmp) {
+            break;
+        }
+        this_side = ast;
+        ast = ast->parent;
+    }
+
+    if (ast == NULL) {
+        return NULL;
+    }
+
+    fds_filter_ast_node_s *other_side = (ast->left == this_side) ? ast->right : ast->left;
+    if (other_side == NULL) {
+        return NULL;
+    }
+    return find_first_name(other_side);
+}
 
 
 error_t
@@ -394,7 +466,7 @@ resolve_types(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts)
     propagate_flags(ast);
     
     if (ast_node_symbol_is(ast, "__listitem__")) {
-        if (!(ast->flags & AST_FLAG_CONST_SUBTREE)) {
+        if (!(ast->flags & FDS_FAF_CONST_SUBTREE)) {
             return SEMANTIC_ERROR(ast, "list items must be const");
         }
         ast->datatype = ast->item->datatype;
@@ -406,18 +478,18 @@ resolve_types(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts)
     }
 
     if (ast_node_symbol_is(ast, "__literal__")) {
-        ast->flags |= AST_FLAG_CONST_SUBTREE;
+        ast->flags |= FDS_FAF_CONST_SUBTREE;
         return NO_ERROR;
     }
 
     if (ast_node_symbol_is(ast, "and") || ast_node_symbol_is(ast, "or")) {
         error_t err;
-        if (match_binary_node(ast, opts->op_list, DT_BOOL, DT_BOOL, DT_BOOL, false, &err)
-                || match_binary_node(ast, opts->op_list, DT_BOOL, DT_BOOL, DT_BOOL, true, &err)) {
+        if (match_binary_node(ast, opts->op_list, FDS_FDT_BOOL, FDS_FDT_BOOL, FDS_FDT_BOOL, false, &err)
+                || match_binary_node(ast, opts->op_list, FDS_FDT_BOOL, FDS_FDT_BOOL, FDS_FDT_BOOL, true, &err)) {
             if (err != NO_ERROR) {
                 return err;
             }
-            ast->flags &= ~AST_FLAG_MULTIPLE_EVAL_SUBTREE;
+            ast->flags &= ~FDS_FAF_MULTIPLE_EVAL_SUBTREE;
             return NO_ERROR;
         } else {
             return invalid_op_err(ast);
@@ -426,12 +498,12 @@ resolve_types(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts)
 
     if (ast_node_symbol_is(ast, "not") || ast_node_symbol_is(ast, "__root__")) {        
         error_t err;
-        if (match_unary_node(ast, opts->op_list, DT_BOOL, DT_BOOL, false, &err)
-                || match_unary_node(ast, opts->op_list, DT_BOOL, DT_BOOL, true, &err)) {
+        if (match_unary_node(ast, opts->op_list, FDS_FDT_BOOL, FDS_FDT_BOOL, false, &err)
+                || match_unary_node(ast, opts->op_list, FDS_FDT_BOOL, FDS_FDT_BOOL, true, &err)) {
             if (err != NO_ERROR) {
                 return err;
             }
-            ast->flags &= ~AST_FLAG_MULTIPLE_EVAL_SUBTREE;
+            ast->flags &= ~FDS_FAF_MULTIPLE_EVAL_SUBTREE;
             return NO_ERROR;
         } else {
             return invalid_op_err(ast);
@@ -441,23 +513,24 @@ resolve_types(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts)
     if (ast_node_symbol_is(ast, "exists")) {
         if (!ast_node_symbol_is(ast->child, "__name__")) {
             return SEMANTIC_ERROR(ast, "expected field name for exists");
-        } else if (ast->child->flags & AST_FLAG_CONST_SUBTREE) {
+        } else if (ast->child->flags & FDS_FAF_CONST_SUBTREE) {
             return SEMANTIC_ERROR(ast, "expected non-const field name for exists");
         }
-        ast->datatype = DT_BOOL;
+        ast->datatype = FDS_FDT_BOOL;
         return NO_ERROR;
     }
 
     if (ast_node_symbol_is(ast, "__name__")) {
         int flags = 0;
-        int rc = opts->lookup_cb(opts->user_ctx, ast->name, &ast->id, &ast->datatype, &flags);
+        const char *other_name = find_other_name(ast);
+        int rc = opts->lookup_cb(opts->user_ctx, ast->name, other_name, &ast->id, &ast->datatype, &flags);
         if (rc != FDS_OK) {
             return SEMANTIC_ERROR(ast, "invalid name");
         }
         if (flags & FDS_FILTER_FLAG_CONST) {
-            ast->flags |= AST_FLAG_CONST_SUBTREE;
+            ast->flags |= FDS_FAF_CONST_SUBTREE;
         } else {
-            ast->flags |= AST_FLAG_MULTIPLE_EVAL_SUBTREE;
+            ast->flags |= FDS_FAF_MULTIPLE_EVAL_SUBTREE;
         }
         return NO_ERROR;
     }

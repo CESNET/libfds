@@ -9,6 +9,7 @@ add_library(filter_obj OBJECT
     operations/mac.c operations/mac.h
     operations/str.c operations/str.h
     operations/uint.c operations/uint.h
+    operations/flags.c operations/flags.h
 
     error.h error.c
 

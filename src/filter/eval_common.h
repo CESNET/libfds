@@ -120,7 +120,7 @@ print_eval_tree_rec(FILE *out, eval_node_s *node, int indent_level)
     fprintf(out, "(%s, ", eval_opcode_to_str(node->opcode));
     fprintf(out, "data type: %s, value: ", data_type_to_str(node->datatype));
     #ifndef NDEBUG
-    // if (node->datatype == DT_BOOL)
+    // if (node->datatype == FDS_FDT_BOOL)
     print_value(out, node->datatype, &node->value);
     if (node->opcode == EVAL_OP_UNARY_CALL 
         || node->opcode == EVAL_OP_BINARY_CALL 

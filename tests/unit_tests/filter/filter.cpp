@@ -26,7 +26,7 @@ public:
         fds_filter_destroy(filter);
         filter = nullptr;
         fds_filter_opts_set_user_ctx(opts, user_ctx);
-        int ret = fds_filter_create(expr, opts, &filter);
+        int ret = fds_filter_create(&filter, expr, opts);
         if (ret != FDS_OK) {
             return ret;
         }
@@ -426,26 +426,26 @@ TEST_F(Filter, vars) {
     int n;
     user_ctx = &n;
     fds_filter_opts_set_lookup_cb(opts,
-    [](void *user_ctx, const char *name, int *out_id, int *out_datatype, int *out_flags) -> int
+    [](void *user_ctx, const char *name, const char *other_name, int *out_id, int *out_datatype, int *out_flags) -> int
     {
         if (strcmp(name, "ip") == 0) {
             *out_id = 1;
-            *out_datatype = FDS_FILTER_DT_IP;
+            *out_datatype = FDS_FDT_IP;
             return FDS_OK;
         }
         if (strcmp(name, "port") == 0) {
             *out_id = 2;
-            *out_datatype = FDS_FILTER_DT_UINT;
+            *out_datatype = FDS_FDT_UINT;
             return FDS_OK;
         }
         if (strcmp(name, "bytes") == 0) {
             *out_id = 3;
-            *out_datatype = FDS_FILTER_DT_UINT;
+            *out_datatype = FDS_FDT_UINT;
             return FDS_OK;
         }
         if (strcmp(name, "url") == 0) {
             *out_id = 4;
-            *out_datatype = FDS_FILTER_DT_STR;
+            *out_datatype = FDS_FDT_STR;
             return FDS_OK;
         }
         assert(false);

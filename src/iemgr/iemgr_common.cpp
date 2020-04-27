@@ -45,6 +45,8 @@
 #include <libfds/iemgr.h>
 #include "iemgr_common.h"
 #include "iemgr_scope.h"
+#include "iemgr_alias.h"
+#include "iemgr_mapping.h"
 
 bool
 split_name(const string& str, pair<string, string>& res)
@@ -252,6 +254,8 @@ mgr_sort(fds_iemgr_t* mgr)
 {
     sort_vec(mgr->pens);
     sort_vec(mgr->prefixes);
+    //sort_vec(mgr->aliased_names);
+    //sort_vec(mgr->mapped_names);
 
     const auto func_pred = [](const pair<string, timespec>& lhs,
                               const pair<string, timespec>& rhs)
@@ -288,6 +292,17 @@ mgr_copy(const fds_iemgr_t* mgr)
     }
 
     if (!mgr_save_reverse(res.get())) {
+        return nullptr;
+    }
+
+    int rc;
+    rc = aliases_copy(mgr, res.get());
+    if (rc != FDS_OK) {
+        return nullptr;
+    }
+
+    rc = mappings_copy(mgr, res.get());
+    if (rc != FDS_OK) {
         return nullptr;
     }
 

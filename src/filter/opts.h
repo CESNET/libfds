@@ -11,4 +11,7 @@ typedef struct fds_filter_opts {
     void *user_ctx;
 } fds_filter_opts_t;
 
+fds_filter_opts_t *
+fds_filter_opts_copy(fds_filter_opts_t *original_opts);
+
 #endif // FDS_FILTER_OPTS_H

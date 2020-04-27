@@ -6,12 +6,14 @@
 #include "operations/mac.h"
 #include "operations/str.h"
 #include "operations/uint.h"
+#include "operations/flags.h"
 
 static int
-dummy_lookup_callback(void *user_ctx, const char *name, int *out_id, int *out_datatype, int *out_flags)
+dummy_lookup_callback(void *user_ctx, const char *name, const char *other_name, int *out_id, int *out_datatype, int *out_flags)
 {
     (void)(user_ctx);
     (void)(name);
+    (void)(other_name);
     (void)(out_id);
     (void)(out_datatype);
     (void)(out_flags);
@@ -104,7 +106,7 @@ fds_filter_create_default_opts()
     if (!opts->op_list) {
         goto error;
     }
-    opts->op_list[0] = FDS_FILTER_END_OP_LIST;
+    opts->op_list[0] = (fds_filter_op_s) FDS_FILTER_END_OP_LIST;
 
     if (!fds_filter_opts_extend_ops(opts, int_operations)) {
         goto error;    
@@ -122,6 +124,9 @@ fds_filter_create_default_opts()
         goto error;    
     }
     if (!fds_filter_opts_extend_ops(opts, mac_operations)) {
+        goto error;    
+    }
+    if (!fds_filter_opts_extend_ops(opts, flags_operations)) {
         goto error;    
     }
 

@@ -54,8 +54,10 @@
 
 		<!-- possible data types: ipv4Address/ipv6Address -->
 		<source mode="anyOf">
-			<id>@srcip</id>
-			<id>@dstip</id>
+			<id>iana:sourceIPv4Address</id>
+			<id>iana:sourceIPv6Address</id>
+            <id>iana:destinationIPv4Address</id>
+			<id>iana:destinationIPv6Address</id>
 		</source>
 	</element>
 
@@ -64,7 +66,6 @@
 		<name>Flow Start</name>
 		<alias>flowstart</alias>
 
-		<dataType>dateTimeMilliseconds</dataType>
 		<aggregation>
 			<method>min</method>
 			<order>ascendent</order>
@@ -83,7 +84,6 @@
 		<name>Flow End</name>
 		<alias>flowend</alias>
 
-		<dataType>dateTimeMilliseconds</dataType>
 		<aggregation>
 			<method>max</method>
 			<order>ascendent</order>
@@ -97,47 +97,99 @@
 		</source>
 	</element>
 
-	<!-- Flow duration (calculation example) -->
 	<element>
-		<name>Duration</name>
-		<alias>duration</alias>
+		<name>Protocol</name>
 
-		<dataType>dateTimeMilliseconds</dataType>
-		<aggregation>
-			<method>sum</method>
-			<order>descendent</order>
-		</aggregation>
-
-		<source mode="firstOf">
-			<!-- First, try to calculate the duration -->
-			<calculated expr="$1 - $2">
-				<arg id="1">@flowEnd</arg>
-				<arg id="2">@flowStart</arg>
-			</calculated>
-			<!-- If calculation failed, try to find other elements -->
-			<id>iana:flowDurationMilliseconds</id>
-			<id>iana:flowDurationMicroseconds</id>
-		</source>
-	</element>
-
-	<!-- Bytes per second (another calculated value) -->
-	<element>
-		<name>Bytes per second</name>
-		<alias>bps</alias>
-
-		<dataType>float64</dataType>
-		<aggregation>
-			<method>sum</method>
-			<order>descendent</order>
-		</aggregation>
+		<alias>protocol</alias>
+		<alias>proto</alias>
 
 		<source>
-			<calculated expr="($1 * 1000) / $2">
-				<arg id="1">iana:octetDeltaCount</arg>
-				<arg id="2">@duration</arg>
-			</calculated>
+			<id>iana:protocolIdentifier</id>
 		</source>
 	</element>
+
+	<element>
+		<name>IPv4 Address</name>
+
+		<alias>ip4</alias>
+		<alias>ipv4</alias>
+		<alias>ipv4addr</alias>
+		<alias>ipv4address</alias>
+
+		<source>
+			<id>iana:sourceIPv4Address</id>
+			<id>iana:destinationIPv4Address</id>
+		</source>
+	</element>
+
+	<element>
+		<name>IPv4 Address</name>
+
+		<alias>ip6</alias>
+		<alias>ipv6</alias>
+		<alias>ipv6addr</alias>
+		<alias>ipv6address</alias>
+
+		<source>
+			<id>iana:sourceIPv6Address</id>
+			<id>iana:destinationIPv6Address</id>
+		</source>
+	</element>
+
+	<element>
+		<name>Port</name>
+
+		<alias>port</alias>
+
+		<source>
+			<id>iana:sourceTransportPort</id>
+			<id>iana:destinationTransportPort</id>
+			<id>iana:udpSourcePort</id>
+			<id>iana:udpDestinationPort</id>
+			<id>iana:tcpSourcePort</id>
+			<id>iana:tcpDestinationPort</id>
+		</source>
+	</element>
+
+	<element>
+		<name>Source Port</name>
+
+		<alias>srcport</alias>
+		<alias>sourceport</alias>
+		<alias>src port</alias>
+
+		<source>
+			<id>iana:sourceTransportPort</id>
+			<id>iana:udpSourcePort</id>
+			<id>iana:tcpSourcePort</id>
+		</source>
+	</element>
+
+	<element>
+		<name>Destination Port</name>
+
+		<alias>dstport</alias>
+		<alias>destport</alias>
+		<alias>destinationport</alias>
+		<alias>dst port</alias>
+
+		<source>
+			<id>iana:destinationTransportPort</id>
+			<id>iana:udpDestinationPort</id>
+			<id>iana:tcpDestinationPort</id>
+		</source>
+	</element>
+
+	<element>
+		<name>TCP Flags</name>
+
+		<alias>tcpflags</alias>
+
+		<source>
+			<id>iana:tcpControlBits</id>
+		</source>
+	</element>
+
 </ipfix-aliases>
 
 <!-- TODO: How to express "net a.b.c.d/XX"? -->

@@ -50,16 +50,16 @@ destroy_mac_list(fds_filter_value_u *operand)
 }
 
 const fds_filter_op_s mac_operations[] = {
-    FDS_FILTER_DEF_BINARY_OP(DT_MAC, "", DT_MAC, eq_mac, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_MAC, "==", DT_MAC, eq_mac, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_MAC, "!=", DT_MAC, ne_mac, DT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_MAC, "", FDS_FDT_MAC, eq_mac, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_MAC, "==", FDS_FDT_MAC, eq_mac, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_MAC, "!=", FDS_FDT_MAC, ne_mac, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_BINARY_OP(DT_MAC, "in", DT_LIST | DT_MAC, mac_in_list, DT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_MAC, "in", FDS_FDT_LIST | FDS_FDT_MAC, mac_in_list, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_CAST(DT_MAC, cast_mac_to_bool, DT_BOOL),
-    FDS_FILTER_DEF_CAST(DT_LIST | DT_MAC, cast_mac_list_to_bool, DT_BOOL),
+    FDS_FILTER_DEF_CAST(FDS_FDT_MAC, cast_mac_to_bool, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_CAST(FDS_FDT_LIST | FDS_FDT_MAC, cast_mac_list_to_bool, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_DESTRUCTOR(DT_MAC | DT_LIST, destroy_mac_list),
+    FDS_FILTER_DEF_DESTRUCTOR(FDS_FDT_MAC | FDS_FDT_LIST, destroy_mac_list),
 
     FDS_FILTER_END_OP_LIST
 };

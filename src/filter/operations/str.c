@@ -74,19 +74,19 @@ cast_str_to_bool(fds_filter_value_u *operand, fds_filter_value_u *result)
 }
 
 const fds_filter_op_s str_operations[] = {
-    FDS_FILTER_DEF_BINARY_OP(DT_STR, "", DT_STR, eq_str, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_STR, "==", DT_STR, eq_str, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_STR, "!=", DT_STR, ne_str, DT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_STR, "", FDS_FDT_STR, eq_str, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_STR, "==", FDS_FDT_STR, eq_str, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_STR, "!=", FDS_FDT_STR, ne_str, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_BINARY_OP(DT_STR, "contains", DT_STR, contains_str, DT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_STR, "contains", FDS_FDT_STR, contains_str, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_BINARY_OP(DT_STR, "in", DT_LIST | DT_STR, str_in_list, DT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_STR, "in", FDS_FDT_LIST | FDS_FDT_STR, str_in_list, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_CAST(DT_STR, cast_str_to_bool, DT_BOOL),
-    FDS_FILTER_DEF_CAST(DT_LIST | DT_STR, cast_str_list_to_bool, DT_BOOL),
+    FDS_FILTER_DEF_CAST(FDS_FDT_STR, cast_str_to_bool, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_CAST(FDS_FDT_LIST | FDS_FDT_STR, cast_str_list_to_bool, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_DESTRUCTOR(DT_STR, destroy_str_),
-    FDS_FILTER_DEF_DESTRUCTOR(DT_STR | DT_LIST, destroy_list_of_str),
+    FDS_FILTER_DEF_DESTRUCTOR(FDS_FDT_STR, destroy_str_),
+    FDS_FILTER_DEF_DESTRUCTOR(FDS_FDT_STR | FDS_FDT_LIST, destroy_list_of_str),
 
     FDS_FILTER_END_OP_LIST
 };

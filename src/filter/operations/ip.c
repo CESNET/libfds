@@ -47,7 +47,7 @@ ip_in_list(fds_filter_value_u *item, fds_filter_value_u *list, fds_filter_value_
 void
 cast_ip_to_bool(fds_filter_value_u *operand, fds_filter_value_u *result)
 {
-    result->b = true; // ??
+    result->b = operand->ip.version != 0; // ???
 }
 
 void
@@ -63,16 +63,16 @@ destroy_ip_list(fds_filter_value_u *operand)
 }
 
 const fds_filter_op_s ip_operations[] = {
-    FDS_FILTER_DEF_BINARY_OP(DT_IP, "", DT_IP, eq_ip, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_IP, "==", DT_IP, eq_ip, DT_BOOL),
-    FDS_FILTER_DEF_BINARY_OP(DT_IP, "!=", DT_IP, ne_ip, DT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_IP, "", FDS_FDT_IP, eq_ip, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_IP, "==", FDS_FDT_IP, eq_ip, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_IP, "!=", FDS_FDT_IP, ne_ip, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_BINARY_OP(DT_IP, "in", DT_LIST | DT_IP, ip_in_list, DT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_IP, "in", FDS_FDT_LIST | FDS_FDT_IP, ip_in_list, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_CAST(DT_IP, cast_ip_to_bool, DT_BOOL),
-    FDS_FILTER_DEF_CAST(DT_IP | DT_LIST, cast_ip_list_to_bool, DT_BOOL),
+    FDS_FILTER_DEF_CAST(FDS_FDT_IP, cast_ip_to_bool, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_CAST(FDS_FDT_IP | FDS_FDT_LIST, cast_ip_list_to_bool, FDS_FDT_BOOL),
 
-    FDS_FILTER_DEF_DESTRUCTOR(DT_IP | DT_LIST, destroy_ip_list),
+    FDS_FILTER_DEF_DESTRUCTOR(FDS_FDT_IP | FDS_FDT_LIST, destroy_ip_list),
 
     FDS_FILTER_END_OP_LIST
 };

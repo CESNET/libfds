@@ -248,6 +248,12 @@ enum fds_iemgr_element_biflow {
     FDS_BF_INDIVIDUAL, /**< Individually configured for each normal element within the PEN */
 };
 
+/** Alias modes                                           */
+enum fds_iemgr_alias_mode {
+    FDS_ALIAS_ANY_OF,   /**< Any of the elements listed   */
+    FDS_ALIAS_FIRST_OF, /**< First of the elements listed */
+};
+
 /** Metadata for a scope                                                          */
 struct fds_iemgr_scope {
     uint32_t pen;                                 /**< Private Enterprise Number  */
@@ -291,7 +297,49 @@ struct fds_iemgr_elem {
     bool                            is_reverse;
     /** Reverse element, when individual mode is defined in a elements scope */
     struct fds_iemgr_elem *         reverse_elem;
+
+    struct fds_iemgr_alias **       aliases;
+    size_t                          aliases_cnt;
+
+    struct fds_iemgr_mapping **     mappings;
+    size_t                          mappings_cnt;
 };
+
+/** Alias */
+struct fds_iemgr_alias {
+    char *name;
+
+    enum fds_iemgr_alias_mode mode;
+    
+    char **aliased_names;
+    size_t aliased_names_cnt;
+
+    struct fds_iemgr_elem **sources;
+    size_t sources_cnt;
+};
+
+/** Mapping key-value pair */
+struct fds_iemgr_mapping_item {
+    char *key;
+    
+    union fds_iemgr_mapping_value {
+        int64_t i;
+    } value;
+};
+
+/** Mapping */
+struct fds_iemgr_mapping {
+    char *name;
+    
+    bool key_case_sensitive;
+
+    struct fds_iemgr_elem **elems;
+    size_t elems_cnt;
+
+    struct fds_iemgr_mapping_item *items;
+    size_t items_cnt;
+};
+
 
 /** Element Manager  */
 typedef struct fds_iemgr fds_iemgr_t;
@@ -489,6 +537,12 @@ FDS_API int
 fds_iemgr_read_file(fds_iemgr_t *mgr, const char *file_path, bool overwrite);
 
 /**
+ * TODO
+ */
+FDS_API int
+fds_iemgr_read_aliases(fds_iemgr_t *mgr, const char *dir);
+
+/**
  * \brief Find an element with a given ID in the manager
  * \param[in] mgr Manager
  * \param[in] pen Private Enterprise Number
@@ -579,6 +633,31 @@ fds_iemgr_scope_find_name(const fds_iemgr_t *mgr, const char *name);
  */
 FDS_API const char *
 fds_iemgr_last_err(const fds_iemgr_t *mgr);
+
+/**
+ * \brief Find an alias by name
+ * \param[in] mgr  Manager
+ * \param[in] name The aliased name
+ * \return Pointer to the alias
+ */
+FDS_API int
+fds_iemgr_read_aliases(fds_iemgr_t *mgr, const char *dir);
+
+/**
+ * \brief Find an alias by name
+ * \param[in] mgr  Manager
+ * \param[in] name The aliased name
+ * \return Pointer to the alias
+ */
+FDS_API const struct fds_iemgr_alias *
+fds_iemgr_alias_find(const fds_iemgr_t *mgr, const char *aliased_name);
+
+FDS_API const struct fds_iemgr_mapping_item *
+fds_iemgr_mapping_find(const fds_iemgr_t *mgr, const char *name, const char *key);
+
+FDS_API int
+fds_iemgr_read_mappings(fds_iemgr_t *mgr, const char *dir);
+
 
 #ifdef __cplusplus
 }

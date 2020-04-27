@@ -56,6 +56,10 @@ element_create()
     elem->status        = FDS_ST_INVALID;
     elem->is_reverse    = false;
     elem->reverse_elem  = nullptr;
+    elem->aliases       = nullptr;
+    elem->aliases_cnt   = 0;
+    elem->mappings      = nullptr;
+    elem->mappings_cnt  = 0;
     return elem;
 }
 
@@ -73,6 +77,14 @@ element_copy(fds_iemgr_scope_inter* scope, const fds_iemgr_elem* elem)
     res->is_reverse    = elem->is_reverse;
     res->reverse_elem  = elem->reverse_elem;
     res->status        = elem->status;
+    res->aliases_cnt = 0;
+    res->aliases = nullptr;
+    res->mappings_cnt = 0;
+    res->mappings = nullptr;
+    // res->aliases_cnt   = elem->aliases_cnt;
+    // res->aliases       = copy_flat_array(elem->aliases, elem->aliases_cnt);
+    // res->mappings_cnt  = elem->mappings_cnt;
+    // res->mappings      = copy_flat_array(elem->mappings, elem->mappings_cnt);
 
     return res;
 }
@@ -90,6 +102,10 @@ element_create_reverse(fds_iemgr_elem* src, uint16_t new_id)
     res->status        = src->status;
     res->is_reverse    = true;
     res->reverse_elem  = src;
+    res->aliases_cnt   = src->aliases_cnt;
+    res->aliases       = copy_flat_array(src->aliases, src->aliases_cnt);
+    res->mappings_cnt  = src->mappings_cnt;
+    res->mappings      = copy_flat_array(src->mappings, src->mappings_cnt);
 
     src->reverse_elem  = res.get();
     return res.release();
@@ -98,6 +114,8 @@ element_create_reverse(fds_iemgr_elem* src, uint16_t new_id)
 void
 element_remove(fds_iemgr_elem* elem)
 {
+    free(elem->aliases);
+    free(elem->mappings);
     delete[] elem->name;
     delete elem;
 }
@@ -486,3 +504,26 @@ element_destroy(fds_iemgr_t *mgr, const uint32_t pen, const uint16_t id)
     return FDS_OK;
 }
 
+bool
+element_add_alias_ref(fds_iemgr_elem *elem, fds_iemgr_alias *alias)
+{
+    fds_iemgr_alias **ref = array_push(&elem->aliases, &elem->aliases_cnt);
+    if (ref == NULL) {
+        return false;
+    }
+    *ref = alias;
+    printf("XXXX: Added alias to mapping %p from elem %p, now %d\n", alias, elem, elem->aliases_cnt);
+    return true;
+}
+
+int
+element_add_mapping_ref(fds_iemgr_elem *elem, fds_iemgr_mapping *mapping)
+{
+    fds_iemgr_mapping **ref = array_push(&elem->mappings, &elem->mappings_cnt);
+    if (ref == NULL) {
+        return false;
+    }
+    *ref = mapping;
+    printf("XXXX: Added ref to mapping %p from elem %p, now %d\n", mapping, elem, elem->mappings_cnt);
+    return true;
+}

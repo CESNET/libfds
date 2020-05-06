@@ -512,7 +512,6 @@ element_add_alias_ref(fds_iemgr_elem *elem, fds_iemgr_alias *alias)
         return false;
     }
     *ref = alias;
-    printf("XXXX: Added alias to mapping %p from elem %p, now %d\n", alias, elem, elem->aliases_cnt);
     return true;
 }
 
@@ -524,6 +523,5 @@ element_add_mapping_ref(fds_iemgr_elem *elem, fds_iemgr_mapping *mapping)
         return false;
     }
     *ref = mapping;
-    printf("XXXX: Added ref to mapping %p from elem %p, now %d\n", mapping, elem, elem->mappings_cnt);
     return true;
 }

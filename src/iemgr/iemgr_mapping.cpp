@@ -30,7 +30,6 @@ mapping_create()
 static void
 mapping_destroy(fds_iemgr_mapping *m)
 {
-    printf("XXXX: Destroying mapping %p\n", m);
     free(m->name);
     for (size_t i = 0; i < m->items_cnt; i++) {
         free(m->items[i].key);
@@ -47,7 +46,6 @@ mapping_add_elem(fds_iemgr_mapping *m, fds_iemgr_elem *elem)
         return false;
     }
     *elem_ptr = elem;
-    printf("XXXX: Adding elem %p to mapping %p, now has %d elems\n", elem, m, m->elems_cnt);
     return true;
 }
 
@@ -70,8 +68,6 @@ mapping_add_item(fds_iemgr_mapping *m, fds_iemgr_mapping_item item)
         return false;
     }
     *item_ptr = item;
-    printf("XXXX: Adding mapping item %p to mapping %p, now has %d items\n", 
-           item_ptr, m, m->items_cnt);
     return true;
 }
 
@@ -289,7 +285,6 @@ read_mappings_file(fds_iemgr_t *mgr, const char *path)
 
         int rc = read_mapping(mgr, cont->ptr_ctx);
         if (rc != FDS_OK) {
-            printf("XXXX: mapping read failed %d\n", rc);
             return rc;
         }
     }
@@ -351,7 +346,6 @@ read_mapping(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx)
     while (fds_xml_next(xml_ctx, &cont) != FDS_EOC) {
         switch (cont->id) {
         case GROUP_NAME:
-            printf("XXXX: Mapping group name: %s\n", cont->ptr_string);
             mapping->name = strdup(cont->ptr_string);
             if (mapping->name == nullptr) {
                 mgr->err_msg = ERRMSG_NOMEM;
@@ -359,18 +353,14 @@ read_mapping(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx)
             }
             break;
         case GROUP_MATCH:
-            printf("XXXX: Adding mapping match\n");
             rc = mapping_add_match(mgr, mapping.get(), cont->ptr_string);
             if (rc != FDS_OK) {
-                printf("XXXX: Add match failed with error code %d\n", rc);
                 return rc;
             }
             break;
         case GROUP_ITEM_LIST:
-            printf("XXXX: Reading mapping item list\n");
             rc = read_item_list(mgr, cont->ptr_ctx, mapping.get());
             if (rc != FDS_OK) {
-                printf("XXXX: Item list read failed with error code %d\n", rc);
                 return rc;
             }  
             break;
@@ -387,7 +377,6 @@ read_mapping(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx)
 static int
 read_item_list(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx, fds_iemgr_mapping *mapping)
 {
-    printf("XXXX: Reading mapping list to mapping %p\n", mapping);
     int rc;
     const struct fds_xml_cont *cont;
     while (fds_xml_next(xml_ctx, &cont) != FDS_EOC) {
@@ -415,8 +404,6 @@ read_item_list(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx, fds_iemgr_mapping *mapp
 static int
 read_item(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx, fds_iemgr_mapping *mapping)
 {
-    printf("XXXX: Reading mapping item to mapping %p\n", mapping);
-
     fds_iemgr_mapping_item item;
     auto holder = unique_mapping_item(&item, &::mapping_item_destroy_fields);
 
@@ -425,14 +412,12 @@ read_item(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx, fds_iemgr_mapping *mapping)
         switch (cont->id) {
         case ITEM_KEY:
             item.key = strdup(cont->ptr_string);
-            printf("XXXX: Strdupd item key: %s\n", item.key);
             if (item.key == nullptr) {
                 mgr->err_msg = ERRMSG_NOMEM;
                 return FDS_ERR_NOMEM;
             }
             break;
         case ITEM_VALUE:
-            printf("XXXX: Set item value: %d\n", cont->val_int);
             item.value.i = cont->val_int;
             break;
         }

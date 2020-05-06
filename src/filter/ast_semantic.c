@@ -167,26 +167,22 @@ try_match(fds_filter_op_s *op_list, fds_filter_ast_node_s *ast, int dt, bool cas
             *out_sub_dt = FDS_FDT_NONE;
             return true;
         }
-        //printf("XXXX:\n");
-        //print_ast(stdout, ast);
-        //printf("XXXX: no exact match from %s to %s\n", data_type_to_str(ast->datatype), data_type_to_str(dt));
-        // Constructor match
+        ////print_ast(stdout, ast);
+        //// Constructor match
         fds_filter_op_s *op;
         if ((op = find_constructor(op_list, ast->datatype, dt))) {
             *out_dt = op->out_dt;
             *out_sub_dt = FDS_FDT_NONE;
             return true;
         }
-        //printf("XXXX: no constructor from %s to %s\n", data_type_to_str(ast->datatype), data_type_to_str(dt));
-        // Cast match if ok
+        //// Cast match if ok
         if (cast_ok && (op = find_cast(op_list, ast->datatype, dt))) {
             *out_dt = op->out_dt;
             *out_sub_dt = FDS_FDT_NONE;
             return true;
         }
         //if (cast_ok) {
-        //    printf("XXXX: no cast from %s to %s\n", data_type_to_str(ast->datatype), data_type_to_str(dt));
-        //}
+        //    //}
         return false;
     }
 }
@@ -362,8 +358,7 @@ match_unary_op(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list)
 static error_t
 match_binary_op(fds_filter_ast_node_s *ast, fds_filter_op_s *op_list)
 {
-    //printf("XXXX: matching binary op for ast:\n");
-    //print_ast(stdout, ast);
+    ////print_ast(stdout, ast);
 
     for (fds_filter_op_s *op = op_list; op->symbol != NULL; op++) {
         if (op_has_symbol(op, ast->symbol)) {

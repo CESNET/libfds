@@ -118,7 +118,6 @@ alias_save_to_mgr(fds_iemgr *mgr, fds_iemgr_alias *alias)
     mgr->aliases.push_back(alias);
     for (size_t i = 0; i < alias->aliased_names_cnt; i++) {
         mgr->aliased_names.emplace_back(std::string(alias->aliased_names[i]), alias);
-        printf("XXXX: Added aliased name `%s`\n", alias->aliased_names[i]);
     }
     sort_vec(mgr->aliased_names);
 
@@ -293,17 +292,14 @@ read_element(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx)
                 mgr->err_msg = ERRMSG_NOMEM;
                 return FDS_ERR_NOMEM;
             }
-            printf("XXXX: Read alias element name: %s\n", alias->name);
             break;
         case ELEM_ALIAS:
             if (!alias_add_aliased_name(alias.get(), cont->ptr_string)) {
                 mgr->err_msg = ERRMSG_NOMEM;
                 return FDS_ERR_NOMEM;
             }
-            printf("XXXX: Read alias element aliased name: %s\n", cont->ptr_string);
             break;
         case ELEM_SOURCE:
-            printf("XXXX: Read alias source\n");
             rc = read_source(mgr, cont->ptr_ctx, alias.get());
             if (rc != FDS_OK) {
                 return rc;

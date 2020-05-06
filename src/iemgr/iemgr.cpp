@@ -781,32 +781,25 @@ fds_iemgr_read_mappings(fds_iemgr_t *mgr, const char *dir)
 const struct fds_iemgr_mapping_item *
 fds_iemgr_mapping_find(const fds_iemgr_t *mgr, const char *name, const char *key)
 {
-    printf("XXXX: Looking for mapping of value %s for item %s\n", key, name);
-
     const fds_iemgr_mapping_item *item;
 
     const fds_iemgr_alias *alias = fds_iemgr_alias_find(mgr, name);
     if (alias != nullptr) {
-        printf("XXXX: Alias found!\n");
         for (size_t i = 0; i < alias->sources_cnt; i++) {
             item = find_mapping_in_elem(alias->sources[i], key);
             if (item != nullptr) {
                 return item;
             }
         }
-        printf("XXXX: Mapping in alias not found...\n");
-    }
+        }
 
     const fds_iemgr_elem *elem = fds_iemgr_elem_find_name(mgr, name);
     if (elem != nullptr) {
-        printf("XXXX: Elem found!\n");
         item = find_mapping_in_elem(elem, key);
         if (item != nullptr) {
             return item;
         }
-        printf("XXXX: Mapping in elem not found...\n");
-    }
+        }
 
-    printf("XXXX: Mapping not found...\n");
     return nullptr;
 }

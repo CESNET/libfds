@@ -66,6 +66,7 @@ fds_filter_create(fds_filter_t **out_filter, const char *expr, const fds_filter_
     }
 
     // Copy the opts so we can access them later after they are freed by the user  
+    //filter->opts = opts;
     filter->opts = fds_filter_opts_copy(opts);
     if (filter->opts == NULL) {
         filter->error = MEMORY_ERROR;

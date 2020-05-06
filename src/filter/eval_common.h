@@ -5,6 +5,7 @@
 
 #include <libfds.h>
 
+#include "common.h"
 #include "error.h"
 #include "values.h"
 #include "operations.h"
@@ -26,9 +27,10 @@ typedef enum eval_opcode {
 typedef struct eval_node {
     eval_opcode_e opcode;
 
-    /// DEBUG INFO
+    IF_DEBUG(
     int datatype;
     fds_filter_op_s *operation;
+    )
 
     fds_filter_value_u value;
     union {
@@ -106,11 +108,12 @@ eval_opcode_to_str(int opcode)
     }
 }
 
+#ifdef FDS_FILTER_DEBUG
 static inline void
 print_eval_tree_rec(FILE *out, eval_node_s *node, int indent_level)
 {
-    #define PRINT_INDENT()    for (int i = 0; i < indent_level; i++) { fprintf(out, "  "); }
 
+    #define PRINT_INDENT()    for (int i = 0; i < indent_level; i++) { fprintf(out, "  "); }
     if (!node) {
         return;
     }
@@ -119,8 +122,7 @@ print_eval_tree_rec(FILE *out, eval_node_s *node, int indent_level)
 
     fprintf(out, "(%s, ", eval_opcode_to_str(node->opcode));
     fprintf(out, "data type: %s, value: ", data_type_to_str(node->datatype));
-    #ifndef NDEBUG
-    // if (node->datatype == FDS_FDT_BOOL)
+
     print_value(out, node->datatype, &node->value);
     if (node->opcode == EVAL_OP_UNARY_CALL 
         || node->opcode == EVAL_OP_BINARY_CALL 
@@ -128,9 +130,7 @@ print_eval_tree_rec(FILE *out, eval_node_s *node, int indent_level)
         fprintf(out, ", ");
         print_operation(out, node->operation);
     }
-    #else
-    fprintf(out, "N/A");
-    #endif
+
 
     if (node->left || node->right) {
         fprintf(out, "\n");
@@ -147,11 +147,13 @@ print_eval_tree_rec(FILE *out, eval_node_s *node, int indent_level)
     #undef PRINT_INDENT
 }
 
+
 static inline void
 print_eval_tree(FILE *out, eval_node_s *root)
 {
     print_eval_tree_rec(out, root, 0);
 }
+#endif
 
 error_t
 generate_eval_tree(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_tree);

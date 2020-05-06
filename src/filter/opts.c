@@ -149,7 +149,11 @@ fds_filter_opts_copy(fds_filter_opts_t *original_opts)
         free(opts);
         return NULL;
     }
-    memcpy(opts->op_list, original_opts->op_list, cnt + 1);
+    memcpy(opts->op_list, original_opts->op_list, (cnt + 1) * sizeof(fds_filter_op_s));
+    opts->const_cb = original_opts->const_cb;
+    opts->data_cb = original_opts->data_cb;
+    opts->lookup_cb = original_opts->lookup_cb;
+    opts->user_ctx = original_opts->user_ctx;
     return opts;
 }
 

@@ -147,14 +147,12 @@ static int
 lookup_callback(void *user_ctx, const char *name, const char *other_name, 
                 int *out_id, int *out_data_type, int *out_flags)
 {
-    printf("XXXX: lookup for -> name: %s, other name: %s\n");
     struct fds_ipfix_filter *ipxfil = user_ctx;
 
     // check if the name wasn't looked up already, in that case 
     // the entry is already in the lookup table and we don't have to create new one
     struct ipxfil_lookup_item *item = find_lookup_item_by_name(&ipxfil->lookup_tab, name);
     if (item != NULL) {
-        printf("XXXX: already defined\n");
         *out_data_type = item->filter_data_type;
         *out_id = get_item_index(&ipxfil->lookup_tab, item);
         return FDS_OK; 
@@ -163,7 +161,6 @@ lookup_callback(void *user_ctx, const char *name, const char *other_name,
     // check if the name is a alias, add it to the lookup table
     const struct fds_iemgr_alias *alias = fds_iemgr_alias_find(ipxfil->iemgr, name);
     if (alias != NULL) {
-        printf("XXXX: is an alias\n");
         struct ipxfil_lookup_item *item = add_lookup_item(&ipxfil->lookup_tab);
         if (item == NULL) {
             ipxfil->error = MEMORY_ERROR;
@@ -186,7 +183,6 @@ lookup_callback(void *user_ctx, const char *name, const char *other_name,
     // check if the name is an element, add it to the lookup table
     struct fds_iemgr_elem *elem = fds_iemgr_elem_find_name(ipxfil->iemgr, name);
     if (elem != NULL) {
-        printf("XXXX: is an elem\n");
         struct ipxfil_lookup_item *item = add_lookup_item(&ipxfil->lookup_tab);
         if (item == NULL) {
             ipxfil->error = MEMORY_ERROR;
@@ -208,10 +204,8 @@ lookup_callback(void *user_ctx, const char *name, const char *other_name,
     // check if the name is a constant
     // TODO: more data types
     if (other_name != NULL) {
-        printf("XXXX: is a constant\n");
         const struct fds_iemgr_mapping_item *mapping = fds_iemgr_mapping_find(ipxfil->iemgr, other_name, name);
         if (mapping != NULL) {
-            printf("XXXX: mapping found\n");
             struct ipxfil_lookup_item *item = add_lookup_item(&ipxfil->lookup_tab);
             if (item == NULL) {
                 ipxfil->error = MEMORY_ERROR;
@@ -227,8 +221,6 @@ lookup_callback(void *user_ctx, const char *name, const char *other_name,
             return FDS_OK; 
         }
     }
-
-    printf("XXXX: not found\n");
 
     return FDS_ERR_NOTFOUND;
 }
@@ -262,14 +254,11 @@ static int
 read_record_field(struct fds_drec *record, struct fds_iemgr_elem *field_def, 
                   fds_filter_value_u *out_value)
 {
-    printf("XXXX: reading record field: %s\n", field_def->name);
-
     struct fds_drec_iter iter;
     fds_drec_iter_init(&iter, record, FDS_DREC_UNKNOWN_SKIP);
 
     // The wanted field does not exist in the record
     if (fds_drec_iter_find(&iter, field_def->scope->pen, field_def->id) == FDS_EOC) {
-        printf("XXXX: not found\n");
         return FDS_ERR_NOTFOUND;
     }
 
@@ -289,11 +278,9 @@ read_record_field(struct fds_drec *record, struct fds_iemgr_elem *field_def,
             //    } else {
             //        out_value->u = ntohs(*(uint16_t*)(data));
             //    }
-            //    printf("XXXX: %s: flags: %x\n", field_def->name, out_value->u);
-            //} else {
-            //    printf("XXXX: %s: not flags\n", field_def->name);
-                rc = fds_get_uint_be(data, size, &out_value->u);
-                assert(rc == FDS_OK);
+            //    //} else {
+            rc = fds_get_uint_be(data, size, &out_value->u);
+            assert(rc == FDS_OK);
             //}
             break;
 
@@ -393,8 +380,6 @@ data_callback(void *user_ctx, bool reset_ctx, int id, void *data, fds_filter_val
  
     assert(item->kind != IPXFIL_CONST_LOOKUP);
     
-    printf("XXXX: data callback for %s\n", item->name);
-
     switch (item->kind) {
     case IPXFIL_ALIAS_LOOKUP:
         switch (item->alias->mode) {

@@ -167,7 +167,7 @@ process_root_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node
         return MEMORY_ERROR;
     }
     en->opcode = EVAL_OP_ANY;   
-    en->datatype = FDS_FDT_BOOL;
+    IF_DEBUG(en->datatype = FDS_FDT_BOOL;)
     en->child = child;
     child->parent = en;
     *out_eval_node = en;
@@ -207,7 +207,7 @@ process_constructor_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, ev
         return MEMORY_ERROR;
     }
     en->opcode = EVAL_OP_NONE;
-    en->datatype = ast->datatype;
+    IF_DEBUG(en->datatype = ast->datatype;)
     en->value = constructed_val;
     fds_filter_op_s *destructor = find_destructor(opts->op_list, ast->datatype);
     if (destructor) {
@@ -233,7 +233,7 @@ process_exists_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_no
     }
     en->opcode = EVAL_OP_EXISTS;
     en->lookup_id = ast->child->id;
-    en->datatype = ast->datatype;
+    IF_DEBUG(en->datatype = ast->datatype;)
     *out_eval_node = en;
     return NO_ERROR;
 }
@@ -251,14 +251,13 @@ process_name_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node
     // Is the name a constant or a variable?
     if (ast->flags & FDS_FAF_CONST_SUBTREE) {
         en->opcode = EVAL_OP_NONE;
-        printf("XXXX: calling const cb\n");
         opts->const_cb(opts->user_ctx, ast->id, &en->value);
         // TODO: destructor?
     } else {
         en->opcode = EVAL_OP_DATA_CALL;
         en->lookup_id = ast->id;
     }
-    en->datatype = ast->datatype;
+    IF_DEBUG(en->datatype = ast->datatype;)
     *out_eval_node = en;
     return NO_ERROR;
 }
@@ -281,7 +280,7 @@ process_literal_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
     }
     // The destruction of the value is now handled by the eval tree instead of AST
     ast->flags &= ~FDS_FAF_DESTROY_VAL;
-    en->datatype = ast->datatype;
+    IF_DEBUG(en->datatype = ast->datatype;)
     *out_eval_node = en;
     return NO_ERROR;
 }
@@ -308,7 +307,7 @@ process_list_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node
     if (destructor) {
         en->destructor_fn = destructor->destructor_fn;
     }
-    en->datatype = ast->datatype;
+    IF_DEBUG(en->datatype = ast->datatype;)
     *out_eval_node = en;
     return NO_ERROR;
 }
@@ -332,7 +331,7 @@ process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
             return err;
         }
         en->child->parent = en;
-        en->datatype = FDS_FDT_BOOL;
+        IF_DEBUG(en->datatype = FDS_FDT_BOOL;)
     } else if (ast_node_symbol_is(ast, "and")) {
         en->opcode = EVAL_OP_AND;
         error_t err = generate_children(ast, opts, &en->left, &en->right);
@@ -342,7 +341,7 @@ process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
         }
         en->left->parent = en;
         en->right->parent = en;
-        en->datatype = FDS_FDT_BOOL;
+        IF_DEBUG(en->datatype = FDS_FDT_BOOL;)
     } else if (ast_node_symbol_is(ast, "or")) {
         en->opcode = EVAL_OP_OR;
         error_t err = generate_children(ast, opts, &en->left, &en->right);
@@ -352,7 +351,7 @@ process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
         }
         en->left->parent = en;
         en->right->parent = en;
-        en->datatype = FDS_FDT_BOOL;
+        IF_DEBUG(en->datatype = FDS_FDT_BOOL;)
     }
 
     *out_eval_node = en;
@@ -380,8 +379,10 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
         en->child->parent = en;
         fds_filter_op_s *op = find_op(opts->op_list, "__cast__", ast->datatype, ast->child->datatype, FDS_FDT_NONE); 
         en->cast_fn = op->cast_fn;
+        IF_DEBUG(
         en->operation = op;
         en->datatype = ast->datatype;
+        )
     } else if (is_unary_ast_node(ast)) {
         en->opcode = EVAL_OP_UNARY_CALL;
         error_t err = generate_children(ast, opts, &en->child, NULL);
@@ -392,8 +393,10 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
         en->child->parent = en;
         fds_filter_op_s *op = find_op(opts->op_list, ast->symbol, ast->datatype, ast->child->datatype, FDS_FDT_NONE);
         en->unary_fn = op->unary_fn;
+        IF_DEBUG(
         en->operation = op;
         en->datatype = ast->datatype;
+        )
     } else if (is_binary_ast_node(ast)) {
         en->opcode = EVAL_OP_BINARY_CALL;
         error_t err = generate_children(ast, opts, &en->left, &en->right);
@@ -405,8 +408,10 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
         en->right->parent = en;
         fds_filter_op_s *op = find_op(opts->op_list, ast->symbol, ast->datatype, ast->left->datatype, ast->right->datatype);
         en->binary_fn = op->binary_fn;
+        IF_DEBUG(
         en->operation = op;
         en->datatype = ast->datatype;
+        )
     }
     
     *out_eval_node = en;

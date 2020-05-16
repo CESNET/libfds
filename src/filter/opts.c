@@ -7,6 +7,9 @@
 #include "operations/str.h"
 #include "operations/uint.h"
 #include "operations/flags.h"
+#ifndef FDS_FILTER_DISABLE_TRIE
+#include "operations/trie.h"
+#endif
 
 static int
 dummy_lookup_callback(void *user_ctx, const char *name, const char *other_name, int *out_id, int *out_datatype, int *out_flags)
@@ -129,6 +132,11 @@ fds_filter_create_default_opts()
     if (!fds_filter_opts_extend_ops(opts, flags_operations)) {
         goto error;    
     }
+#ifndef FDS_FILTER_DISABLE_TRIE
+    if (!fds_filter_opts_extend_ops(opts, trie_operations)) {
+        goto error;    
+    }
+#endif
 
     return opts;
 

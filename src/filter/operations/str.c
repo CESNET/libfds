@@ -19,20 +19,35 @@ ne_str(fds_filter_value_u *left, fds_filter_value_u *right, fds_filter_value_u *
     result->b = !str_equals(&left->str, &right->str);
 }
 
+const char *
+strnnstr(const char *s, const char *find, size_t slen, size_t findlen)
+{
+    char c, sc;
+
+    if (findlen != 0) {
+        c = *find++;
+        findlen--;
+        do {
+            do {
+                if (slen-- < 1)
+                    return NULL;
+            } while ((sc = *s++) != c);
+            if (findlen > slen)
+                return NULL;
+        } while (strncmp(s, find, findlen) != 0);
+        s--;
+    }
+    return s;
+}
+
 void
 contains_str(fds_filter_value_u *big, fds_filter_value_u *little, fds_filter_value_u *result)
 {
-    result->b = false;
-    if (big->str.len < little->str.len) {
-        return;
-    }
-    for (int i = 0; i <= big->str.len - little->str.len; i++) {
-        if (memcmp(big->str.chars + i, little->str.chars, little->str.len) == 0) {
-            result->b = true;
-            return;
-        }
-    }
+    result->b = strnnstr(big->str.chars, little->str.chars, big->str.len, little->str.len) != NULL;
 }
+
+
+
 
 void
 str_in_list(fds_filter_value_u *item, fds_filter_value_u *list, fds_filter_value_u *result)

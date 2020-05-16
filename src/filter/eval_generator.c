@@ -421,6 +421,25 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
 error_t
 generate_eval_tree(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
 {
+#if 0
+    // Optimize away constant subtrees into a literal
+    if (ast->flags & FDS_FAF_CONST_SUBTREE 
+            && (ast->parent == NULL || !(ast->parent->flags & FDS_FAF_CONST_SUBTREE))) {
+        eval_node_s *en = create_eval_node();
+        if (!en) {
+            return MEMORY_ERROR;
+        }
+        en->opcode = EVAL_OP_NONE;
+        
+        error_t err = ast_to_literal(ast, opts, &en->value);
+        *out_eval_node = en;
+
+        // ast->flags &= ~FDS_FAF_DESTROY_VAL;
+
+        return NO_ERROR;
+    }
+#endif
+
     if (ast_node_symbol_is(ast, "__root__")) {
         return process_root_node(ast, opts, out_eval_node);
     } else if (ast_node_symbol_is(ast, "exists")) {

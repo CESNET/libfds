@@ -23,11 +23,13 @@
 	<!-- Source IP address (IPv4 or IPv6) -->
 	<element>
 		<name>SRC IP</name>
+		<alias>src ip</alias>
 		<alias>srcip</alias>
+		<alias>src host</alias>
 		<alias>srchost</alias>
 
 		<!-- possible data types: ipv4Address/ipv6Address -->
-		<source mode="anyOf">
+		<source mode="firstOf">
 			<id>iana:sourceIPv4Address</id>
 			<id>iana:sourceIPv6Address</id>
 		</source>
@@ -36,11 +38,13 @@
 	<!-- Destination IP address (IPv4 or IPv6) -->
 	<element>
 		<name>DST IP</name>
+		<alias>dst ip</alias>
 		<alias>dstip</alias>
+		<alias>dst host</alias>
 		<alias>dsthost</alias>
 
 		<!-- possible data types: ipv4Address/ipv6Address -->
-		<source mode="anyOf">
+		<source mode="firstOf">
 			<id>iana:destinationIPv4Address</id>
 			<id>iana:destinationIPv6Address</id>
 		</source>
@@ -123,7 +127,7 @@
 	</element>
 
 	<element>
-		<name>IPv4 Address</name>
+		<name>IPv6 Address</name>
 
 		<alias>ip6</alias>
 		<alias>ipv6</alias>
@@ -144,10 +148,6 @@
 		<source>
 			<id>iana:sourceTransportPort</id>
 			<id>iana:destinationTransportPort</id>
-			<id>iana:udpSourcePort</id>
-			<id>iana:udpDestinationPort</id>
-			<id>iana:tcpSourcePort</id>
-			<id>iana:tcpDestinationPort</id>
 		</source>
 	</element>
 
@@ -160,8 +160,6 @@
 
 		<source>
 			<id>iana:sourceTransportPort</id>
-			<id>iana:udpSourcePort</id>
-			<id>iana:tcpSourcePort</id>
 		</source>
 	</element>
 
@@ -175,8 +173,6 @@
 
 		<source>
 			<id>iana:destinationTransportPort</id>
-			<id>iana:udpDestinationPort</id>
-			<id>iana:tcpDestinationPort</id>
 		</source>
 	</element>
 

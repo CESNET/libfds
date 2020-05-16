@@ -254,16 +254,15 @@ static int
 read_record_field(struct fds_drec *record, struct fds_iemgr_elem *field_def, 
                   fds_filter_value_u *out_value)
 {
-    struct fds_drec_iter iter;
-    fds_drec_iter_init(&iter, record, FDS_DREC_UNKNOWN_SKIP);
+    struct fds_drec_field field;
 
     // The wanted field does not exist in the record
-    if (fds_drec_iter_find(&iter, field_def->scope->pen, field_def->id) == FDS_EOC) {
+    if (fds_drec_find(record, field_def->scope->pen, field_def->id, &field) == FDS_EOC) {
         return FDS_ERR_NOTFOUND;
     }
 
-    uint8_t *data = iter.field.data;
-    uint16_t size = iter.field.size;
+    uint8_t *data = field.data;
+    uint16_t size = field.size;
 
     int rc;
     switch (field_def->data_type) {

@@ -1,7 +1,7 @@
 #ifndef FDS_FILTER_COMMON_H
 #define FDS_FILTER_COMMON_H
 
-//#define FDS_FILTER_DEBUG
+// #define FDS_FILTER_DEBUG
 #ifdef FDS_FILTER_DEBUG
 #define IF_DEBUG(X) X
 #else

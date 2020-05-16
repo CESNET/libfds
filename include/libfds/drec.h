@@ -224,7 +224,7 @@ fds_drec_iter_next(struct fds_drec_iter *iter);
  *   set, fields are searched from the point of view of the selected direction. In case of
  *   the forward flag (::FDS_DREC_BIFLOW_FWD) fields are search as present in an IPFIX template.
  *   In case of reverse flag (::FDS_DREC_BIFLOW_REV) fields are remapped to represent fields in
- *   opposite direction using reverse template fields (fds_template#fields_rev). In other words,
+ *   opposite direction using reverse template fields (fds_template#rev_dir). In other words,
  *   common directional fields are converted to opposite direction, for example, source IP address
  *   to destination IP address and vice versa. Forward only fields to reverse only fields and vice
  *   versa.

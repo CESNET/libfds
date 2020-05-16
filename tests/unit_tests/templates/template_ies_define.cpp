@@ -110,7 +110,7 @@ template_tester(const ie_template_params &tmplt, const std::vector<struct ie_fie
     uniq_fds_tmplt &in, bool reverse = false)
 {
     const struct fds_template *tmplt_rec = in.get();
-    if (reverse && tmplt_rec->fields_rev == nullptr) {
+    if (reverse && tmplt_rec->rev_dir == nullptr) {
         FAIL() << "Reverse template fields are not defined!";
     }
 
@@ -120,7 +120,9 @@ template_tester(const ie_template_params &tmplt, const std::vector<struct ie_fie
 
     for (uint16_t i = 0; i <tmplt_rec->fields_cnt_total; ++i) {
         SCOPED_TRACE("Testing field ID: " + std::to_string(i));
-        const fds_tfield *field = (!reverse) ? &tmplt_rec->fields[i] : &tmplt_rec->fields_rev[i];
+        const fds_tfield *field = (!reverse)
+            ? &tmplt_rec->fields[i]
+            : &tmplt_rec->rev_dir->fields[i];
         // Check test integrity
         ASSERT_EQ(field->id, fields[i].id);
         ASSERT_EQ(field->en, fields[i].en);
@@ -167,7 +169,7 @@ TEST_F(IEs, StandardFlow)
     fds_template_ies_define(aux_template.get(), ie_mgr, false);
     template_tester(tmplt, fields, aux_template);
     // Biflow should be undefined
-    EXPECT_EQ(aux_template.get()->fields_rev, nullptr);
+    EXPECT_EQ(aux_template.get()->rev_dir, nullptr);
 }
 
 // Basic biflow template
@@ -455,7 +457,7 @@ TEST_F(IEs, addReverse)
     {
         SCOPED_TRACE("Phase I. Without known reverse elements");
         template_tester(tmplt, fields, aux_template);
-        EXPECT_EQ(aux_template.get()->fields_rev, nullptr); // Reverse template undefined
+        EXPECT_EQ(aux_template.get()->rev_dir, nullptr); // Reverse template undefined
     }
 
     // Prepare new definitions of elements with known reverse elements
@@ -486,7 +488,7 @@ TEST_F(IEs, addReverse)
     {
         SCOPED_TRACE("Phase II. Added definitions of reverse elements");
         template_tester(tmplt, fields_new, aux_template);
-        EXPECT_NE(aux_template.get()->fields_rev, nullptr); // Reverse template defined
+        EXPECT_NE(aux_template.get()->rev_dir, nullptr); // Reverse template defined
         template_tester(tmplt, fields_new_rev, aux_template, true);
     }
 
@@ -496,7 +498,7 @@ TEST_F(IEs, addReverse)
     {
         SCOPED_TRACE("Phase III. Remove definitions of reverse elements");
         template_tester(tmplt, fields, aux_template);
-        EXPECT_EQ(aux_template.get()->fields_rev, nullptr); // Reverse template should be removed
+        EXPECT_EQ(aux_template.get()->rev_dir, nullptr); // Reverse template should be removed
     }
 
     fds_iemgr_destroy(ie_copy);
@@ -536,7 +538,7 @@ TEST_F(IEs, biflowSecondary)
     {
         SCOPED_TRACE("Phase I. Without known reverse elements");
         template_tester(tmplt, fields, aux_template);
-        EXPECT_EQ(aux_template.get()->fields_rev, nullptr); // Reverse template undefined
+        EXPECT_EQ(aux_template.get()->rev_dir, nullptr); // Reverse template undefined
     }
 
     // Add new definitions with reverse elements (use original IE manager)
@@ -544,7 +546,7 @@ TEST_F(IEs, biflowSecondary)
     {
         SCOPED_TRACE("Phase II. Added definitions of reverse elements (should be ignored)");
         template_tester(tmplt, fields, aux_template);
-        EXPECT_EQ(aux_template.get()->fields_rev, nullptr); // Reverse template still undefined
+        EXPECT_EQ(aux_template.get()->rev_dir, nullptr); // Reverse template still undefined
     }
 
     fds_iemgr_destroy(ie_copy);

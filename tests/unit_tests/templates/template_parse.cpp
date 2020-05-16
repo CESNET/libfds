@@ -76,7 +76,7 @@ template_tester(const exp_template_params &tmplt, const std::vector<exp_field_pa
     ASSERT_EQ(tmplt_rec->fields_cnt_total, tmplt.fields_cnt_total);
     EXPECT_EQ(tmplt_rec->fields_cnt_scope, tmplt.fields_cnt_scope);
     EXPECT_EQ(tmplt_rec->opts_types, tmplt.opts_types);
-    EXPECT_EQ(tmplt_rec->fields_rev, nullptr);
+    EXPECT_EQ(tmplt_rec->rev_dir, nullptr);
     // Flags
     ct_template_flags(tmplt_rec, tmplt.flags);
 

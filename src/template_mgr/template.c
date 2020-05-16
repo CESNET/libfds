@@ -49,12 +49,13 @@
 
 #include <libfds.h>
 
-/**
- * Calculate size of template structure (based on number of fields)
- */
-#define TEMPLATE_STRUCT_SIZE(elem_cnt) \
-    sizeof(struct fds_template) \
-    - sizeof(struct fds_tfield) \
+/** Calculate size of template structure (based on number of fields) */
+#define TEMPLATE_STRUCT_SIZE(elem_cnt)         \
+    offsetof(struct fds_template, fields)      \
+    + ((elem_cnt) * sizeof(struct fds_tfield))
+/** Calculate size of template structure for reverse direction       */
+#define TEMPLATE_REVERSE_SIZE(elem_cnt)        \
+    offsetof(struct fds_template_rev, fields)  \
     + ((elem_cnt) * sizeof(struct fds_tfield))
 
 /** Return only first bit from a _value_ */
@@ -563,7 +564,7 @@ template_fields_calc_flags(struct fds_template *tmplt)
 /**
  * \brief Calculate template parameters
  *
- * Feature flags of each Field Specifier will set as described in the documentation of the
+ * Feature flags of each Field Specifier will be set as described in the documentation of the
  * template_fields_calc_flags() function. Regarding the global feature flags of the template,
  * only the features ::FDS_TEMPLATE_HAS_MULTI_IE and ::FDS_TEMPLATE_HAS_DYNAMIC of the template
  * will be detected and set. The expected length of appropriate data records will be calculated
@@ -624,6 +625,43 @@ template_calc_features(struct fds_template *tmplt)
 
     tmplt->data_length = data_len;
     return FDS_OK;
+}
+
+/**
+ * \brief Build a Template index
+ *
+ * For given Template field definitions a new Template index is built.
+ * Previously generated index values are overwritten.
+ * \param[in]  fields      Array of Template field definitions
+ * \param[in]  fields_size Size of the array
+ * \param[out] index       Template index to build
+ */
+static void
+template_build_index(const struct fds_tfield *fields, uint16_t fields_size,
+    uint8_t index[FDS_TEMPLATE_INDEX_SIZE])
+{
+    // Reset to default
+    memset(index, FDS_TEMPLATE_INDEX_INV, FDS_TEMPLATE_INDEX_SIZE);
+
+    // For each Template field definition in the Template
+    for (uint16_t i = 0; i < fields_size; ++i) {
+        const struct fds_tfield *field = &fields[i];
+        uint16_t idx_pos = field->id % FDS_TEMPLATE_INDEX_SIZE;
+        uint8_t *idx_ptr = &index[idx_pos];
+
+        if (*idx_ptr != FDS_TEMPLATE_INDEX_INV) {
+            // Already used by another field -> set the collision flag
+            *idx_ptr |= FDS_TEMPLATE_INDEX_FMULTI;
+            continue;
+        }
+
+        // Store the position of the Template field definition
+        if (i >= (uint16_t) FDS_TEMPLATE_INDEX_RANGE) {
+            *idx_ptr = FDS_TEMPLATE_INDEX_RANGE;
+        } else {
+            *idx_ptr = i;
+        }
+    };
 }
 
 /**
@@ -699,6 +737,9 @@ fds_template_parse(enum fds_template_type type, const void *ptr, uint16_t *len,
         return ret_code;
     }
 
+    // Build Template index
+    template_build_index(template->fields, template->fields_cnt_total, template->index);
+
     *len = len_real;
     *tmplt = template;
     return FDS_OK;
@@ -707,14 +748,14 @@ fds_template_parse(enum fds_template_type type, const void *ptr, uint16_t *len,
 struct fds_template *
 fds_template_copy(const struct fds_template *tmplt)
 {
-    const size_t size_main = TEMPLATE_STRUCT_SIZE(tmplt->fields_cnt_total);
     const size_t size_raw = tmplt->raw.length;
-    const size_t size_rev = tmplt->fields_cnt_total * sizeof(*(tmplt->fields_rev));
+    const size_t size_main = TEMPLATE_STRUCT_SIZE(tmplt->fields_cnt_total);
+    const size_t size_rev = TEMPLATE_REVERSE_SIZE(tmplt->fields_cnt_total);
 
     struct fds_template *cpy_main = malloc(size_main);
     uint8_t *cpy_raw = malloc(size_raw);
-    struct fds_tfield *cpy_rev = (tmplt->fields_rev) ? malloc(size_rev) : NULL;
-    if (!cpy_main || !cpy_raw || (tmplt->fields_rev && !cpy_rev)) {
+    struct fds_template_rev *cpy_rev = (tmplt->rev_dir) ? malloc(size_rev) : NULL;
+    if (!cpy_main || !cpy_raw || (tmplt->rev_dir && !cpy_rev)) {
         free(cpy_main);
         free(cpy_raw);
         free(cpy_rev);
@@ -723,12 +764,12 @@ fds_template_copy(const struct fds_template *tmplt)
 
     memcpy(cpy_main, tmplt, size_main);
     memcpy(cpy_raw, tmplt->raw.data, size_raw);
-    if (tmplt->fields_rev) {
-        memcpy(cpy_rev, tmplt->fields_rev, size_rev);
+    if (tmplt->rev_dir) {
+        memcpy(cpy_rev, tmplt->rev_dir, size_rev);
     }
 
     cpy_main->raw.data = cpy_raw;
-    cpy_main->fields_rev = cpy_rev;
+    cpy_main->rev_dir = cpy_rev;
     return cpy_main;
 }
 
@@ -736,7 +777,7 @@ void
 fds_template_destroy(struct fds_template *tmplt)
 {
     free(tmplt->raw.data);
-    free(tmplt->fields_rev);
+    free(tmplt->rev_dir);
     free(tmplt);
 }
 
@@ -921,27 +962,28 @@ template_ies_biflow(struct fds_template *tmplt, const fds_iemgr_t *iemgr)
 
     // Create reverse template fields if required
     const uint16_t fields_cnt = tmplt->fields_cnt_total;
-    if (!tmplt->fields_rev) {
+    if (!tmplt->rev_dir) {
         // Create reverse template fields
         const size_t fields_size = fields_cnt * sizeof(tmplt->fields[0]);
-        tmplt->fields_rev = malloc(fields_size);
-        if (!tmplt->fields_rev) {
+        const size_t rev_size = TEMPLATE_REVERSE_SIZE(fields_cnt);
+        tmplt->rev_dir = malloc(rev_size);
+        if (!tmplt->rev_dir) {
             return FDS_ERR_NOMEM;
         }
 
         // Copy fields
-        memcpy(tmplt->fields_rev, tmplt->fields, fields_size);
+        memcpy(tmplt->rev_dir->fields, tmplt->fields, fields_size);
 
         // Remove all definitions, so we can recognized newly added definitions
         for (uint16_t i = 0; i < fields_cnt; ++i)  {
-            tmplt->fields_rev[i].def = NULL;
+            tmplt->rev_dir->fields[i].def = NULL;
         }
     }
 
     // Update reverse fields
     for (uint16_t i = 0; i < fields_cnt; ++i) {
         struct fds_tfield *field_fwd = &tmplt->fields[i];
-        struct fds_tfield *field_rev = &tmplt->fields_rev[i];
+        struct fds_tfield *field_rev = &tmplt->rev_dir->fields[i];
 
         if (field_fwd->def == NULL) {
             assert(field_rev->def == NULL);
@@ -1003,6 +1045,8 @@ template_ies_biflow(struct fds_template *tmplt, const fds_iemgr_t *iemgr)
         field_rev->def = field_fwd->def;
     }
 
+    // Rebuild Template index
+    template_build_index(tmplt->rev_dir->fields, fields_cnt, tmplt->rev_dir->index);
     return FDS_OK;
 }
 
@@ -1014,10 +1058,10 @@ fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bo
         return FDS_OK;
     }
 
-    if (!preserve && tmplt->fields_rev != NULL) {
+    if (!preserve && tmplt->rev_dir != NULL) {
         // Cleanup first
-        free(tmplt->fields_rev);
-        tmplt->fields_rev = NULL;
+        free(tmplt->rev_dir);
+        tmplt->rev_dir = NULL;
     }
 
     bool has_reverse = preserve ? (tmplt->flags & FDS_TEMPLATE_BIFLOW) != 0 : false;
@@ -1050,7 +1094,7 @@ fds_template_ies_define(struct fds_template *tmplt, const fds_iemgr_t *iemgr, bo
         field_ptr->def = def_ptr;
         if (!def_ptr) {
             // Nothing to do...
-            assert(!tmplt->fields_rev || tmplt->fields_rev[i].def == NULL);
+            assert(!tmplt->rev_dir || tmplt->rev_dir->fields[i].def == NULL);
             continue;
         }
 
@@ -1113,19 +1157,19 @@ fds_template_flowkey_define(struct fds_template *tmplt, uint64_t flowkey)
     }
 
     // Set flow key flags
-    bool biflow = (tmplt->fields_rev != NULL);
+    bool biflow = (tmplt->rev_dir != NULL);
     const uint16_t fields_cnt = tmplt->fields_cnt_total;
     for (uint16_t i = 0; i < fields_cnt; ++i, flowkey >>= 1) {
         // Add flow key flags
         if (flowkey & 0x1) {
             tmplt->fields[i].flags |= FDS_TFIELD_FKEY;
             if (biflow) {
-                tmplt->fields_rev[i].flags |= FDS_TFIELD_FKEY;
+                tmplt->rev_dir->fields[i].flags |= FDS_TFIELD_FKEY;
             }
         } else {
             tmplt->fields[i].flags &= ~(FDS_TFIELD_FKEY);
             if (biflow) {
-                tmplt->fields_rev[i].flags &= ~(FDS_TFIELD_FKEY);
+                tmplt->rev_dir->fields[i].flags &= ~(FDS_TFIELD_FKEY);
             }
         }
     }

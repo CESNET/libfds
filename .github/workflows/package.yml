@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: ['ubuntu:18.04', 'ubuntu:19.04', 'ubuntu:20.04', 'debian:stretch', 'debian:buster', 'debian:bullseye']
+        image: ['ubuntu:18.04', 'ubuntu:20.04', 'debian:stretch', 'debian:buster', 'debian:bullseye']
 
     name: Build DEBs on ${{ matrix.image }}
     container: ${{ matrix.image }}
@@ -29,6 +29,8 @@ jobs:
         apt-get update
         apt-get -y install git gcc g++ cmake make libxml2-dev liblz4-dev libzstd-dev
         apt-get -y install debhelper pkg-config devscripts build-essential fakeroot zip
+      env:
+        DEBIAN_FRONTEND: noninteractive
 
     # Build ----------------------------------------------------------------------------------
     - name: Build DEB packages
@@ -54,7 +56,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: ['centos:7', 'centos:8', 'fedora:29', 'fedora:30', 'fedora:31']
+        image: ['centos:7', 'centos:8', 'fedora:30', 'fedora:31']
 
     name: Build RPMs on ${{ matrix.image }}
     container: ${{ matrix.image }}

@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: ['ubuntu:18.04', 'ubuntu:19.04', 'ubuntu:20.04', 'debian:stretch', 'debian:buster', 'debian:bullseye', 'centos:7', 'centos:8', 'fedora:29', 'fedora:30', 'fedora:31']
+        image: ['ubuntu:18.04', 'ubuntu:20.04', 'debian:stretch', 'debian:buster', 'debian:bullseye', 'centos:7', 'centos:8', 'fedora:30', 'fedora:31']
 
     name: Build on ${{ matrix.image }}
     container: ${{ matrix.image }}
@@ -21,6 +21,8 @@ jobs:
       run: |
         apt-get update
         apt-get -y install git gcc g++ cmake make libxml2-dev liblz4-dev libzstd-dev
+      env:
+        DEBIAN_FRONTEND: noninteractive
     - name: Install dependencies (CentOS)
       if: startsWith(matrix.image, 'centos')
       run: |

@@ -272,7 +272,7 @@
 	<element>
 		<id>1014</id>
 		<name>packetTime</name>
-		<dataType>unsigned16</dataType>
+		<dataType>dateTimeMilliseconds</dataType>
 		<dataSemantics>default</dataSemantics>
 		<units>milliseconds</units>
 	</element>

@@ -24,7 +24,7 @@
     <element>
         <id>4</id>
         <name>httpMethodMask</name>
-        <dataType>unsigned32</dataType>
+        <dataType>unsigned16</dataType>
     </element>
     <element>
         <id>10</id>
@@ -34,7 +34,7 @@
     <element>
         <id>12</id>
         <name>httpStatusCode</name>
-        <dataType>unsigned32</dataType>
+        <dataType>unsigned16</dataType>
     </element>
     <element>
         <id>20</id>
@@ -89,7 +89,7 @@
     <element>
         <id>32</id>
         <name>voipPacketType</name>
-        <dataType>unsigned16</dataType>
+        <dataType>unsigned8</dataType>
     </element>
     <element>
         <id>33</id>
@@ -142,12 +142,12 @@
     <element>
         <id>42</id>
         <name>sipRtpAudio</name>
-        <dataType>unsigned32</dataType>
+        <dataType>unsigned16</dataType>
     </element>
     <element>
         <id>43</id>
         <name>sipRtpVideo</name>
-        <dataType>unsigned32</dataType>
+        <dataType>unsigned16</dataType>
     </element>
     <element>
         <!--

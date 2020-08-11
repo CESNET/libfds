@@ -290,4 +290,48 @@
 		<dataSemantics>default</dataSemantics>
 		<units>none</units>
 	</element>
+	<element>
+		<id>821</id>
+		<name>SSDPLocationPort</name>
+		<dataType>unsigned16</dataType>
+		<dataSemantics>default</dataSemantics>
+		<units>none</units>
+	</element>
+	<element>
+		<id>822</id>
+		<name>SSDPServer</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>823</id>
+		<name>SSDPUserAgent</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>824</id>
+		<name>SSDPNT</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>825</id>
+		<name>SSDPST</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>826</id>
+		<name>DNSSDQueries</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>827</id>
+		<name>DNSSDResponses</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>828</id>
+		<name>OVPNConfLevel</name>
+		<dataType>unsigned8</dataType>
+		<dataSemantics>default</dataSemantics>
+		<units>none</units>
+	</element>
 </ipfix-elements>

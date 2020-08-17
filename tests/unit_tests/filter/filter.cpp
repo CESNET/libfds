@@ -382,9 +382,6 @@ TEST_F(Filter, lists_ip_addresses) {
     EXPECT_EQ(evaluate("not 8.8.8.16 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), true);
     EXPECT_EQ(evaluate("not ff:: in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), true);
     EXPECT_EQ(evaluate("192.168.1.0/28 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), true);
-
-    // ? should this be correct?
-    EXPECT_EQ(evaluate("192.168.1.0/16 in [192.168.1.0/24, 127.0.0.1/8, 10.0.0.0/8, 1.1.1.1, 8.8.8.8]"), true);
 }
 
 TEST_F(Filter, lists_mac_addresses) {

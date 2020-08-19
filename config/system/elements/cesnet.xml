@@ -1,16 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ipfix-elements>
-		<scope>
-			<pen>8057</pen>
-			<name>cesnet</name>
-			<biflow mode="none"></biflow>
-		</scope>
+	<scope>
+		<pen>8057</pen>
+		<name>cesnet</name>
+		<biflow mode="none"></biflow>
+	</scope>
 
-	<element>
-		<id>0</id>
-		<name>DNSAnswers</name>
-		<dataType>unsigned16</dataType>
-	</element>
 	<element>
 		<id>1</id>
 		<name>DNSRCode</name>
@@ -67,14 +62,9 @@
 		<dataType>unsigned16</dataType>
 	</element>
 	<element>
-		<id>12</id>
-		<name>DNSA</name>
-		<dataType>ipv4Address</dataType>
-	</element>
-	<element>
-		<id>13</id>
-		<name>DNSAAAA</name>
-		<dataType>ipv6Address</dataType>
+		<id>14</id>
+		<name>DNSAnswers</name>
+		<dataType>unsigned16</dataType>
 	</element>
 	<element>
 		<id>18</id>

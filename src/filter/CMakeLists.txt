@@ -1,5 +1,5 @@
 add_library(filter_obj OBJECT
-    util.h
+    common.h
     values.h
 
     operations.h

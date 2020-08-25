@@ -198,7 +198,7 @@ print_eval_tree(FILE *out, eval_node_s *root)
 #endif
 
 error_t
-generate_eval_tree(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_tree);
+generate_eval_tree(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_tree);
 
 void
 evaluate_eval_tree(eval_node_s *root, eval_runtime_s *runtime);

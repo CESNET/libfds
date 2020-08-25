@@ -80,7 +80,7 @@ static error_t
 ast_to_literal(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, fds_filter_value_u *out_val)
 {
     eval_node_s *root;
-    error_t err = generate_eval_tree(ast, opts, &root);
+    error_t err = generate_eval_tree(ast, opts, true, &root);
     if (err != NO_ERROR) {
         return err;
     }
@@ -182,16 +182,16 @@ list_to_literal(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, fds_filter_
 }
 
 static error_t
-generate_children(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_left, eval_node_s **out_right);
+generate_children(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_left, eval_node_s **out_right);
 
 /**
  * Process `__root__` ast node
  */
 static error_t
-process_root_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+process_root_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
     eval_node_s *child;
-    error_t err = generate_children(ast, opts, &child, NULL);
+    error_t err = generate_children(ast, opts, second_run, &child, NULL);
     if (err != NO_ERROR) {
         return err;
     }
@@ -220,7 +220,7 @@ process_root_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node
  * Process `__constructor__` ast node
  */
 static error_t
-process_constructor_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+process_constructor_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
     // Must be const, should be assured by semantic analysis
     assert(ast->flags & FDS_FAF_CONST_SUBTREE);
@@ -263,7 +263,7 @@ process_constructor_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, ev
  * Process `exists` ast node
  */
 static error_t
-process_exists_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+process_exists_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
     // Must have a __name__ node as its only child
     assert(ast_node_symbol_is(ast->child, "__name__"));
@@ -284,7 +284,7 @@ process_exists_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_no
  * Process `__name__` node
  */
 static error_t
-process_name_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+process_name_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
     eval_node_s *en = create_eval_node();
     if (!en) {
@@ -308,7 +308,7 @@ process_name_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node
  * Process `__literal__` node
  */
 static error_t
-process_literal_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+process_literal_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
     eval_node_s *en = create_eval_node();
     if (!en) {
@@ -331,7 +331,7 @@ process_literal_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
  * Process `__list__` node
  */
 static error_t
-process_list_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+process_list_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {   
     eval_node_s *en = create_eval_node();
     if (!en) {
@@ -358,7 +358,7 @@ process_list_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node
  * Process logical operation node
  */
 static error_t
-process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
     eval_node_s *en = create_eval_node();
     if (!en) {
@@ -367,7 +367,7 @@ process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
 
     if (ast_node_symbol_is(ast, "not")) {
         en->opcode = EVAL_OP_NOT;
-        error_t err = generate_children(ast, opts, &en->child, NULL);
+        error_t err = generate_children(ast, opts, second_run, &en->child, NULL);
         if (err != NO_ERROR) {
             destroy_eval_node(en);
             return err;
@@ -376,7 +376,7 @@ process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
         IF_DEBUG(en->datatype = FDS_FDT_BOOL;)
     } else if (ast_node_symbol_is(ast, "and")) {
         en->opcode = EVAL_OP_AND;
-        error_t err = generate_children(ast, opts, &en->left, &en->right);
+        error_t err = generate_children(ast, opts, second_run, &en->left, &en->right);
         if (err != NO_ERROR) {
             destroy_eval_node(en);
             return err;
@@ -386,7 +386,7 @@ process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
         IF_DEBUG(en->datatype = FDS_FDT_BOOL;)
     } else if (ast_node_symbol_is(ast, "or")) {
         en->opcode = EVAL_OP_OR;
-        error_t err = generate_children(ast, opts, &en->left, &en->right);
+        error_t err = generate_children(ast, opts, second_run, &en->left, &en->right);
         if (err != NO_ERROR) {
             destroy_eval_node(en);
             return err;
@@ -404,7 +404,7 @@ process_logical_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_n
  * Process function call node
  */
 static error_t
-process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
     eval_node_s *en = create_eval_node();
     if (!en) {
@@ -413,7 +413,7 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
 
     if (ast_node_symbol_is(ast, "__cast__")) {
         en->opcode = EVAL_OP_CAST_CALL;
-        error_t err = generate_children(ast, opts, &en->child, NULL);
+        error_t err = generate_children(ast, opts, second_run, &en->child, NULL);
         if (err != NO_ERROR) {
             destroy_eval_node(en);
             return err;
@@ -427,7 +427,7 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
         )
     } else if (is_unary_ast_node(ast)) {
         en->opcode = EVAL_OP_UNARY_CALL;
-        error_t err = generate_children(ast, opts, &en->child, NULL);
+        error_t err = generate_children(ast, opts, second_run, &en->child, NULL);
         if (err != NO_ERROR) {
             destroy_eval_node(en);
             return err;
@@ -441,7 +441,7 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
         )
     } else if (is_binary_ast_node(ast)) {
         en->opcode = EVAL_OP_BINARY_CALL;
-        error_t err = generate_children(ast, opts, &en->left, &en->right);
+        error_t err = generate_children(ast, opts, second_run, &en->left, &en->right);
         if (err != NO_ERROR) {
             destroy_eval_node(en);
             return err;
@@ -461,55 +461,55 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_nod
 }
 
 error_t
-generate_eval_tree(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_eval_node)
+generate_eval_tree(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
-#if 0
-    // Optimize away constant subtrees into a literal
-    if (ast->flags & FDS_FAF_CONST_SUBTREE 
-            && (ast->parent == NULL || !(ast->parent->flags & FDS_FAF_CONST_SUBTREE))) {
-        eval_node_s *en = create_eval_node();
-        if (!en) {
-            return MEMORY_ERROR;
+    if (!second_run) {
+        // Optimize away constant subtrees into a literal
+        if (ast->flags & FDS_FAF_CONST_SUBTREE 
+                && (ast->parent == NULL || !(ast->parent->flags & FDS_FAF_CONST_SUBTREE))) {
+            eval_node_s *en = create_eval_node();
+            if (!en) {
+                return MEMORY_ERROR;
+            }
+            en->opcode = EVAL_OP_NONE;
+            IF_DEBUG(en->datatype = ast->datatype;)
+            error_t err = ast_to_literal(ast, opts, &en->value);
+            *out_eval_node = en;
+
+            // ast->flags &= ~FDS_FAF_DESTROY_VAL;
+
+            return NO_ERROR;
         }
-        en->opcode = EVAL_OP_NONE;
-        
-        error_t err = ast_to_literal(ast, opts, &en->value);
-        *out_eval_node = en;
-
-        // ast->flags &= ~FDS_FAF_DESTROY_VAL;
-
-        return NO_ERROR;
     }
-#endif
 
     if (ast_node_symbol_is(ast, "__root__")) {
-        return process_root_node(ast, opts, out_eval_node);
+        return process_root_node(ast, opts, second_run, out_eval_node);
     } else if (ast_node_symbol_is(ast, "exists")) {
-        return process_exists_node(ast, opts, out_eval_node);
+        return process_exists_node(ast, opts, second_run, out_eval_node);
     } else if (ast_node_symbol_is(ast, "__literal__")) {
-        return process_literal_node(ast, opts, out_eval_node);
+        return process_literal_node(ast, opts, second_run, out_eval_node);
     } else if (ast_node_symbol_is(ast, "__name__")) {
-        return process_name_node(ast, opts, out_eval_node);
+        return process_name_node(ast, opts, second_run, out_eval_node);
     } else if (ast_node_symbol_is(ast, "__list__")) {
-        return process_list_node(ast, opts, out_eval_node);
+        return process_list_node(ast, opts, second_run, out_eval_node);
     } else if (ast_node_symbol_is(ast, "__constructor__")) {
-        return process_constructor_node(ast, opts, out_eval_node);
+        return process_constructor_node(ast, opts, second_run, out_eval_node);
     } else if (ast_node_symbol_is(ast, "and") || ast_node_symbol_is(ast, "or") || ast_node_symbol_is(ast, "not")) {
-        return process_logical_node(ast, opts, out_eval_node);
+        return process_logical_node(ast, opts, second_run, out_eval_node);
     } else {
-        return process_fcall_node(ast, opts, out_eval_node);
+        return process_fcall_node(ast, opts, second_run, out_eval_node);
     }
 }
 
 static error_t
-generate_children(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node_s **out_left, eval_node_s **out_right)
+generate_children(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_left, eval_node_s **out_right)
 {
     if (!out_left) {
         assert(!out_right);
         return NO_ERROR;
     }
 
-    error_t err = generate_eval_tree(ast->left, opts, out_left);
+    error_t err = generate_eval_tree(ast->left, opts, second_run, out_left);
     if (err != NO_ERROR) {
         return err;
     }
@@ -518,7 +518,7 @@ generate_children(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, eval_node
         return NO_ERROR;
     }
 
-    err = generate_eval_tree(ast->right, opts, out_right);
+    err = generate_eval_tree(ast->right, opts, second_run, out_right);
     if (err != NO_ERROR) {
         destroy_eval_tree(*out_left);
         return err;

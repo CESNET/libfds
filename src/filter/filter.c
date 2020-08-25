@@ -96,7 +96,7 @@ fds_filter_create(fds_filter_t **out_filter, const char *expr, const fds_filter_
     
     // Generate eval nodes from the AST and set up the eval runtime
     IF_DEBUG( fprintf(stderr, "----- generator -----\n"); )
-    filter->error = generate_eval_tree(filter->ast, filter->opts, &filter->eval_root);
+    filter->error = generate_eval_tree(filter->ast, filter->opts, false, &filter->eval_root);
     if (filter->error != NO_ERROR) {
         return filter->error->code;
     }

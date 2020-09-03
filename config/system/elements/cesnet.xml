@@ -217,6 +217,11 @@
 		<dataType>string</dataType>
 	</element>
 	<element>
+		<id>830</id>
+		<name>TLSJA3</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
 		<id>810</id>
 		<name>SMTPCommands</name>
 		<dataType>unsigned32</dataType>

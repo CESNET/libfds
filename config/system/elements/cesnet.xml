@@ -213,7 +213,7 @@
 	</element>
 	<element>
 		<id>808</id>
-		<name>HTTPSSNI</name>
+		<name>TLSSNI</name>
 		<dataType>string</dataType>
 	</element>
 	<element>

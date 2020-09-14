@@ -192,6 +192,41 @@
 		<dataType>string</dataType>
 	</element>
 	<element>
+		<id>900</id>
+		<name>SSDPLocationPort</name>
+		<dataType>unsigned16</dataType>
+	</element>
+	<element>
+		<id>901</id>
+		<name>SSDPServer</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>902</id>
+		<name>SSDPUserAgent</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>903</id>
+		<name>SSDPNT</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>904</id>
+		<name>SSDPST</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>905</id>
+		<name>DNSSDQueries</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>906</id>
+		<name>DNSSDResponses</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
 		<id>100</id>
 		<name>SIPMsgType</name>
 		<dataType>unsigned16</dataType>

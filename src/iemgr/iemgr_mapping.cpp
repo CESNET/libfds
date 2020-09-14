@@ -393,7 +393,7 @@ read_item_list(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx, fds_iemgr_mapping *mapp
             } else if (strcasecmp(cont->ptr_string, "caseInsensitive") == 0) {
                 mapping->key_case_sensitive = false;
             } else {
-                // TODO:?
+                return FDS_ERR_FORMAT;
             }
             break;
         }

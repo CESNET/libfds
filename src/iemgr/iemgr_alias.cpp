@@ -251,14 +251,14 @@ parser_create(fds_iemgr_t *mgr)
 
     static const struct fds_xml_args args_source[] = {
         FDS_OPTS_ATTR(SOURCE_MODE, "mode", FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
-        FDS_OPTS_ELEM(SOURCE_ID, "id", FDS_OPTS_T_STRING, FDS_OPTS_P_OPT | FDS_OPTS_P_MULTI),
+        FDS_OPTS_ELEM(SOURCE_ID, "id", FDS_OPTS_T_STRING, FDS_OPTS_P_MULTI),
         FDS_OPTS_END
     };
 
     static const struct fds_xml_args args_elem[] = {
-        FDS_OPTS_ELEM(ELEM_NAME, "name", FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
-        FDS_OPTS_ELEM(ELEM_ALIAS, "alias", FDS_OPTS_T_STRING, FDS_OPTS_P_OPT | FDS_OPTS_P_MULTI),
-        FDS_OPTS_NESTED(ELEM_SOURCE, "source", args_source, FDS_OPTS_P_OPT),
+        FDS_OPTS_ELEM(ELEM_NAME, "name", FDS_OPTS_T_STRING, 0),
+        FDS_OPTS_ELEM(ELEM_ALIAS, "alias", FDS_OPTS_T_STRING, FDS_OPTS_P_MULTI),
+        FDS_OPTS_NESTED(ELEM_SOURCE, "source", args_source, 0),
         FDS_OPTS_END
     };
 
@@ -287,6 +287,10 @@ read_element(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx)
     while (fds_xml_next(xml_ctx, &cont) != FDS_EOC) {
         switch (cont->id) {
         case ELEM_NAME:
+            if (*cont->ptr_string == '\0') {
+                mgr->err_msg = "Alias name cannot be empty.";
+                return FDS_ERR_FORMAT;
+            }
             alias->name = strdup(cont->ptr_string);
             if (alias->name == nullptr) {
                 mgr->err_msg = ERRMSG_NOMEM;
@@ -294,6 +298,17 @@ read_element(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx)
             }
             break;
         case ELEM_ALIAS:
+            if (*cont->ptr_string == '\0') {
+                mgr->err_msg = "Alias cannot be empty.";
+                return FDS_ERR_FORMAT;
+            }
+            if (!check_valid_name(cont->ptr_string)) {
+                mgr->err_msg = 
+                    "Invalid characters in alias '" + std::string(cont->ptr_string) + "'. "
+                    "Aliases must only consist of alphanumeric characters and underscores and "
+                    "must not begin with a number.";
+                return FDS_ERR_FORMAT;
+            }
             if (!alias_add_aliased_name(alias.get(), cont->ptr_string)) {
                 mgr->err_msg = ERRMSG_NOMEM;
                 return FDS_ERR_NOMEM;

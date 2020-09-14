@@ -77,14 +77,10 @@ element_copy(fds_iemgr_scope_inter* scope, const fds_iemgr_elem* elem)
     res->is_reverse    = elem->is_reverse;
     res->reverse_elem  = elem->reverse_elem;
     res->status        = elem->status;
-    res->aliases_cnt = 0;
-    res->aliases = nullptr;
-    res->mappings_cnt = 0;
-    res->mappings = nullptr;
-    // res->aliases_cnt   = elem->aliases_cnt;
-    // res->aliases       = copy_flat_array(elem->aliases, elem->aliases_cnt);
-    // res->mappings_cnt  = elem->mappings_cnt;
-    // res->mappings      = copy_flat_array(elem->mappings, elem->mappings_cnt);
+    res->aliases_cnt   = elem->aliases_cnt;
+    res->aliases       = copy_flat_array(elem->aliases, elem->aliases_cnt);
+    res->mappings_cnt  = elem->mappings_cnt;
+    res->mappings      = copy_flat_array(elem->mappings, elem->mappings_cnt);
 
     return res;
 }
@@ -102,10 +98,10 @@ element_create_reverse(fds_iemgr_elem* src, uint16_t new_id)
     res->status        = src->status;
     res->is_reverse    = true;
     res->reverse_elem  = src;
-    res->aliases_cnt   = src->aliases_cnt;
-    res->aliases       = copy_flat_array(src->aliases, src->aliases_cnt);
-    res->mappings_cnt  = src->mappings_cnt;
-    res->mappings      = copy_flat_array(src->mappings, src->mappings_cnt);
+    res->aliases_cnt   = 0;
+    res->aliases       = nullptr;
+    res->mappings_cnt  = 0;
+    res->mappings      = nullptr;
 
     src->reverse_elem  = res.get();
     return res.release();

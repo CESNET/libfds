@@ -40,6 +40,7 @@
  */
 
 #include <cstring>
+#include <cctype>
 #include <limits>
 #include <utility>
 #include <libfds/iemgr.h>
@@ -254,8 +255,8 @@ mgr_sort(fds_iemgr_t* mgr)
 {
     sort_vec(mgr->pens);
     sort_vec(mgr->prefixes);
-    //sort_vec(mgr->aliased_names);
-    //sort_vec(mgr->mapped_names);
+    sort_vec(mgr->aliased_names);
+    sort_vec(mgr->mapped_names);
 
     const auto func_pred = [](const pair<string, timespec>& lhs,
                               const pair<string, timespec>& rhs)
@@ -309,4 +310,18 @@ mgr_copy(const fds_iemgr_t* mgr)
     // New reverse scopes may have been added
     mgr_sort(res.get());
     return res.release();
+}
+
+bool
+check_valid_name(const char *str)
+{
+    if (!std::isalpha(*str) && *str != '_') {
+        return false;
+    }
+    while (*++str) {
+        if (!std::isalnum(*str) && *str != '_') {
+            return false;
+        }
+    }
+    return true;
 }

@@ -74,10 +74,12 @@ mapping_add_item(fds_iemgr_mapping *m, fds_iemgr_mapping_item item)
 static bool
 mapping_item_copy(fds_iemgr_mapping_item *src, fds_iemgr_mapping_item *dst)
 {
+    memcpy(dst, src, sizeof(fds_iemgr_mapping_item));
     dst->key = strdup(src->key);
     if (dst->key == nullptr) {
         return false;
     }
+    return true;
 }
 
 static void
@@ -178,7 +180,7 @@ mappings_copy(const fds_iemgr *old_mgr, fds_iemgr *new_mgr)
         mapping_migrate_elems(new_mgr, copy.get());
         int rc = mapping_save_to_mgr(new_mgr, copy.get());
         if (rc != FDS_OK) {
-            return FDS_OK;
+            return rc;
         }
         copy.release();
     }
@@ -309,14 +311,14 @@ create_parser(fds_iemgr_t *mgr)
 
     static const struct fds_xml_args args_item_list[] = {
         FDS_OPTS_ATTR(ITEM_LIST_MODE, "mode", FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
-        FDS_OPTS_NESTED(ITEM_LIST_ITEM, "item", args_item, FDS_OPTS_P_OPT | FDS_OPTS_P_MULTI),
+        FDS_OPTS_NESTED(ITEM_LIST_ITEM, "item", args_item, FDS_OPTS_P_MULTI),
         FDS_OPTS_END
     };
 
     static const struct fds_xml_args args_group[] = {
-        FDS_OPTS_ELEM(GROUP_NAME, "name", FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
-        FDS_OPTS_ELEM(GROUP_MATCH, "match", FDS_OPTS_T_STRING, FDS_OPTS_P_OPT | FDS_OPTS_P_MULTI),
-        FDS_OPTS_NESTED(GROUP_ITEM_LIST, "item-list", args_item_list, FDS_OPTS_P_OPT),
+        FDS_OPTS_ELEM(GROUP_NAME, "name", FDS_OPTS_T_STRING, 0),
+        FDS_OPTS_ELEM(GROUP_MATCH, "match", FDS_OPTS_T_STRING, FDS_OPTS_P_MULTI),
+        FDS_OPTS_NESTED(GROUP_ITEM_LIST, "item-list", args_item_list, 0),
         FDS_OPTS_END
     };
 
@@ -346,6 +348,10 @@ read_mapping(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx)
     while (fds_xml_next(xml_ctx, &cont) != FDS_EOC) {
         switch (cont->id) {
         case GROUP_NAME:
+            if (*cont->ptr_string == '\0') {
+                mgr->err_msg = "Group name cannot be empty.";
+                return FDS_ERR_FORMAT;
+            }
             mapping->name = strdup(cont->ptr_string);
             if (mapping->name == nullptr) {
                 mgr->err_msg = ERRMSG_NOMEM;
@@ -411,6 +417,17 @@ read_item(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx, fds_iemgr_mapping *mapping)
     while (fds_xml_next(xml_ctx, &cont) != FDS_EOC) {
         switch (cont->id) {
         case ITEM_KEY:
+            if (*cont->ptr_string == '\0') {
+                mgr->err_msg = "Item key cannot be empty.";
+                return FDS_ERR_FORMAT;
+            }
+            if (!check_valid_name(cont->ptr_string)) {
+                mgr->err_msg = 
+                    "Invalid characters in item key '" + std::string(cont->ptr_string) + "'. "
+                    "Key names must only consist of alphanumeric characters and underscores "
+                    "and must not begin with a number.";
+                return FDS_ERR_FORMAT;
+            }
             item.key = strdup(cont->ptr_string);
             if (item.key == nullptr) {
                 mgr->err_msg = ERRMSG_NOMEM;

@@ -351,6 +351,16 @@ copy_flat_array(T *items, std::size_t items_cnt)
 }
 
 /**
+ * \brief Checks if the supplied string is a valid name.
+ * A name must consist of only alphanumeric characters and underscores while
+ * not starting with a number.
+ * \param str  The text string to check.
+ * \return true or false.
+ */
+bool
+check_valid_name(const char *str);
+
+/**
  * \brief Split string to prefix and suffix
  * \param str String with prefix and suffix separated by ':'
  * \param res pair with splitted strings

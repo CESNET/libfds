@@ -350,14 +350,6 @@ copy_flat_array(T *items, std::size_t items_cnt)
     return (T *) tmp;
 }
 
-template <typename T>
-T *
-vec_remap(const std::vector<T> &old_vec, std::vector<T> &new_vec, T *item)
-{
-    return item - &old_vec[0] + &new_vec[0];
-}
-
-
 /**
  * \brief Split string to prefix and suffix
  * \param str String with prefix and suffix separated by ':'

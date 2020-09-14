@@ -388,7 +388,7 @@ read_record_field(struct fds_drec *record, struct fds_iemgr_elem *field_def,
 /**
  * Read the first source that is found in the record
  */
-static int
+static bool
 read_first_of(struct fds_drec *record, const struct fds_iemgr_alias *alias, int *source_idx, 
               fds_filter_value_u *out_value)
 {
@@ -396,11 +396,11 @@ read_first_of(struct fds_drec *record, const struct fds_iemgr_alias *alias, int 
         const struct fds_iemgr_elem *field_def = alias->sources[*source_idx];
         (*source_idx)++;
         if (read_record_field(record, field_def, out_value) == FDS_OK) {
-            return FDS_OK_MORE;
+            return true;
         }
     }
     set_default_value(out_value);
-    return FDS_ERR_NOTFOUND;
+    return false;
 }
 
 /**
@@ -426,7 +426,8 @@ data_callback(void *user_ctx, bool reset_ctx, int id, void *data, fds_filter_val
         case FDS_ALIAS_FIRST_OF:
             if (reset_ctx) {
                 ipxfil->lookup_state.source_idx = 0;
-                return read_first_of(rec, item->alias, &ipxfil->lookup_state.source_idx, out_value);
+                return read_first_of(rec, item->alias, &ipxfil->lookup_state.source_idx, out_value)
+                    ? FDS_OK : FDS_ERR_NOTFOUND;
             }
             set_default_value(out_value);
             return FDS_ERR_NOTFOUND;
@@ -435,8 +436,8 @@ data_callback(void *user_ctx, bool reset_ctx, int id, void *data, fds_filter_val
             if (reset_ctx) {
                 ipxfil->lookup_state.source_idx = 0;
             }
-            return read_first_of(rec, item->alias, &ipxfil->lookup_state.source_idx, out_value);
-
+            return read_first_of(rec, item->alias, &ipxfil->lookup_state.source_idx, out_value)
+                ? FDS_OK_MORE : FDS_ERR_NOTFOUND;
         default:
             assert(0);
         }

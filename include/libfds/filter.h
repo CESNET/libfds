@@ -197,8 +197,6 @@ typedef void fds_filter_const_cb_t(void *user_ctx, int id, fds_filter_value_u *o
  *         FDS_OK       if the field is found and there are no more values following
  *         FDS_OK_MORE  if the field is found and more values may follow
  *         FDS_NOTFOUND if the field is not found, the callback is expected to set the default value
- * // TODO: might not be the best names either? 
- * //       maybe FDS_OK for more values following and FDS_FINAL or something for the last one is better? 
  */
 typedef int fds_filter_data_cb_t(
     void *user_ctx, bool reset_ctx, int id, void *data, fds_filter_value_u *out_value);
@@ -360,7 +358,7 @@ typedef struct fds_filter_op {
  * Creates the default options structure.
  * Because one options can be used by multiple filters, it has to be freed separately from the filter. 
  * 
- * \return the options
+ * \return the options or NULL on memory error
  */
 FDS_API fds_filter_opts_t *
 fds_filter_create_default_opts();
@@ -447,16 +445,22 @@ fds_filter_opts_get_user_ctx(const fds_filter_opts_t *opts);
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Main API
 
-/**from an expression.
+/**
  * 
- * Creates the filter 
+ * Creates the filter from an expression.
+ *
  * \param[out] filter   Pointer to where to allocate and construct the filter
- * \param[in]  expr         The filter expression
- * \param[in]  opts         The filter options
+ * \param[in]  expr     The filter expression
+ * \param[in]  opts     The filter options
  * 
  * User context is an arbitary pointer provided by the user that's passed to all subsequent 
  * data callback calls as the user_ctx argument. It's intended to carry information about state 
  * that's required for the data callback function to correctly parse the data.
+ *
+ * On error, more detailed information about the error can be obtained using fds_filter_get_error.
+ * After the filter structure is destroyed the error is destroyed along with it!
+ *
+ * \return FDS_OK on success, else one of FDS_ERR_NOMEM, FDS_ERR_SYNTAX, FDS_ERR_SEMANTIC.
  */
 FDS_API int
 fds_filter_create(fds_filter_t **filter, const char *expr, const fds_filter_opts_t *opts);

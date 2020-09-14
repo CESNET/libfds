@@ -192,7 +192,6 @@ scan_ipv4_address(const char **cursor, struct token_s *out_token, error_t *out_e
     }
   
     // Optional prefix
-    // TODO: Do we allow whitespace? eg. 192.168.1.0 / 24  
     if (*c != '/') {
         goto end;
     }
@@ -639,7 +638,7 @@ scan_number(const char **cursor, struct token_s *out_token, error_t *out_error)
         }
         uint64_t value = 0;
         while (isxdigit(*c)) {
-            // TODO: check for overflow?
+            // possible overflow
             value *= 16;
             value += xdigit_to_number(*c);
             c++;
@@ -664,7 +663,7 @@ scan_number(const char **cursor, struct token_s *out_token, error_t *out_error)
         }
         uint64_t value = 0;
         while (is_bin_digit(*c)) {
-            // TODO: check for overflow?
+            // possible overrflow
             value *= 2;
             value += *c - '0';
             c++;
@@ -766,14 +765,14 @@ scan_number(const char **cursor, struct token_s *out_token, error_t *out_error)
         token.cursor_end = c;
         if (is_unsigned) {
             token.literal.data_type = FDS_FDT_UINT;
-            // TODO: check overflow?
+            // possible overflow
             token.literal.value.u = value * (uint64_t)scale;
         } else if (is_float) {
             token.literal.data_type = FDS_FDT_FLOAT;
             token.literal.value.f = ((double)value + dp_value) * pow(10, exp) * scale;
         } else {
             token.literal.data_type = FDS_FDT_INT;
-            // TODO: check overflow?
+            // possible overflow
             token.literal.value.i = value * (int64_t)scale;
         }
         *cursor = c;
@@ -895,7 +894,6 @@ scan_datetime(const char **cursor, struct token_s *out_token, error_t *out_error
             }
         }
     } else {
-        // TODO: local tz?
         is_localtime = true;
     }
 
@@ -920,7 +918,7 @@ end: ;
         epoch_secs -= offset_hour * 3600 + offset_min * 60;
     }
 
-    // TODO: check overflow
+    // possible overflow
     uint64_t epoch_nanosecs = epoch_secs * 1000000000;
 
     struct token_s token;
@@ -975,8 +973,6 @@ const scan_func_t *scan_funcs[] = {
 static bool
 scan_token(const char **cursor, struct token_s *out_token, error_t *out_best_error)
 {
-    // TODO: this function is a terrible mess
-
     // End of input
     if (**cursor == '\0') {
         struct token_s token = {};

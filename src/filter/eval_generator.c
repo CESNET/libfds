@@ -294,7 +294,6 @@ process_name_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool seco
     if (ast->flags & FDS_FAF_CONST_SUBTREE) {
         en->opcode = EVAL_OP_NONE;
         opts->const_cb(opts->user_ctx, ast->id, &en->value);
-        // TODO: destructor?
     } else {
         en->opcode = EVAL_OP_DATA_CALL;
         en->lookup_id = ast->id;

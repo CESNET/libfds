@@ -375,7 +375,6 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
 
             // if comma follows consume it, optional trailing comma is allowed in the list, eg. [1, 2, 3,] is okay
             if (token_is_symbol(token, ",")) {
-                // TODO: free
                 consume_token(scanner);
                 err = next_token(scanner, &token);
                 if (err != NO_ERROR) {

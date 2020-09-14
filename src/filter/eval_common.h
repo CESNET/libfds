@@ -114,7 +114,6 @@ destroy_eval_node(eval_node_s *en)
     if (!en) {
         return;
     }
-    // TODO: destroy value?
     if (en->opcode == EVAL_OP_NONE && en->destructor_fn) {
         en->destructor_fn(&en->value);
     }

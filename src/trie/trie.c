@@ -335,16 +335,16 @@ trie_node_find_add(struct trie_node **node, struct bit_array *address)
  * Find where a new node should be added added, split nodes along the way.
  */
 int
-fds_trie_add(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int bit_length)
+fds_trie_add(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int prefix_length)
 {
-    assert((ip_version == 4 && bit_length <= 32) || (ip_version == 6 && bit_length <= 128));
-    assert(bit_length > 0);
+    assert((ip_version == 4 && prefix_length <= 32) || (ip_version == 6 && prefix_length <= 128));
+    assert(prefix_length > 0);
 
     uint32_t address_words[4] = { 0 };
     ip_address_bytes_to_words(ip_version, address_bytes, address_words);
 
     struct trie_node **node = ip_version == 4 ? &trie->ipv4_root : &trie->ipv6_root;
-    struct bit_array address = bit_array_create(address_words, bit_length);
+    struct bit_array address = bit_array_create(address_words, prefix_length);
 
 	node = trie_node_find_add(node, &address);
 
@@ -425,10 +425,10 @@ fds_trie_add(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int 
  * Find if an ip address is in a trie
  */
 bool
-fds_trie_find(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int bit_length)
+fds_trie_find(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int prefix_length)
 {
-    assert((ip_version == 4 && bit_length <= 32) || (ip_version == 6 && bit_length <= 128));
-    assert(bit_length > 0);
+    assert((ip_version == 4 && prefix_length <= 32) || (ip_version == 6 && prefix_length <= 128));
+    assert(prefix_length > 0);
 
     uint32_t address_words[4] = { 0 };
     ip_address_bytes_to_words(ip_version, address_bytes, address_words);
@@ -437,7 +437,7 @@ fds_trie_find(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int
     struct trie_node *node = ip_version == 4 ? trie->ipv4_root : trie->ipv6_root;
     int bit_offset = 0;
 
-    while (bit_length > 32 && node != NULL) {
+    while (prefix_length > 32 && node != NULL) {
         if (32 - bit_offset <= node->prefix_length
             || extract_n_bits(*address, bit_offset, node->prefix_length) != node->prefix) {
             return 0;
@@ -450,13 +450,13 @@ fds_trie_find(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int
         bit_offset += 1;
         if (bit_offset == 32) {
             bit_offset = 0;
-            bit_length -= 32;
+            prefix_length -= 32;
             address++;
         }
     }
 
     while (node != NULL) {
-        if (bit_length - bit_offset < node->prefix_length
+        if (prefix_length - bit_offset < node->prefix_length
             || extract_n_bits(*address, bit_offset, node->prefix_length) != node->prefix) {
             return 0;
         }
@@ -464,7 +464,7 @@ fds_trie_find(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int
             return 1;
         }
         bit_offset += node->prefix_length;
-        if (bit_offset == bit_length) {
+        if (bit_offset == prefix_length) {
             break;
         }
         node = node->children[extract_bit(*address, bit_offset) ? 1 : 0];

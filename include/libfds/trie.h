@@ -54,12 +54,16 @@ typedef struct fds_trie fds_trie_t;
 
 /**
  * Create a trie.
+ *
+ * @return Pointer to the created trie or NULL on memory error.
  */
 FDS_API struct fds_trie *
 fds_trie_create();
 
 /**
  * Destroy a trie.
+ *
+ * @param trie  The trie.
  */
 FDS_API void
 fds_trie_destroy(struct fds_trie *trie);
@@ -70,11 +74,11 @@ fds_trie_destroy(struct fds_trie *trie);
  * @param   trie            The trie.
  * @param   ip_version      The IP version (4 or 6).
  * @param   address_bytes   The address.
- * @param   bit_length      The length of the address in bits.
+ * @param   prefix_length   The length of the address prefix bits.
  * @return  1 on success, 0 on failure.
  */
 FDS_API int
-fds_trie_add(struct fds_trie *trie, int ip_version, uint8_t *address, int bit_length);
+fds_trie_add(struct fds_trie *trie, int ip_version, uint8_t *address, int prefix_length);
 
 /**
  * Try to find an address record in a trie.
@@ -82,14 +86,16 @@ fds_trie_add(struct fds_trie *trie, int ip_version, uint8_t *address, int bit_le
  * @param   trie            The trie.
  * @param   ip_version      The IP version (4 or 6).
  * @param   address_bytes   The address.
- * @param   bit_length      The length of the address in bits.
+ * @param   prefix_length   The length of the address prefix bits.
  * @return  true if the address was found, false otherwise.
  */
 FDS_API bool
-fds_trie_find(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int bit_length);
+fds_trie_find(struct fds_trie *trie, int ip_version, uint8_t *address_bytes, int prefix_length);
 
 /**
- *  Print the trie to stdout (for debugging).
+ * Print the trie to stdout (for debugging).
+ * 
+ * @param trie  The trie.
  */
 FDS_API void
 fds_trie_print(struct fds_trie *trie);

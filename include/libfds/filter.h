@@ -191,7 +191,6 @@ typedef void fds_filter_const_cb_t(void *user_ctx, int id, fds_filter_value_u *o
  *
  * \param[in] user_ctx   The user context set by fds_filter_set_user_ctx
  * \param[in] reset_ctx  Indicates that a new field is being processed and the context should reset
- * // TODO: reset_ctx might not be the best name?    
  *
  * \return FDS_OK, FDS_OK_MORE or FDS_NOTFOUND
  *         FDS_OK       if the field is found and there are no more values following

@@ -305,37 +305,61 @@ struct fds_iemgr_elem {
     size_t                          mappings_cnt;
 };
 
-/** Alias */
+/** 
+ * The alias structure
+ *
+ * Aliases are used to be able refer to one or more information elements using
+ * an alias rather than the long IPFIX entity name.
+ */
 struct fds_iemgr_alias {
+    /** The name of the alias as specified in the alias config               */
     char *name;
-
+    
+    /** The alias handling mode (anyOf, firstOf, ...)                        */
     enum fds_iemgr_alias_mode mode;
     
+    /** All the names this alias can be referred to with                     */
     char **aliased_names;
     size_t aliased_names_cnt;
 
+    /** The elements this alias refers to                                    */
     struct fds_iemgr_elem **sources;
     size_t sources_cnt;
 };
 
 /** Mapping key-value pair */
 struct fds_iemgr_mapping_item {
+    /* The key (e.g. for a "protocol" mapping this could be "TCP")           */
     char *key;
     
+    /* The value (e.g. in case of a "protocol" mapping where the key is "TCP" 
+       this would be the number of the TCP protocol)                         */
     union fds_iemgr_mapping_value {
         int64_t i;
     } value;
 };
 
-/** Mapping */
+/** 
+ * Mapping structure 
+ * 
+ * Mappings are used to be able to refer IPFIX element values using their 
+ * commonly used names. E.g. in case of a "protocolIdentifier" information  
+ * element a "Protocol" mapping can be defined to be able to refer to the 
+ * protocol values using names such as "TCP", "UDP" instead of their numeric 
+ * values. 
+ */
 struct fds_iemgr_mapping {
+    /* The name of the mapping as specified in the mappings file             */
     char *name;
     
+    /* Whether the mapping keys are case sensitive                           */
     bool key_case_sensitive;
 
+    /* The information elements this mapping belongs to                      */
     struct fds_iemgr_elem **elems;
     size_t elems_cnt;
 
+    /* The key-values of the mapping                                         */
     struct fds_iemgr_mapping_item *items;
     size_t items_cnt;
 };

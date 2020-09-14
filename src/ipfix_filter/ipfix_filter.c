@@ -244,7 +244,6 @@ lookup_callback(void *user_ctx, const char *name, const char *other_name,
     }
 
     // check if the name is a constant
-    // TODO: more data types
     if (other_name != NULL) {
         const struct fds_iemgr_mapping_item *mapping = fds_iemgr_mapping_find(ipxfil->iemgr, other_name, name);
         if (mapping != NULL) {

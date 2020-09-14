@@ -213,9 +213,14 @@
 	</element>
 	<element>
 		<id>808</id>
-		<name>HTTPSSNI</name>
+		<name>TLSSNI</name>
 		<dataType>string</dataType>
 	</element>
+	<element>
+                <id>830</id>
+                <name>tlsJa3Fingerprint</name>
+                <dataType>octetArray</dataType>
+        </element>
 	<element>
 		<id>810</id>
 		<name>SMTPCommands</name>

@@ -203,7 +203,7 @@ read_aliases_file(fds_iemgr_t *mgr, const char *path)
     auto file = unique_file(fopen(path, "r"), &::fclose);
     if (file == nullptr) {
         mgr->err_msg = "Cannot open file " + std::string(path) + ": " + std::strerror(errno);
-        return FDS_ERR_DENIED;
+        return FDS_ERR_NOTFOUND;
     }
 
     // Save modification time to the manager

@@ -403,6 +403,18 @@ fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path)
         if (!dirs_read(mgr, path)) {
             return FDS_ERR_FORMAT;
         }
+
+        int rc;
+
+        rc = fds_iemgr_read_aliases(mgr, path);
+        if (rc != FDS_OK && rc != FDS_ERR_NOTFOUND) {
+            return rc;
+        }
+
+        rc = fds_iemgr_read_mappings(mgr, path);
+        if (rc != FDS_OK && rc != FDS_ERR_NOTFOUND) {
+            return rc;
+        }
     }
     catch (...) {
         mgr->err_msg = "Error in function 'fds_iemgr_read_dir' while allocating memory for directory reading.";

@@ -251,17 +251,17 @@ read_item(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx, fds_iemgr_mapping *mapping);
  * Read the mappings file, process it and store it to the iemgr
  */
 int
-fds_iemgr_mapping_read_file(fds_iemgr_t *mgr, const char *path)
+fds_iemgr_mapping_read_file(fds_iemgr_t *mgr, const char *file_path)
 {
     // Open file
-    auto file = unique_file(fopen(path, "r"), &::fclose);
+    auto file = unique_file(fopen(file_path, "r"), &::fclose);
     if (file == nullptr) {
-        mgr->err_msg = "Cannot open file " + std::string(path) + ": " + std::strerror(errno);
+        mgr->err_msg = "Cannot open file " + std::string(file_path) + ": " + std::strerror(errno);
         return FDS_ERR_NOTFOUND;
     }
 
     // Save modification time to the manager
-    if (!mtime_save(mgr, path)) {
+    if (!mtime_save(mgr, file_path)) {
         return FDS_ERR_DENIED;
     }
 

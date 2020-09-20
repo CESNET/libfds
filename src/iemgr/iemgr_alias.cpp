@@ -115,6 +115,13 @@ alias_migrate_sources(fds_iemgr *mgr, fds_iemgr_alias *alias)
 static int
 alias_save_to_mgr(fds_iemgr *mgr, fds_iemgr_alias *alias)
 {
+    for (size_t i = 0; i < alias->aliased_names_cnt; i++) {
+        if (fds_iemgr_alias_find(mgr, alias->aliased_names[i])) {
+            mgr->err_msg = "Duplicate aliased name '" + std::string(alias->aliased_names[i]) + "'";
+            return FDS_ERR_FORMAT;
+        }
+    }
+
     mgr->aliases.push_back(alias);
     for (size_t i = 0; i < alias->aliased_names_cnt; i++) {
         mgr->aliased_names.emplace_back(std::string(alias->aliased_names[i]), alias);
@@ -197,17 +204,17 @@ static int
 read_source(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx, fds_iemgr_alias *alias);
 
 int
-read_aliases_file(fds_iemgr_t *mgr, const char *path)
+fds_iemgr_alias_read_file(fds_iemgr_t *mgr, const char *file_path)
 {
     // Open file
-    auto file = unique_file(fopen(path, "r"), &::fclose);
+    auto file = unique_file(fopen(file_path, "r"), &::fclose);
     if (file == nullptr) {
-        mgr->err_msg = "Cannot open file " + std::string(path) + ": " + std::strerror(errno);
+        mgr->err_msg = "Cannot open file " + std::string(file_path) + ": " + std::strerror(errno);
         return FDS_ERR_NOTFOUND;
     }
 
     // Save modification time to the manager
-    if (!mtime_save(mgr, path)) {
+    if (!mtime_save(mgr, file_path)) {
         return FDS_ERR_DENIED;
     }
 

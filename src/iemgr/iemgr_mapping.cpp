@@ -251,7 +251,7 @@ read_item(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx, fds_iemgr_mapping *mapping);
  * Read the mappings file, process it and store it to the iemgr
  */
 int
-read_mappings_file(fds_iemgr_t *mgr, const char *path)
+fds_iemgr_mapping_read_file(fds_iemgr_t *mgr, const char *path)
 {
     // Open file
     auto file = unique_file(fopen(path, "r"), &::fclose);

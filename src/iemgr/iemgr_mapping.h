@@ -3,9 +3,6 @@
 #include <libfds/iemgr.h>
 #include "iemgr_common.h"
 
-int
-read_mappings_file(fds_iemgr_t *mgr, const char *path);
-
 void
 mappings_destroy(fds_iemgr_t *mgr);
 

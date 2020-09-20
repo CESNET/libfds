@@ -279,6 +279,20 @@ dir_read(fds_iemgr_t* mgr, const char* path, fds_xml_t* parser, const string& na
         }
     }
 
+    int rc;
+    
+    rc = fds_iemgr_alias_read_file(mgr, (string(path) + "/" + string(name) + "/aliases.xml").c_str());
+    if (rc != FDS_OK && rc != FDS_ERR_NOTFOUND) {
+        return false;
+    }
+    mgr->err_msg.clear();
+    
+    rc = fds_iemgr_mapping_read_file(mgr, (string(path) + "/" + string(name) + "/mappings.xml").c_str());
+    if (rc != FDS_OK && rc != FDS_ERR_NOTFOUND) {
+        return false;
+    }
+    mgr->err_msg.clear();
+
     return true;
 }
 
@@ -402,18 +416,6 @@ fds_iemgr_read_dir(fds_iemgr_t *mgr, const char *path)
     try {
         if (!dirs_read(mgr, path)) {
             return FDS_ERR_FORMAT;
-        }
-
-        int rc;
-
-        rc = fds_iemgr_read_aliases(mgr, path);
-        if (rc != FDS_OK && rc != FDS_ERR_NOTFOUND) {
-            return rc;
-        }
-
-        rc = fds_iemgr_read_mappings(mgr, path);
-        if (rc != FDS_OK && rc != FDS_ERR_NOTFOUND) {
-            return rc;
         }
     }
     catch (...) {
@@ -770,24 +772,10 @@ fds_iemgr_str2unit(const char *str)
     return FDS_EU_UNASSIGNED;
 }
 
-int
-fds_iemgr_read_aliases(fds_iemgr_t *mgr, const char *dir)
-{
-    int rc = read_aliases_file(mgr, (std::string(dir) + "system/aliases.xml").c_str());
-    return rc;
-}
-
 const struct fds_iemgr_alias *
 fds_iemgr_alias_find(const fds_iemgr_t *mgr, const char *aliased_name)
 {
     return binary_find(mgr->aliased_names, std::string(aliased_name));
-}
-
-int
-fds_iemgr_read_mappings(fds_iemgr_t *mgr, const char *dir)
-{
-    int rc = read_mappings_file(mgr, (std::string(dir) + "system/mappings.xml").c_str());
-    return rc;
 }
 
 const struct fds_iemgr_mapping_item *
@@ -803,7 +791,7 @@ fds_iemgr_mapping_find(const fds_iemgr_t *mgr, const char *name, const char *key
                 return item;
             }
         }
-        }
+    }
 
     const fds_iemgr_elem *elem = fds_iemgr_elem_find_name(mgr, name);
     if (elem != nullptr) {
@@ -811,7 +799,7 @@ fds_iemgr_mapping_find(const fds_iemgr_t *mgr, const char *name, const char *key
         if (item != nullptr) {
             return item;
         }
-        }
+    }
 
     return nullptr;
 }

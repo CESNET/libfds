@@ -654,12 +654,12 @@ fds_iemgr_last_err(const fds_iemgr_t *mgr);
 
 /**
  * Load an aliases file and save the information to the manager.
- * \param mgr  The information element manager.
- * \param dir  Directory to look for the aliases.
+ * \param mgr        The information element manager.
+ * \param file_path  Path to the file to read the aliases from.
  * \return FDS_OK on success, FDS error code otherwise.
  */
 FDS_API int
-fds_iemgr_read_aliases(fds_iemgr_t *mgr, const char *file_path);
+fds_iemgr_alias_read_file(fds_iemgr_t *mgr, const char *file_path);
 
 /**
  * \brief Find an alias by name
@@ -682,12 +682,12 @@ fds_iemgr_mapping_find(const fds_iemgr_t *mgr, const char *name, const char *key
 
 /**
  * Load a mappings file and save the information to the manager.
- * \param mgr  The information element manager.
- * \param dir  Directory to look for the mappings.
+ * \param mgr        The information element manager.
+ * \param file_path  Path to the file to read the mappings from.
  * \return FDS_OK on success, FDS error code otherwise.
  */
 FDS_API int
-fds_iemgr_read_mappings(fds_iemgr_t *mgr, const char *dir);
+fds_iemgr_mapping_read_file(fds_iemgr_t *mgr, const char *file_path);
 
 
 #ifdef __cplusplus

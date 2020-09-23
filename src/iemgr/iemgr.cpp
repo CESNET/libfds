@@ -279,6 +279,8 @@ dir_read(fds_iemgr_t* mgr, const char* path, fds_xml_t* parser, const string& na
         }
     }
 
+    mgr_sort(mgr);
+
     int rc;
     
     rc = fds_iemgr_alias_read_file(mgr, (string(path) + "/" + string(name) + "/aliases.xml").c_str());

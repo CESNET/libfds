@@ -373,7 +373,7 @@ read_source(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx, fds_iemgr_alias *alias)
                 fds_iemgr_elem_find_name(mgr, cont->ptr_string);
             if (elem == nullptr) {
                 mgr->err_msg = "No element with name " + std::string(cont->ptr_string);
-                return FDS_ERR_NOTFOUND;
+                return FDS_ERR_FORMAT;
             }
             if (!alias_add_source(alias, elem)) {
                 mgr->err_msg = ERRMSG_NOMEM;

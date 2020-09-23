@@ -45,6 +45,20 @@ TEST_F(Fill, alias_valid)
     EXPECT_EQ(elem_e->aliases_cnt, 0);
 }
 
+TEST_F(Fill, alias_valid_special_prefix)
+{
+    EXPECT_EQ(fds_iemgr_alias_read_file(mgr, FILES_VALID "aliases_special_prefix.xml"), FDS_OK);
+    EXPECT_NO_ERROR;
+
+    EXPECT_NE(fds_iemgr_alias_find(mgr, "src d"), nullptr);
+    EXPECT_NE(fds_iemgr_alias_find(mgr, "dst d"), nullptr);
+    EXPECT_NE(fds_iemgr_alias_find(mgr, "in d"), nullptr);
+    EXPECT_NE(fds_iemgr_alias_find(mgr, "out d"), nullptr);
+    EXPECT_NE(fds_iemgr_alias_find(mgr, "ingress d"), nullptr);
+    EXPECT_NE(fds_iemgr_alias_find(mgr, "egress d"), nullptr);
+}
+
+
 TEST_F(Fill, alias_duplicate)
 {
     EXPECT_NE(fds_iemgr_alias_read_file(mgr, FILES_INVALID "alias_duplicate.xml"), FDS_OK);

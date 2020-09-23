@@ -12,6 +12,19 @@ alias_destroy(fds_iemgr_alias *alias);
 
 using unique_alias = std::unique_ptr<fds_iemgr_alias, decltype(&::alias_destroy)>;
 
+static bool
+check_valid_alias_name(const char *s)
+{
+    std::array<const char *, 6> prefixes { "in ", "out ", "ingress " ,"egress ", "src " ,"dst " };
+    for (auto p : prefixes) {
+        if (strncmp(s, p, strlen(p)) == 0) {
+            s += strlen(p);
+            break;
+        }
+    }
+    return check_valid_name(s);
+}
+
 /**
  * Create a new empty alias
  */
@@ -309,11 +322,12 @@ read_element(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx)
                 mgr->err_msg = "Alias cannot be empty.";
                 return FDS_ERR_FORMAT;
             }
-            if (!check_valid_name(cont->ptr_string)) {
+            if (!check_valid_alias_name(cont->ptr_string)) {
                 mgr->err_msg = 
                     "Invalid characters in alias '" + std::string(cont->ptr_string) + "'. "
                     "Aliases must only consist of alphanumeric characters and underscores and "
-                    "must not begin with a number.";
+                    "must not begin with a number. Special prefixes 'src ', 'dst ', 'in ', 'out ', "
+                    "'ingress ', 'egress ' are permitted.";
                 return FDS_ERR_FORMAT;
             }
             if (!alias_add_aliased_name(alias.get(), cont->ptr_string)) {

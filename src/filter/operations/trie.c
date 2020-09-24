@@ -40,8 +40,6 @@
  *
  */
 
-#ifndef FDS_FILTER_DISABLE_TRIE
-
 #include <libfds.h>
 #include "trie.h"
 
@@ -81,5 +79,3 @@ const fds_filter_op_s trie_operations[] = {
     FDS_FILTER_DEF_BINARY_OP(FDS_FDT_IP, "in", FDS_FDT_TRIE, ip_in_trie, FDS_FDT_BOOL),
     FDS_FILTER_END_OP_LIST
 };
-
-#endif // FDS_FILTER_ENABLE_TRIE

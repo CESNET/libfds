@@ -174,11 +174,9 @@ fds_filter_create_default_opts()
     if (!fds_filter_opts_extend_ops(opts, flags_operations)) {
         goto error;    
     }
-#if 0
     if (!fds_filter_opts_extend_ops(opts, trie_operations)) {
         goto error;    
     }
-#endif
 
     return opts;
 

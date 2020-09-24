@@ -216,6 +216,9 @@ trie_node_destroy(struct trie_node *node)
 void
 fds_trie_destroy(struct fds_trie *trie)
 {
+    if (!trie) {
+        return;
+    }
     trie_node_destroy(trie->ipv4_root);
     trie_node_destroy(trie->ipv6_root);
     free(trie);

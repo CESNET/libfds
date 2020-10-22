@@ -192,6 +192,16 @@
 		<dataType>string</dataType>
 	</element>
 	<element>
+		<id>831</id>
+		<name>NBName</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>832</id>
+		<name>NBSuffix</name>
+		<dataType>unsigned8</dataType>
+	</element>
+	<element>
 		<id>900</id>
 		<name>SSDPLocationPort</name>
 		<dataType>unsigned16</dataType>

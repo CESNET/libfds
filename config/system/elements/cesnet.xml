@@ -217,10 +217,10 @@
 		<dataType>string</dataType>
 	</element>
 	<element>
-                <id>830</id>
-                <name>tlsJa3Fingerprint</name>
-                <dataType>octetArray</dataType>
-        </element>
+    <id>830</id>
+    <name>tlsJa3Fingerprint</name>
+		<dataType>octetArray</dataType>
+  </element>
 	<element>
 		<id>810</id>
 		<name>SMTPCommands</name>
@@ -320,6 +320,34 @@
 		<dataSemantics>default</dataSemantics>
 		<units>none</units>
 	</element>
+	<element>
+    <id>831</id>
+    <name>NBName</name>
+    <dataType>string</dataType>
+    <dataSemantics>default</dataSemantics>
+    <units>none</units>
+  </element>
+	<element>
+    <id>832</id>
+    <name>NBSuffix</name>
+    <dataType>unsigned8</dataType>
+    <dataSemantics>default</dataSemantics>
+    <units>none</units>
+  </element>
+	<element>
+    <id>850</id>
+    <name>IDPContent</name>
+    <dataType>octetArray</dataType>
+    <dataSemantics>default</dataSemantics>
+    <units>none</units>
+  </element>
+	<element>
+    <id>851</id>
+    <name>IDPContentRev</name>
+    <dataType>octetArray</dataType>
+    <dataSemantics>default</dataSemantics>
+    <units>none</units>
+  </element>
 	<element>
 		<id>1013</id>
 		<name>packetLength</name>

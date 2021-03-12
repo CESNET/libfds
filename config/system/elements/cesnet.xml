@@ -349,6 +349,21 @@
         <units>none</units>
     </element>
     <element>
+        <id>900</id>
+        <name>tcpMss</name>
+        <dataType>unsigned32</dataType>
+    </element>
+    <element>
+        <id>901</id>
+        <name>tcpMssRev</name>
+        <dataType>unsigned32</dataType>
+    </element>
+    <element>
+        <id>902</id>
+        <name>tcpSynSize</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
         <id>1013</id>
         <name>packetLength</name>
         <dataType>signed16</dataType>
@@ -365,7 +380,7 @@
     <element>
         <id>1015</id>
         <name>packetFlag</name>
-        <dataType>signed8</dataType>
+        <dataType>unsigned8</dataType>
         <dataSemantics>flags</dataSemantics>
         <units>none</units>
     </element>
@@ -373,6 +388,90 @@
         <id>1016</id>
         <name>packetDirection</name>
         <dataType>signed8</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1050</id>
+        <name>burstSrcPackets</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>packets</units>
+    </element>
+    <element>
+        <id>1051</id>
+        <name>burstSrcBytes</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>octets</units>
+    </element>
+    <element>
+        <id>1052</id>
+        <name>burstSrcTimeStart</name>
+        <dataType>dateTimeMilliseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>1053</id>
+        <name>burstSrcTimeStop</name>
+        <dataType>dateTimeMilliseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>1054</id>
+        <name>burstDstPackets</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>packets</units>
+    </element>
+    <element>
+        <id>1055</id>
+        <name>burstDstBytes</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>octets</units>
+    </element>
+    <element>
+        <id>1056</id>
+        <name>burstDstTimeStart</name>
+        <dataType>dateTimeMilliseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>1057</id>
+        <name>burstDstTimeStop</name>
+        <dataType>dateTimeMilliseconds</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>1060</id>
+        <name>phistSrcSizes</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1061</id>
+        <name>phistSrcInterPacketTime</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1062</id>
+        <name>phistDstSizes</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1063</id>
+        <name>phistDstInterPacketTime</name>
+        <dataType>unsigned16</dataType>
         <dataSemantics>default</dataSemantics>
         <units>none</units>
     </element>

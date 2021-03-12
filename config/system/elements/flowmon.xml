@@ -32,6 +32,11 @@
         <dataType>string</dataType>
     </element>
     <element>
+        <id>11</id>
+        <name>httpContentId</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
         <id>12</id>
         <name>httpStatusCode</name>
         <dataType>unsigned16</dataType>
@@ -152,7 +157,7 @@
     <element>
         <!--
             Note: The type of this field is unknown. Based on flowmon exporter
-            configuration it should 128b unsigned integer (i.e. not valid IPFIX
+            configuration it should 64b unsigned integer (i.e. not valid IPFIX
             type)
          -->
         <id>44</id>
@@ -490,6 +495,21 @@
         <id>224</id>
         <name>tdsServerName</name>
         <dataType>octetArray</dataType>
+    </element>
+    <element>
+        <id>232</id>
+        <name>ingressAclId</name>
+        <dataType>octetArray</dataType>
+    </element>
+    <element>
+        <id>233</id>
+        <name>egressAclId</name>
+        <dataType>octetArray</dataType>
+    </element>
+    <element>
+        <id>234</id>
+        <name>fwExtEvent</name>
+        <dataType>unsigned16</dataType>
     </element>
     <element>
         <id>250</id>
@@ -893,7 +913,7 @@
     </element>
     <element>
         <id>422</id>
-        <name>MMSConfServiceRESP</name>
+        <name>MMSConfServiceResp</name>
         <dataType>unsigned8</dataType>
     </element>
     <element>
@@ -913,7 +933,7 @@
     </element>
     <element>
         <id>432</id>
-        <name>DLMSClassID</name>
+        <name>DLMSClassId</name>
         <dataType>unsigned16</dataType>
     </element>
     <element>
@@ -923,7 +943,7 @@
     </element>
     <element>
         <id>434</id>
-        <name>DLMSAttrMethodID</name>
+        <name>DLMSAttrMethodId</name>
         <dataType>unsigned8</dataType>
     </element>
     <element>
@@ -948,7 +968,32 @@
     </element>
     <element>
         <id>450</id>
-        <name>VxlanVNI</name>
+        <name>vxlanVNI</name>
         <dataType>unsigned32</dataType>
+    </element>
+    <element>
+        <id>7232</id>
+        <name>username</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>7233</id>
+        <name>xlateSrcAddrIpv4</name>
+        <dataType>ipv4Address</dataType>
+    </element>
+    <element>
+        <id>7234</id>
+        <name>xlateDstAddrIpv4</name>
+        <dataType>ipv4Address</dataType>
+    </element>
+    <element>
+        <id>7235</id>
+        <name>xlateSrcPort</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
+        <id>7236</id>
+        <name>xlateDstPort</name>
+        <dataType>unsigned16</dataType>
     </element>
 </ipfix-elements>

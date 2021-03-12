@@ -1,16 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ipfix-elements>
-    <scope>
-        <pen>8057</pen>
-        <name>cesnet</name>
-        <biflow mode="none"></biflow>
-    </scope>
+	<scope>
+		<pen>8057</pen>
+		<name>cesnet</name>
+		<biflow mode="none"></biflow>
+	</scope>
 
-	<element>
-		<id>0</id>
-		<name>DNSAnswers</name>
-		<dataType>unsigned16</dataType>
-	</element>
 	<element>
 		<id>1</id>
 		<name>DNSRCode</name>
@@ -48,7 +43,7 @@
 	</element>
 	<element>
 		<id>8</id>
-		<name>DNSPSIZE</name>
+		<name>DNSPSize</name>
 		<dataType>unsigned16</dataType>
 	</element>
 	<element>
@@ -62,80 +57,170 @@
 		<dataType>unsigned16</dataType>
 	</element>
 	<element>
-		<id>700</id>
-		<name>HBType</name>
-		<dataType>unsigned8</dataType>
-	</element>
-	<element>
-		<id>701</id>
-		<name>HBDir</name>
-		<dataType>unsigned8</dataType>
-	</element>
-	<element>
-		<id>702</id>
-		<name>HBSizeMsg</name>
+		<id>11</id>
+		<name>DNSAType</name>
 		<dataType>unsigned16</dataType>
 	</element>
 	<element>
-		<id>703</id>
-		<name>HBSizePayload</name>
+		<id>14</id>
+		<name>DNSAnswers</name>
 		<dataType>unsigned16</dataType>
 	</element>
 	<element>
-		<id>800</id>
-		<name>HTTPRequestMethod</name>
+		<id>18</id>
+		<name>NTPLeap</name>
+		<dataType>unsigned8</dataType>
+	</element>
+	<element>
+		<id>19</id>
+		<name>NTPVersion</name>
+		<dataType>unsigned8</dataType>
+	</element>
+	<element>
+		<id>20</id>
+		<name>NTPMode</name>
+		<dataType>unsigned8</dataType>
+	</element>
+	<element>
+		<id>21</id>
+		<name>NTPStratum</name>
+		<dataType>unsigned8</dataType>
+	</element>
+	<element>
+		<id>22</id>
+		<name>NTPPoll</name>
+		<dataType>unsigned8</dataType>
+	</element>
+	<element>
+		<id>23</id>
+		<name>NTPPrecision</name>
+		<dataType>unsigned8</dataType>
+	</element>
+	<element>
+		<id>24</id>
+		<name>NTPDelay</name>
 		<dataType>unsigned32</dataType>
 	</element>
 	<element>
-		<id>801</id>
-		<name>HTTPRequestHost</name>
-		<dataType>string</dataType>
-	</element>
-	<element>
-		<id>802</id>
-		<name>HTTPRequestURL</name>
-		<dataType>string</dataType>
-	</element>
-	<element>
-		<id>803</id>
-		<name>HTTPRequestReferer</name>
-		<dataType>string</dataType>
-	</element>
-	<element>
-		<id>804</id>
-		<name>HTTPRequestAgent</name>
-		<dataType>string</dataType>
-	</element>
-	<element>
-		<id>805</id>
-		<name>HTTPResponseCode</name>
+		<id>25</id>
+		<name>NTPDispersion</name>
 		<dataType>unsigned32</dataType>
 	</element>
 	<element>
-		<id>806</id>
-		<name>HTTPResponseType</name>
+		<id>26</id>
+		<name>NTPRefID</name>
 		<dataType>string</dataType>
 	</element>
 	<element>
-		<id>807</id>
-		<name>HTTPResponseTime</name>
-		<dataType>unsigned64</dataType>
+		<id>27</id>
+		<name>NTPRef</name>
+		<dataType>string</dataType>
 	</element>
 	<element>
-		<id>821</id>
-		<name>HTTPRequestRange</name>
+		<id>28</id>
+		<name>NTPOrig</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>29</id>
+		<name>NTPRecv</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>30</id>
+		<name>NTPSent</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>31</id>
+		<name>ARPHAFormat</name>
+		<dataType>unsigned16</dataType>
+	</element>
+	<element>
+		<id>32</id>
+		<name>ARPPAFormat</name>
+		<dataType>unsigned16</dataType>
+	</element>
+	<element>
+		<id>33</id>
+		<name>ARPOpcode</name>
+		<dataType>unsigned16</dataType>
+	</element>
+	<element>
+		<id>34</id>
+		<name>ARPSrcHA</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>35</id>
+		<name>ARPSrcPA</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>36</id>
+		<name>ARPDstHA</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>37</id>
+		<name>ARPDstPa</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>100</id>
+		<name>SIPMsgType</name>
+		<dataType>unsigned16</dataType>
+	</element>
+	<element>
+		<id>101</id>
+		<name>SIPStatusCode</name>
+		<dataType>unsigned16</dataType>
+	</element>
+	<element>
+		<id>102</id>
+		<name>SIPCallID</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>103</id>
+		<name>SIPCallingParty</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>104</id>
+		<name>SIPCalledParty</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>105</id>
+		<name>SIPVia</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>106</id>
+		<name>SIPUserAgent</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>107</id>
+		<name>SIPRequestURI</name>
+		<dataType>string</dataType>
+	</element>
+	<element>
+		<id>108</id>
+		<name>SIPCseq</name>
 		<dataType>string</dataType>
 	</element>
 	<element>
 		<id>808</id>
-		<name>HTTPSHost</name>
+		<name>TLSSNI</name>
 		<dataType>string</dataType>
 	</element>
 	<element>
-		<id>809</id>
-		<name>HTTPSResponseTime</name>
-		<dataType>unsigned64</dataType>
-	</element>
+    <id>830</id>
+    <name>tlsJa3Fingerprint</name>
+		<dataType>octetArray</dataType>
+  </element>
 	<element>
 		<id>810</id>
 		<name>SMTPCommands</name>
@@ -192,111 +277,77 @@
 		<dataType>string</dataType>
 	</element>
 	<element>
-		<id>900</id>
+		<id>821</id>
 		<name>SSDPLocationPort</name>
 		<dataType>unsigned16</dataType>
+		<dataSemantics>default</dataSemantics>
+		<units>none</units>
 	</element>
 	<element>
-		<id>901</id>
+		<id>822</id>
 		<name>SSDPServer</name>
 		<dataType>string</dataType>
 	</element>
 	<element>
-		<id>902</id>
+		<id>823</id>
 		<name>SSDPUserAgent</name>
 		<dataType>string</dataType>
 	</element>
 	<element>
-		<id>903</id>
+		<id>824</id>
 		<name>SSDPNT</name>
 		<dataType>string</dataType>
 	</element>
 	<element>
-		<id>904</id>
+		<id>825</id>
 		<name>SSDPST</name>
 		<dataType>string</dataType>
 	</element>
 	<element>
-		<id>905</id>
+		<id>826</id>
 		<name>DNSSDQueries</name>
 		<dataType>string</dataType>
 	</element>
 	<element>
-		<id>906</id>
+		<id>827</id>
 		<name>DNSSDResponses</name>
 		<dataType>string</dataType>
 	</element>
 	<element>
-		<id>100</id>
-		<name>SIPMsgType</name>
-		<dataType>unsigned16</dataType>
-	</element>
-	<element>
-		<id>101</id>
-		<name>SIPStatusCode</name>
-		<dataType>unsigned16</dataType>
-	</element>
-	<element>
-		<id>102</id>
-		<name>SIPCallID</name>
-		<dataType>string</dataType>
-	</element>
-	<element>
-		<id>103</id>
-		<name>SIPCallingParty</name>
-		<dataType>string</dataType>
-	</element>
-	<element>
-		<id>104</id>
-		<name>SIPCalledParty</name>
-		<dataType>string</dataType>
-	</element>
-	<element>
-		<id>105</id>
-		<name>SIPVia</name>
-		<dataType>string</dataType>
-	</element>
-	<element>
-		<id>106</id>
-		<name>SIPUserAgent</name>
-		<dataType>string</dataType>
-	</element>
-	<element>
-		<id>107</id>
-		<name>SIPRequestURI</name>
-		<dataType>string</dataType>
-	</element>
-	<element>
-		<id>108</id>
-		<name>SIPCseq</name>
-		<dataType>string</dataType>
-	</element>
-	<element>
-		<id>1001</id>
-		<name>Venom</name>
-		<dataType>unsigned8</dataType>
-	</element>
-        <element>
-		<id>1010</id>
-		<name>tlsRecordLength</name>
-		<dataType>signed16</dataType>
-		<dataSemantics>default</dataSemantics>
-		<units>octets</units>
-	</element>
-	<element>
-		<id>1011</id>
-		<name>tlsRecordTime</name>
-		<dataType>unsigned16</dataType>
-		<dataSemantics>default</dataSemantics>
-		<units>milliseconds</units>
-	</element>
-	<element>
-		<id>1012</id>
-		<name>tlsRecordContentType</name>
+		<id>828</id>
+		<name>OVPNConfLevel</name>
 		<dataType>unsigned8</dataType>
 		<dataSemantics>default</dataSemantics>
 		<units>none</units>
 	</element>
+	<element>
+    <id>831</id>
+    <name>NBName</name>
+    <dataType>string</dataType>
+    <dataSemantics>default</dataSemantics>
+    <units>none</units>
+  </element>
+	<element>
+    <id>832</id>
+    <name>NBSuffix</name>
+    <dataType>unsigned8</dataType>
+    <dataSemantics>default</dataSemantics>
+    <units>none</units>
+  </element>
+	<element>
+    <id>850</id>
+    <name>IDPContent</name>
+    <dataType>octetArray</dataType>
+    <dataSemantics>default</dataSemantics>
+    <units>none</units>
+  </element>
+	<element>
+    <id>851</id>
+    <name>IDPContentRev</name>
+    <dataType>octetArray</dataType>
+    <dataSemantics>default</dataSemantics>
+    <units>none</units>
+  </element>
 	<element>
 		<id>1013</id>
 		<name>packetLength</name>

@@ -13,6 +13,8 @@
 #include <math.h>
 #include <stdlib.h>
 #include <inttypes.h>
+
+#include "branchlut2.h"
 #include "protocols.h"
 
 /// Base size of the conversion buffer
@@ -1413,18 +1415,22 @@ add_field_name(struct context *buffer, const struct fds_drec_field *field)
     // If definition of field is unknown or if flag FDS_CD2J_NUMERIC_ID is set,
     // then identifier will be in format "enXX:idYY"
     if ((def == NULL) || (num_id)) {
-        static const size_t scope_size = 32;
-        char raw_name[scope_size];
-
         // Max length of identifier in format "enXX:idYY"
         // is "\"en" + 10x <en> + ":id" + 5x <id> + '\"\0'
-        snprintf(raw_name, scope_size, "\"en%" PRIu32 ":id%" PRIu16 "\":", field->info->en,
-            field->info->id);
-
-        int ret_code = buffer_append(buffer, raw_name);
+        static const size_t id_size = 32;
+        int ret_code = buffer_reserve(buffer, buffer_used(buffer) + id_size);
         if (ret_code != FDS_OK) {
             return ret_code;
         }
+
+        memcpy(buffer->write_begin, "\"en", 3U);
+        buffer->write_begin += 3U;
+        buffer->write_begin = u32toa_branchlut2(field->info->en, buffer->write_begin);
+        memcpy(buffer->write_begin, ":id", 3U);
+        buffer->write_begin += 3U;
+        buffer->write_begin = u32toa_branchlut2(field->info->id, buffer->write_begin);
+        *(buffer->write_begin++) = '"';
+        *(buffer->write_begin++) = ':';
         return FDS_OK;
     }
 

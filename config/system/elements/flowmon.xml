@@ -24,7 +24,7 @@
     <element>
         <id>4</id>
         <name>httpMethodMask</name>
-        <dataType>unsigned32</dataType>
+        <dataType>unsigned16</dataType>
     </element>
     <element>
         <id>10</id>
@@ -32,9 +32,14 @@
         <dataType>string</dataType>
     </element>
     <element>
+        <id>11</id>
+        <name>httpContentId</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
         <id>12</id>
         <name>httpStatusCode</name>
-        <dataType>unsigned32</dataType>
+        <dataType>unsigned16</dataType>
     </element>
     <element>
         <id>20</id>
@@ -89,7 +94,7 @@
     <element>
         <id>32</id>
         <name>voipPacketType</name>
-        <dataType>unsigned16</dataType>
+        <dataType>unsigned8</dataType>
     </element>
     <element>
         <id>33</id>
@@ -142,17 +147,17 @@
     <element>
         <id>42</id>
         <name>sipRtpAudio</name>
-        <dataType>unsigned32</dataType>
+        <dataType>unsigned16</dataType>
     </element>
     <element>
         <id>43</id>
         <name>sipRtpVideo</name>
-        <dataType>unsigned32</dataType>
+        <dataType>unsigned16</dataType>
     </element>
     <element>
         <!--
             Note: The type of this field is unknown. Based on flowmon exporter
-            configuration it should 128b unsigned integer (i.e. not valid IPFIX
+            configuration it should 64b unsigned integer (i.e. not valid IPFIX
             type)
          -->
         <id>44</id>
@@ -189,28 +194,6 @@
         <name>rtcpSourceCount</name>
         <dataType>unsigned8</dataType>
     </element>
-<!--
-    START
-    Note: Probably obsolete Lukas Truxa's extension of VOIP plugin for INVEA
--->
-    <element>
-        <id>51</id>
-        <name>sipUserAgent</name>
-        <dataType>string</dataType>
-    </element>
-    <element>
-        <id>52</id>
-        <name>sipRequestUri</name>
-        <dataType>string</dataType>
-    </element>
-    <element>
-        <id>53</id>
-        <name>sipCSeq</name>
-        <dataType>string</dataType>
-    </element>
-<!--
-    END
--->
     <element>
         <id>61</id>
         <name>npmJitterDev</name>
@@ -512,6 +495,21 @@
         <id>224</id>
         <name>tdsServerName</name>
         <dataType>octetArray</dataType>
+    </element>
+    <element>
+        <id>232</id>
+        <name>ingressAclId</name>
+        <dataType>octetArray</dataType>
+    </element>
+    <element>
+        <id>233</id>
+        <name>egressAclId</name>
+        <dataType>octetArray</dataType>
+    </element>
+    <element>
+        <id>234</id>
+        <name>fwExtEvent</name>
+        <dataType>unsigned16</dataType>
     </element>
     <element>
         <id>250</id>
@@ -877,5 +875,125 @@
         <id>401</id>
         <name>coapUriQuery</name>
         <dataType>string</dataType>
+    </element>
+    <element>
+        <id>410</id>
+        <name>GOOSEAppID</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
+        <id>411</id>
+        <name>GOOSECbRef</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>412</id>
+        <name>GOOSEDataSet</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>413</id>
+        <name>GOOSEID</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>414</id>
+        <name>GOOSEStNum</name>
+        <dataType>unsigned32</dataType>
+    </element>
+    <element>
+        <id>420</id>
+        <name>MMSType</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>421</id>
+        <name>MMSConfServiceReq</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>422</id>
+        <name>MMSConfServiceResp</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>423</id>
+        <name>MMSUnconfService</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>430</id>
+        <name>DLMSType</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>431</id>
+        <name>DLMSSubtype</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
+        <id>432</id>
+        <name>DLMSClassId</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
+        <id>433</id>
+        <name>DLMSObis</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>434</id>
+        <name>DLMSAttrMethodId</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>435</id>
+        <name>DLMSDataType</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>436</id>
+        <name>DLMSDataLength</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
+        <id>437</id>
+        <name>DLMSDataAccessResult</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>438</id>
+        <name>DLMSAactionResult</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>450</id>
+        <name>vxlanVNI</name>
+        <dataType>unsigned32</dataType>
+    </element>
+    <element>
+        <id>7232</id>
+        <name>username</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>7233</id>
+        <name>xlateSrcAddrIpv4</name>
+        <dataType>ipv4Address</dataType>
+    </element>
+    <element>
+        <id>7234</id>
+        <name>xlateDstAddrIpv4</name>
+        <dataType>ipv4Address</dataType>
+    </element>
+    <element>
+        <id>7235</id>
+        <name>xlateSrcPort</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
+        <id>7236</id>
+        <name>xlateDstPort</name>
+        <dataType>unsigned16</dataType>
     </element>
 </ipfix-elements>

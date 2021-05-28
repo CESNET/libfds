@@ -11,7 +11,11 @@
 #ifndef LIBFDS_IO_ASYNC_HPP
 #define LIBFDS_IO_ASYNC_HPP
 
+#ifdef __OpenBSD__
+#include <aio_compat.h>
+#else
 #include <aio.h>
+#endif
 #include <memory>
 #include "Io_request.hpp"
 

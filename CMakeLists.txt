@@ -23,6 +23,7 @@ include(CMakeModules/git_info.cmake)
 include(CMakeModules/install_dirs.cmake)
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
+include_directories(/usr/local/include)
 
 # Include custom FindXXX modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")

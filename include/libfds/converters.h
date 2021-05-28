@@ -77,8 +77,8 @@ extern "C" {
 #endif
 
 // Check the size of double and float, this MUST be here!!!
-static_assert(sizeof(double) == sizeof(uint64_t), "Double is not 8 bytes long!");
-static_assert(sizeof(float)  == sizeof(uint32_t), "Float is not 4 bytes long!");
+_Static_assert(sizeof(double) == sizeof(uint64_t), "Double is not 8 bytes long!");
+_Static_assert(sizeof(float)  == sizeof(uint32_t), "Float is not 4 bytes long!");
 
 /**
  * \def FDS_CONVERT_EPOCHS_DIFF

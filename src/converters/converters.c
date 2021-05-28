@@ -44,6 +44,9 @@
 #include <stdio.h>      // snprintf
 #include <inttypes.h>   // PRIi64, PRIu32,...
 #include <math.h>       // isnormal
+#ifdef __OpenBSD__
+#include <sys/socket.h>
+#endif
 #include "branchlut2.h"
 
 int

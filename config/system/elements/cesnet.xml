@@ -212,6 +212,11 @@
         <dataType>string</dataType>
     </element>
     <element>
+        <id>200</id>
+        <name>httpMethod</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
         <id>808</id>
         <name>TLSSNI</name>
         <dataType>string</dataType>

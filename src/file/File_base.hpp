@@ -216,6 +216,17 @@ public:
     virtual void
     tmplt_get(uint16_t tid, enum fds_template_type *t_type, const uint8_t **t_data, uint16_t *t_size);
 
+    /**
+     * @brief Get list of Information Element in the file
+     *
+     * @note The @p arr is array that must be later freed (using free) by the user.
+     * @note If there are no elements, @p size is set to 0, and @p arr is set to nullptr.
+     * @param[out] arr  Array of Elements
+     * @param[out] size Size of the array
+     */
+    virtual void
+    elements_list(struct fds_file_element **arr, size_t *size) = 0;
+
 protected:
     /// File descriptor of the file
     int m_fd;

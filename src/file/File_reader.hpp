@@ -75,6 +75,9 @@ public:
     virtual int
     read_rec(struct fds_drec *rec, struct fds_file_read_ctx *ctx) override;
 
+    void
+    elements_list(struct fds_file_element **arr, size_t *size) override;
+
 private:
     /// Auxiliary structure with information about a loaded Template Block
     struct tblock_info {

@@ -595,3 +595,28 @@ File_reader::sfilter_match(uint16_t sid, uint32_t odid)
     // Not found
     return false;
 }
+
+void
+File_reader::elements_list(struct fds_file_element **arr, size_t *size)
+{
+    const auto &elements = m_ctable.get_elements();
+
+    *size = elements.size();
+    if (*size == 0) {
+        *arr = nullptr;
+        return;
+    }
+
+    *arr = (struct fds_file_element *) malloc(sizeof(struct fds_file_element) * elements.size());
+    if (!*arr) {
+        throw std::bad_alloc();
+    }
+
+    size_t i = 0;
+    for (const auto &elem : elements) {
+        (*arr)[i].en = elem.en;
+        (*arr)[i].id = elem.id;
+        (*arr)[i].count = elem.count;
+        i++;
+    }
+}

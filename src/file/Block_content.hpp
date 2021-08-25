@@ -55,6 +55,13 @@ public:
         uint16_t session_id;    ///< Internal Transport Session ID
     };
 
+    /// Information about a Element block
+    struct info_element {
+        uint32_t en;            ///< Enterprise Number of the Information Element
+        uint16_t id;            ///< ID of the Information Element
+        uint64_t count;         ///< Number of occurences
+    };
+
     /**
      * @brief Load Content Table from a file
      *
@@ -108,6 +115,21 @@ public:
     add_data_block(uint64_t offset, uint64_t len, uint64_t tmplt_offset, uint32_t odid, uint16_t sid);
 
     /**
+     * @brief Add information about a new Information Element
+     * @param[in] en     Enterprise Number of the element
+     * @param[in] id     ID of the element
+     * @param[in] count  Number of occurences of the element
+     */
+    void
+    add_element(uint32_t en, uint16_t id, uint64_t count);
+
+    /**
+     * @brief Clear the list of elements
+     */
+    void
+    clear_elements();
+
+    /**
      * @brief Get list of all Transport Session positions
      * @return List
      */
@@ -121,21 +143,35 @@ public:
     const std::vector<struct info_data_block> &
     get_data_blocks() const {return m_dblocks;};
 
+    /**
+     * @brief Get list of all Elements in the file
+     * @return List
+     */
+    const std::vector<struct info_element> &
+    get_elements() const {return m_elements;};
+
+
 private:
     /// List of all Transport Sessions
     std::vector<struct info_session> m_sessions;
     /// List of all Data Blocks
     std::vector<struct info_data_block> m_dblocks;
+    /// List of all Element blocks
+    std::vector<struct info_element> m_elements;
 
     size_t
     write_sessions(int fd, off_t offset);
     size_t
     write_data_blocks(int fd, off_t offset);
+    size_t
+    write_elements(int fd, off_t offset);
 
     size_t
     read_sessions(const uint8_t *bdata, size_t bsize, uint64_t rel_offset);
     size_t
     read_data_blocks(const uint8_t *bdata, size_t bsize, uint64_t rel_offset);
+    size_t
+    read_elements(const uint8_t *bdata, size_t bsize, uint64_t rel_offset);
 };
 
 } // namespace

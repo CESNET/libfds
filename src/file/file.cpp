@@ -279,6 +279,20 @@ fds_file_stats_get(fds_file_t *file)
 }
 
 int
+fds_file_elements_list(fds_file_t *file, struct fds_file_element **elem_arr, size_t *elem_size)
+{
+    FATAL_TEST(file);
+
+    if (!elem_arr || !elem_size) {
+        error_set(file, "Invalid argument");
+        return FDS_ERR_ARG;
+    }
+
+    API_WRAPPER(file, file->m_handler->elements_list(elem_arr, elem_size));
+    return FDS_OK;
+}
+
+int
 fds_file_set_iemgr(fds_file_t *file, const fds_iemgr_t *iemgr)
 {
     if (!file->m_handler) {

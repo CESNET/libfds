@@ -281,7 +281,9 @@ enum fds_file_ctable_blocks {
     /// List of Transport Session blocks
     FDS_FILE_CTB_SESSION =  (1U << 0),
     /// List of all Data blocks
-    FDS_FILE_CTB_DATA = (1U << 1)
+    FDS_FILE_CTB_DATA = (1U << 1),
+    /// List of all information elements and their counts
+    FDS_FILE_CTB_ELEMENT = (1U << 2)
 };
 
 /// Auxiliary Content table record of a Transport Session block
@@ -326,6 +328,24 @@ struct __attribute__((packed)) fds_file_ctable_data {
     uint32_t rec_cnt;
     /// Records
     struct fds_file_ctable_data_rec recs[1];
+};
+
+/// Auxiliary Content table record of a Element block
+struct __attribute__((packed)) fds_file_ctable_element_rec {
+    /// Enterprise Number of the Information Element
+    uint32_t en;
+    /// ID of the Information Element
+    uint16_t id;
+    /// Number of times the Information Element appeared in data records
+    uint64_t count;
+};
+
+/// All Information Elements in the file (#FDS_FILE_CTB_ELEMENT)
+struct __attribute__((packed)) fds_file_ctable_element {
+    /// Total number of records
+    uint32_t rec_cnt;
+    /// Records
+    struct fds_file_ctable_element_rec recs[1];
 };
 
 /**

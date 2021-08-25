@@ -396,6 +396,34 @@ struct __attribute__((packed)) fds_file_stats {
 FDS_API const struct fds_file_stats *
 fds_file_stats_get(fds_file_t *file);
 
+/**
+ * @brief Basic statistics about Information Elements
+ */
+struct fds_file_element {
+    uint32_t en;            ///< Enterprise Number of the Information Element
+    uint16_t id;            ///< ID of the Information Element
+    uint64_t count;         ///< Number of occurences of the element in data records
+};
+
+/**
+ * @brief Get statistics of Information Elements in the file
+ *
+ * The statistics contains information about Information Elements that appeared in templates
+ * and data records
+ *
+ * @param[in]  file      File handler
+ * @param[out] elem_arr  Array of elements
+ * @param[out] elem_size Size of the array
+ *
+ * @note
+ *   User MUST destroy the array by free() when not required anymore.
+ * @return #FDS_OK on success
+ * @return #FDS_ERR_ARG if @p elem_arr or @p elem_size are NULL pointers.
+ * @return #FDS_ERR_INTERNAL if a fatal error has occurred (e.g. memory allocation error)
+ */
+FDS_API int
+fds_file_elements_list(fds_file_t *file, struct fds_file_element **elem_arr, size_t *elem_size);
+
 // Reader only API ---------------------------------------------------------------------------------
 
 /**

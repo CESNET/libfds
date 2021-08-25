@@ -52,10 +52,22 @@ Block_content::add_data_block(uint64_t offset, uint64_t len, uint64_t tmplt_offs
 }
 
 void
+Block_content::add_element(uint32_t en, uint16_t id, uint64_t count)
+{
+    if (m_dblocks.size() + 1 > UINT32_MAX) {
+        throw File_exception(FDS_ERR_INTERNAL, "Too many Elements (over limit)");
+    }
+
+    struct info_element element = {en, id, count};
+    m_elements.emplace_back(element);
+}
+
+void
 Block_content::clear()
 {
     m_sessions.clear();
     m_dblocks.clear();
+    m_elements.clear();
 }
 
 uint64_t
@@ -73,6 +85,10 @@ Block_content::write_to_file(int fd, off_t offset)
         sections++;
         flags |= FDS_FILE_CTB_DATA;
     }
+    if (!m_elements.empty()) {
+        sections++;
+        flags |= FDS_FILE_CTB_ELEMENT;
+    }
 
     // Write all sections
     size_t hdr_size = offsetof(struct fds_file_bctable, offsets) + (sections * sizeof(uint64_t));
@@ -89,6 +105,11 @@ Block_content::write_to_file(int fd, off_t offset)
     if (!m_dblocks.empty()) {
         hdr_ptr->offsets[idx++] = htole64(rel_offset);
         rel_offset += write_data_blocks(fd, offset + rel_offset);
+    }
+
+    if (!m_elements.empty()) {
+        hdr_ptr->offsets[idx++] = htole64(rel_offset);
+        rel_offset += write_elements(fd, offset + rel_offset);
     }
 
     // Fill and write the header of the Content Table block
@@ -193,6 +214,47 @@ Block_content::write_data_blocks(int fd, off_t offset)
     return sec_size;
 }
 
+/**
+ * @brief Write a section with all Element Blocks
+ * @param[in] fd     File descriptor
+ * @param[in] offset Offset of the section from the start of the file
+ * @return Size of the section (in bytes)
+ */
+size_t
+Block_content::write_elements(int fd, off_t offset)
+{
+    if (m_elements.empty()) {
+        return 0;
+    }
+
+    // Prepare memory for the section
+    const size_t rsize = sizeof(struct fds_file_ctable_element_rec);
+    const size_t sec_size  = offsetof(fds_file_ctable_element, recs) + (m_elements.size() * rsize);
+    std::unique_ptr<uint8_t[]> aux_mem(new uint8_t[sec_size]);
+    auto *ptr = reinterpret_cast<struct fds_file_ctable_element *>(aux_mem.get());
+
+    // Fill the header and records
+    ptr->rec_cnt = htole32(static_cast<uint32_t>(m_elements.size()));
+
+    uint32_t idx = 0;
+    for (const auto &rec_orig : m_elements) {
+        struct fds_file_ctable_element_rec *rec2fill = &ptr->recs[idx++];
+        rec2fill->en = htole32(rec_orig.en);
+        rec2fill->id = htole16(rec_orig.id);
+        rec2fill->count = htole64(rec_orig.count);
+    }
+
+    // Write the section
+    Io_sync req(fd, ptr, sec_size);
+    req.write(offset, sec_size);
+    if (req.wait() != sec_size) {
+        throw File_exception(FDS_ERR_INTERNAL, "Failed to write the Element Block section of "
+            "the Content Table");
+    }
+
+    return sec_size;
+}
+
 uint64_t
 Block_content::load_from_file(int fd, off_t offset)
 {
@@ -244,6 +306,9 @@ Block_content::load_from_file(int fd, off_t offset)
     }
     if ((bset.to_ulong() & FDS_FILE_CTB_DATA) != 0) {
         read_data_blocks(buffer.get(), bsize, le64toh(block_ptr->offsets[idx++]));
+    }
+    if ((bset.to_ulong() & FDS_FILE_CTB_ELEMENT) != 0) {
+        read_elements(buffer.get(), bsize, le64toh(block_ptr->offsets[idx++]));
     }
 
     return bsize;
@@ -326,3 +391,48 @@ Block_content::read_data_blocks(const uint8_t *bdata, size_t bsize, uint64_t rel
 
     return section_size;
 }
+
+/**
+ * @brief Read section with information about all Elements
+ *
+ * All parsed Element Block descriptions are added to the local vector of Elements
+ * @param[in] bdata      Buffer with the whole Content Table
+ * @param[in] bsize      Size of the buffer (in bytes)
+ * @param[in] rel_offset Offset of the section from the start of the buffer
+ * @return Size of the section
+ */
+size_t
+Block_content::read_elements(const uint8_t *bdata, size_t bsize, uint64_t rel_offset)
+{
+    const size_t hdr_size = offsetof(struct fds_file_ctable_element, recs);
+    const size_t rec_size = sizeof(struct fds_file_ctable_element_rec);
+
+    if (rel_offset + hdr_size > bsize) {
+        throw File_exception(FDS_ERR_INTERNAL, "Unexpected end of the Content Table block");
+    }
+
+    const auto *ptr = reinterpret_cast<const struct fds_file_ctable_element *>(bdata + rel_offset);
+    uint32_t rec_cnt = le32toh(ptr->rec_cnt);
+    const size_t section_size = hdr_size + (rec_cnt * rec_size);
+    if (rel_offset + section_size > bsize) {
+        throw File_exception(FDS_ERR_INTERNAL, "Unexpected end of the Content Table block");
+    }
+
+    for (size_t i = 0; i < rec_cnt; ++i) {
+        const struct fds_file_ctable_element_rec *rec_ptr = &ptr->recs[i];
+        add_element(
+            le32toh(rec_ptr->en),
+            le16toh(rec_ptr->id),
+            le64toh(rec_ptr->count)
+        );
+    }
+
+    return section_size;
+}
+
+void
+Block_content::clear_elements()
+{
+    m_elements.clear();
+}
+

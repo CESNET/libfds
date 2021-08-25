@@ -130,6 +130,11 @@ File_writer::append_prepare()
         assert(m_session2id.size() == m_sessions.size() && "Number of records must be the same!");
     }
 
+    // Load all element counters
+    for (const struct Block_content::info_element &rec : m_ctable.get_elements()) {
+        m_elements[{rec.en, rec.id}] = rec.count;
+    }
+
     // Remove information about the Content Table because it will be overwritten
     file_hdr_set_ctable(0);
     file_hdr_store();
@@ -156,6 +161,12 @@ File_writer::flush_all()
             // Flush Template Block (if modified) and Data Block (if not empty)
             flush(oinfo);
         }
+    }
+
+    // For each of the elements seen
+    m_ctable.clear_elements();
+    for (const auto &p : m_elements) {
+        m_ctable.add_element(p.first.first, p.first.second, p.second);
     }
 }
 
@@ -370,6 +381,8 @@ File_writer::write_rec(uint16_t tid, const uint8_t *rec_data, uint16_t rec_size)
     m_selected->m_data.add(rec_data, rec_size, tmplt);
     // Extract statistics (bytes, packets, proto, etc)
     stats_update(rec_data, rec_size, tmplt);
+    // Update element counters
+    update_elements_from_drec(rec_data, rec_size, tmplt);
 }
 
 void
@@ -391,6 +404,9 @@ File_writer::tmplt_add(enum fds_template_type t_type, const uint8_t *t_data, uin
         // Not defined
         m_selected->m_tblock_data.add(t_type, t_data, t_size);
         m_selected->m_tblock_offset = 0; // Make sure that the Template Block will be written later
+
+        update_elements_from_tmplt(m_selected->m_tblock_data.get(tid));
+
         return;
     }
 
@@ -413,6 +429,8 @@ File_writer::tmplt_add(enum fds_template_type t_type, const uint8_t *t_data, uin
     m_selected->m_tblock_data.add(t_type, t_data, t_size);
     m_selected->m_tblock_offset = 0;
     m_selected->m_tmplt_last = nullptr; // Just in case
+
+    update_elements_from_tmplt(m_selected->m_tblock_data.get(tid));
 }
 
 void
@@ -461,5 +479,118 @@ File_writer::tmplt_get(uint16_t tid, enum fds_template_type *t_type, const uint8
 
     if (t_size) {
         *t_size = tmplt->raw.length;
+    }
+}
+
+void
+File_writer::elements_list(struct fds_file_element **arr, size_t *size)
+{
+    *size = m_elements.size();
+    if (*size == 0) {
+        *arr = nullptr;
+        return;
+    }
+
+    *arr = (struct fds_file_element *) malloc(sizeof(struct fds_file_element) * m_elements.size());
+    if (!*arr) {
+        throw std::bad_alloc();
+    }
+
+    size_t i = 0;
+    for (const auto &p : m_elements) {
+        (*arr)[i].en = p.first.first;
+        (*arr)[i].id = p.first.second;
+        (*arr)[i].count = p.second;
+        i++;
+    }
+}
+
+/**
+ * \brief Initialize element counters for new elements that are present in the template
+ *
+ * \param[in] tmplt  The template
+ */
+void
+File_writer::update_elements_from_tmplt(const struct fds_template *tmplt)
+{
+    // Loop through the template fields and initialize the counter as we want to differentiate
+    // between a scenario where an element was seen in a template but was never used in a data
+    // record, in which case it exists but the counter is set to 0, and a scenario where the
+    // element hasn't even appeared in a template
+    for (uint16_t idx = 0; idx < tmplt->fields_cnt_total; idx++) {
+        //NOTE: When using insert on a map, the value is not inserted if the key already exists
+        m_elements.insert({{tmplt->fields[idx].en, tmplt->fields[idx].id}, 0});
+    }
+}
+
+/**
+ * \brief Increase element counters for the elements which appear in the data record
+ * \param[in] rec_data  The record data
+ * \param[in] rec_size  The record size
+ * \param[in] tmplt     The template of the record
+ */
+void
+File_writer::update_elements_from_drec(const uint8_t *rec_data, uint16_t rec_size, const struct fds_template *tmplt)
+{
+    if (!tmplt) {
+        throw File_exception(FDS_ERR_NOTFOUND, "IPFIX (Options) Template not defined");
+    }
+
+    struct fds_drec drec = {const_cast<uint8_t *>(rec_data), rec_size, tmplt, nullptr};
+
+    struct fds_drec_iter iter;
+    fds_drec_iter_init(&iter, &drec, 0);
+
+    while ((fds_drec_iter_next(&iter)) != FDS_EOC) {
+        // Increase the number of times this field has been seen
+        m_elements[{iter.field.info->en, iter.field.info->id}]++;
+
+        if (!iter.field.info->def) {
+            // Cannot check for subTemplateList if the element definition is missing
+            continue;
+        }
+
+        // If it's a subTemplateList or subTemplateMultilist, go through the nested records and
+        // call this function recursively so even the nested fields get counted
+        if (iter.field.info->def->data_type == FDS_ET_SUB_TEMPLATE_LIST) {
+            struct fds_stlist_iter stlist_iter;
+            fds_stlist_iter_init(&stlist_iter, &iter.field, m_selected->m_tblock_data.snapshot(), 0);
+
+            int rc;
+
+            while ((rc = fds_stlist_iter_next(&stlist_iter)) == FDS_OK) {
+                update_elements_from_drec(stlist_iter.rec.data,
+                                          stlist_iter.rec.size,
+                                          stlist_iter.rec.tmplt);
+            }
+
+            if (rc != FDS_EOC) {
+                // Iterator failed
+                throw File_exception(rc, fds_stlist_iter_err(&stlist_iter));
+            }
+
+        } else if (iter.field.info->def->data_type == FDS_ET_SUB_TEMPLATE_MULTILIST) {
+            struct fds_stmlist_iter stmlist_iter;
+            fds_stmlist_iter_init(&stmlist_iter, &iter.field, m_selected->m_tblock_data.snapshot(), 0);
+
+            int rc;
+
+            while ((rc = fds_stmlist_iter_next_block(&stmlist_iter)) == FDS_OK) {
+                while ((rc = fds_stmlist_iter_next_rec(&stmlist_iter)) == FDS_OK) {
+                    update_elements_from_drec(stmlist_iter.rec.data,
+                                              stmlist_iter.rec.size,
+                                              stmlist_iter.rec.tmplt);
+                }
+
+                if (rc != FDS_EOC) {
+                    break;
+                }
+            }
+
+            if (rc != FDS_EOC) {
+                // Iterator failed
+                throw File_exception(rc, fds_stmlist_iter_err(&stmlist_iter));
+            }
+        }
     }
 }

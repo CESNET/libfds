@@ -100,6 +100,9 @@ public:
     void
     tmplt_get(uint16_t tid, enum fds_template_type *t_type, const uint8_t **t_data, uint16_t *t_size) override;
 
+    void
+    elements_list(struct fds_file_element **arr, size_t *size) override;
+
 private:
     /// Auxiliary structure that is unique for a combination of Transport Session and ODID
     struct odid_info {
@@ -153,6 +156,8 @@ private:
     std::map<uint16_t, std::unique_ptr<struct session_info>> m_sessions;
     /// Mapping of Transport Sessions to internal IDs (just for faster Transport Session lookup)
     std::map<const Block_session *, uint16_t, block_session_cmp> m_session2id;
+    /// List of IPFIX elements that were seen and the number of times they appeared in data records
+    std::map<std::pair<uint32_t, uint16_t>, uint64_t> m_elements;
 
     /// Content Table
     Block_content m_ctable;
@@ -170,6 +175,11 @@ private:
     flush_all();
     void
     flush(odid_info *oinfo);
+
+    void
+    update_elements_from_tmplt(const struct fds_template *tmplt);
+    void
+    update_elements_from_drec(const uint8_t *rec_data, uint16_t rec_size, const struct fds_template *tmplt);
 };
 
 } // namespace

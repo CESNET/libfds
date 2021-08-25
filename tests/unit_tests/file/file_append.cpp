@@ -80,6 +80,9 @@ TEST_P(FileAPI, appendNotExistingFile)
 
     // No more data records
     ASSERT_EQ(fds_file_read_rec(file.get(), &rec_data, &rec_ctx), FDS_EOC);
+
+    // Check elements
+    expect_elements(file.get(), rec.elements);
 }
 
 // Try to append empty file
@@ -132,6 +135,9 @@ TEST_P(FileAPI, appendEmptyFile)
     ASSERT_EQ(fds_file_session_list(file.get(), &list_data, &list_size), FDS_OK);
     EXPECT_EQ(list_size, 0U);
     free(list_data);
+
+    // No elements
+    expect_elements(file.get(), {});
 }
 
 /*
@@ -237,6 +243,12 @@ TEST_P(FileAPI, appendWithSingleTransportSession)
             rec1_a.rec_size()), FDS_OK);
     }
 
+    // Check elements
+    expect_elements(file.get(),
+        add_element_counts(
+            multiply_element_counts(rec1_a.elements, cnt1),
+            multiply_element_counts(rec2.elements, 0)));
+
     // Close the file
     file.reset();
 
@@ -248,6 +260,12 @@ TEST_P(FileAPI, appendWithSingleTransportSession)
         // Load Information Elements
         EXPECT_EQ(fds_file_set_iemgr(file.get(), m_iemgr), FDS_OK);
     }
+
+    // Check elements, should be the same as before reopening
+    expect_elements(file.get(),
+        add_element_counts(
+            multiply_element_counts(rec1_a.elements, cnt1),
+            multiply_element_counts(rec2.elements, 0)));
 
     // Get the list of all Transport Sessions
     fds_file_sid_t *list_data;
@@ -278,6 +296,14 @@ TEST_P(FileAPI, appendWithSingleTransportSession)
     ASSERT_EQ(fds_file_write_tmplt_add(file.get(), rec2.tmplt_type(), rec2.tmplt_data(),
         rec2.tmplt_size()), FDS_OK);
 
+    // Check elements
+    expect_elements(file.get(),
+        add_element_counts(
+            multiply_element_counts(rec1_a.elements, cnt1),
+            add_element_counts(
+                multiply_element_counts(rec1_b.elements, 0),
+                multiply_element_counts(rec2.elements, 0))));
+
     size_t cnt2 = 500;
     for (size_t i = 0; i < cnt2; ++i) {
         SCOPED_TRACE("i: " + std::to_string(i));
@@ -287,6 +313,15 @@ TEST_P(FileAPI, appendWithSingleTransportSession)
 
     ASSERT_EQ(fds_file_write_rec(file.get(), rec2.tmptl_id(), rec2.rec_data(), rec2.rec_size()),
         FDS_OK);
+
+    // Check elements
+    expect_elements(file.get(),
+        add_element_counts(
+            multiply_element_counts(rec1_a.elements, cnt1),
+            add_element_counts(
+                multiply_element_counts(rec1_b.elements, cnt2),
+                multiply_element_counts(rec2.elements, 1))));
+
 
     // Close the file
     file.reset();
@@ -344,6 +379,14 @@ TEST_P(FileAPI, appendWithSingleTransportSession)
 
     // No more Data Records expected
     EXPECT_EQ(fds_file_read_rec(file.get(), &rec_data, &rec_ctx), FDS_EOC);
+
+    // Check elements
+    expect_elements(file.get(),
+        add_element_counts(
+            multiply_element_counts(rec1_a.elements, cnt1),
+            add_element_counts(
+                multiply_element_counts(rec1_b.elements, cnt2),
+                multiply_element_counts(rec2.elements, 1))));
 }
 
 // Try to append a non-emtpy file, which is still opened for writting

@@ -278,6 +278,8 @@ private:
 // Generator of a partly parametrizable Data Record based on the simple IPFIX Template (pattern 1)
 class DRec_simple : public DRec_base {
 public:
+    static const std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> elements;
+
     DRec_simple(uint16_t tid, uint16_t src_p = 80, uint16_t dst_p = 48714, uint8_t proto = 17,
         uint64_t bytes = 1223, uint64_t pkts = 2)
         : DRec_base()
@@ -317,9 +319,25 @@ public:
     }
 };
 
+const std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> DRec_simple::elements =
+{
+    {0,   8, 1}, // sourceIPv4Address
+    {0,   7, 1}, // sourceTransportPort
+    {0,  11, 1}, // destinationTransportPort
+    {0,  12, 1}, // destinationIPv4Address
+    {0,   4, 1}, // protocolIdentifier
+    {0, 210, 0}, // -- paddingOctets
+    {0, 152, 1}, // flowStartMilliseconds
+    {0, 153, 1}, // flowEndMilliseconds
+    {0,   1, 1}, // octetDeltaCount
+    {0,   2, 1}, // packetDeltaCount
+};
+
 // Generator of a partly parametrizable Data Record based on the biflow IPFIX Template (pattern 2)
 class DRec_biflow : public DRec_base {
 public:
+    static const std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> elements;
+
     DRec_biflow(uint16_t tid, std::string app_name = "ipfixcol2", std::string ifc_name = "eth0",
         uint16_t sp = 65145, uint16_t dp = 53, uint8_t proto = 6, uint64_t bts = 87984121,
         uint64_t pkts = 251, uint64_t bts_rev = 1323548, uint64_t pkts_rev = 213)
@@ -384,9 +402,32 @@ public:
     }
 };
 
+const std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> DRec_biflow::elements = {
+        {0,   7, 1},             // sourceTransportPort
+        {0,   8, 1},             // sourceIPv4Address
+        {0,  11, 1},             // destinationTransportPort
+        {0,  12, 1},             // destinationIPv4Address
+        {0,   4, 1},             // protocolIdentifier
+        {0, 210, 0},             // -- paddingOctets (skipped)
+        {0, 152, 1},             // flowStartMilliseconds
+        {0, 153, 1},             // flowEndMilliseconds
+        {29305, 152, 1},         // flowStartMilliseconds (reverse)
+        {29305, 153, 1},         // flowEndMilliseconds (reverse)
+        {0,  96, 1},             // applicationName
+        {0,  94, 1},             // applicationDescription
+        {0,   1, 1},             // octetDeltaCount
+        {0,   2, 1},             // packetDeltaCount
+        {29305,   1, 1},         // octetDeltaCount (reverse)
+        {29305,   2, 1},         // packetDeltaCount (reverse)
+        {10000, 100, 1},         // -- field with unknown definition --
+        {0,  82, 2},             // interfaceName
+};
+
 // Generator of a parametrizable Data Record based on the Options IPFIX Template (pattern 3)
 class DRec_opts : public DRec_base {
 public:
+    static const std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> elements;
+
     DRec_opts(uint16_t tid, uint32_t odid = 4, uint32_t mpid = 1554, uint64_t msg_cnt = 171141,
         uint64_t flow_cnt = 212457447U, uint64_t octet_cnt = 2245744700U)
         : DRec_base()
@@ -408,3 +449,105 @@ public:
         DRec_base::set_record(drec);
     }
 };
+
+const std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> DRec_opts::elements = {
+    {0, 149, 1}, // observationDomainID
+    {0, 143, 1}, // meteringProcessId
+    {0, 41, 1},  // exportedMessageTotalCount
+    {0, 42, 1},  // exportedFlowRecordTotalCount
+    {0, 40, 1},  // exportedOctetTotalCount
+};
+
+std::string
+to_string(struct fds_file_element *elems, size_t elems_size)
+{
+    std::stringstream ss;
+    for (size_t i = 0; i < elems_size; i++) {
+        ss << "EN:" << elems[i].en << " ID:" << elems[i].id << " count: " << elems[i].count << "\n";
+    }
+    return ss.str();
+}
+
+// Expect contents of element list, assume order doesn't matter
+void
+expect_elements(fds_file_t *file,
+                const std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> &expected_data)
+{
+    struct fds_file_element *elems = nullptr;
+    size_t elems_size;
+
+    ASSERT_EQ(fds_file_elements_list(file, &elems, &elems_size), FDS_OK);
+
+    ASSERT_TRUE(elems != nullptr || elems_size == 0);
+    EXPECT_EQ(expected_data.size(), elems_size)
+        << "\nElement list:\n" << to_string(elems, elems_size);
+
+    for (const auto &expected_elem : expected_data) {
+        uint32_t en = std::get<0>(expected_elem);
+        uint16_t id = std::get<1>(expected_elem);
+        uint64_t count = std::get<2>(expected_elem);
+
+        bool found = false;
+        for (size_t i = 0; i < elems_size; i++) {
+            if (elems[i].en == en && elems[i].id == id) {
+                found = true;
+                EXPECT_EQ(elems[i].count, count)
+                    << "Element EN " << en << " ID " << id << " expected count " << count << " got " << elems[i].count
+                    << "\nElement list:\n" << to_string(elems, elems_size);
+                break;
+            }
+        }
+
+        EXPECT_TRUE(found) << "Element EN " << en << " ID " << id << " not found"
+            << "\nElement list:\n" << to_string(elems, elems_size);
+    }
+
+    free(elems);
+}
+
+std::vector<std::tuple<uint32_t, uint16_t, uint64_t>>
+add_element_counts(const std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> &data1,
+                   const std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> &data2)
+{
+    std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> result = data1;
+
+    for (const auto &elem2 : data2) {
+        uint32_t en2 = std::get<0>(elem2);
+        uint16_t id2 = std::get<1>(elem2);
+        uint64_t count2 = std::get<2>(elem2);
+
+        bool found = false;
+
+        for (auto &elem1 : result) {
+            uint32_t en1 = std::get<0>(elem1);
+            uint16_t id1 = std::get<1>(elem1);
+            uint64_t count1 = std::get<2>(elem1);
+
+            if (en1 == en2 && id1 == id2) {
+                elem1 = {en1, id1, count1 + count2};
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            result.push_back(elem2);
+        }
+    }
+
+    return result;
+}
+
+std::vector<std::tuple<uint32_t, uint16_t, uint64_t>>
+multiply_element_counts(std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> data, uint64_t multiplier)
+{
+    for (auto &elem : data) {
+        uint32_t en = std::get<0>(elem);
+        uint16_t id = std::get<1>(elem);
+        uint64_t count = std::get<2>(elem);
+
+        elem = {en, id, count * multiplier};
+    }
+
+    return data;
+}

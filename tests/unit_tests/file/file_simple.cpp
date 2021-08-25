@@ -32,8 +32,11 @@ INSTANTIATE_TEST_CASE_P(Simple, FileAPI, product, &product_name);
 // Create empty file (no Data Records, no Transport Sessions)
 TEST_P(FileAPI, createEmpty)
 {
-    fds_file_sid_t *list_data = nullptr;
-    size_t list_size;
+    fds_file_sid_t *sess_list_data = nullptr;
+    size_t sess_list_size;
+
+    struct fds_file_element *elem_list_data = nullptr;
+    size_t elem_list_size;
 
     // Open a file for writing and close it
     std::unique_ptr<fds_file_t, decltype(&fds_file_close)> file(fds_file_init(), &fds_file_close);
@@ -60,9 +63,15 @@ TEST_P(FileAPI, createEmpty)
     EXPECT_EQ(fds_file_read_rec(file.get(), &rec_data, &rec_ctx), FDS_EOC);
 
     // Try to get list of Transport Sessions
-    EXPECT_EQ(fds_file_session_list(file.get(), &list_data, &list_size), FDS_OK);
-    EXPECT_EQ(list_size, 0U);
-    free(list_data);
+    EXPECT_EQ(fds_file_session_list(file.get(), &sess_list_data, &sess_list_size), FDS_OK);
+    EXPECT_EQ(sess_list_size, 0U);
+    free(sess_list_data);
+
+    // Try to get list of Elements
+    EXPECT_EQ(fds_file_elements_list(file.get(), &elem_list_data, &elem_list_size), FDS_OK);
+    EXPECT_EQ(elem_list_size, 0U);
+    free(elem_list_data);
+
 }
 
 // Create an empty file (i.e. no Data Records) with one Transport Session description
@@ -107,6 +116,14 @@ TEST_P(FileAPI, createEmptyWithSource)
     struct fds_file_read_ctx rec_ctx;
     struct fds_drec rec_data;
     EXPECT_EQ(fds_file_read_rec(file.get(), &rec_data, &rec_ctx), FDS_EOC);
+
+    // Check that there are no elements
+    struct fds_file_element *elem_list_data = nullptr;
+    size_t elem_list_size;
+    EXPECT_EQ(fds_file_elements_list(file.get(), &elem_list_data, &elem_list_size), FDS_OK);
+    EXPECT_EQ(elem_list_size, 0);
+
+    free(elem_list_data);
 }
 
 // Write a single Data Record to the file
@@ -188,6 +205,9 @@ TEST_P(FileAPI, singleRecord)
 
     // No more data records
     ASSERT_EQ(fds_file_read_rec(file.get(), &rec_data, &rec_ctx), FDS_EOC);
+
+    // Check element counters
+    expect_elements(file.get(), DRec_simple::elements);
 }
 
 /*
@@ -1421,6 +1441,9 @@ TEST_P(FileAPI, reuseHandler)
     ASSERT_EQ(fds_file_write_rec(file.get(), rec.tmptl_id(), rec.rec_data(), rec.rec_size()),
         FDS_OK);
 
+    // Check the element counters
+    expect_elements(file.get(), DRec_biflow::elements);
+
     // Open the file for reading using the same handler
     EXPECT_EQ(fds_file_open(file.get(), m_filename.c_str(), m_flags_read), FDS_OK);
 
@@ -1446,6 +1469,9 @@ TEST_P(FileAPI, reuseHandler)
     }
 
     EXPECT_EQ(fds_file_read_rec(file.get(), &rec_data, &rec_ctx), FDS_EOC);
+
+    // Check the element counters
+    expect_elements(file.get(), DRec_biflow::elements);
 }
 
 // Try to (at least) partly read an empty file which is opened for writting by someone else
@@ -1612,4 +1638,118 @@ TEST_P(FileAPI, readNonEmptyFileWhichIsBeingWritten)
     EXPECT_GE(s1_rec_a_cnt, 1U);
     EXPECT_GE(s1_rec_b_cnt, 1U);
     EXPECT_GE(s2_rec_cnt, 1U);
+}
+
+// Write many data records to the file and make sure the element records update correctly
+TEST_P(FileAPI, checkElementCountersWithManyRecords)
+{
+    // Create a Transport Session description
+    Session session2write{"192.168.0.1", "204.152.189.116", 80, 10000, FDS_FILE_SESSION_TCP};
+    fds_file_sid_t session_sid;
+
+    // Open a file for writing and add the Transport Session
+    std::unique_ptr<fds_file_t, decltype(&fds_file_close)> file(fds_file_init(), &fds_file_close);
+    ASSERT_EQ(fds_file_open(file.get(), m_filename.c_str(), m_flags_write), FDS_OK);
+    ASSERT_EQ(fds_file_session_add(file.get(), session2write.get(), &session_sid), FDS_OK);
+    if (m_load_iemgr) {
+        // Load Information Elements
+        EXPECT_EQ(fds_file_set_iemgr(file.get(), m_iemgr), FDS_OK);
+    }
+
+    // Set Transport Session context
+    ASSERT_EQ(fds_file_write_ctx(file.get(), session_sid, 123, 456), FDS_OK);
+
+    // Add an IPFIX Template and Data Record
+    uint64_t gen_rec1_cnt = 400;
+    uint64_t gen_rec2_cnt = 234;
+    uint64_t gen_rec3_cnt = 120;
+
+    uint16_t gen_tid1 = 256;
+    uint16_t gen_tid2 = 257;
+    uint16_t gen_tid3 = 258;
+
+    DRec_simple gen_rec1(gen_tid1);
+    DRec_biflow gen_rec2(gen_tid2);
+    DRec_opts gen_rec3(gen_tid3);
+
+    // There should be no elements
+    expect_elements(file.get(), {});
+
+    // Elements of first template with zero counts
+    ASSERT_EQ(fds_file_write_tmplt_add(file.get(), gen_rec1.tmplt_type(), gen_rec1.tmplt_data(), gen_rec1.tmplt_size()), FDS_OK);
+    expect_elements(file.get(),
+        multiply_element_counts(gen_rec1.elements, 0));
+
+    // Elements of first and second template with zero counts
+    ASSERT_EQ(fds_file_write_tmplt_add(file.get(), gen_rec2.tmplt_type(), gen_rec2.tmplt_data(), gen_rec2.tmplt_size()), FDS_OK);
+    expect_elements(file.get(),
+        add_element_counts(
+            multiply_element_counts(gen_rec1.elements, 0),
+            multiply_element_counts(gen_rec2.elements, 0)));
+
+    // Elements of first, second and third template with zero counts
+    ASSERT_EQ(fds_file_write_tmplt_add(file.get(), gen_rec3.tmplt_type(), gen_rec3.tmplt_data(), gen_rec3.tmplt_size()), FDS_OK);
+    expect_elements(file.get(),
+        add_element_counts(
+            multiply_element_counts(gen_rec1.elements, 0),
+            add_element_counts(
+                multiply_element_counts(gen_rec2.elements, 0),
+                multiply_element_counts(gen_rec3.elements, 0))));
+
+
+    // Write the first batch and eheck element counts
+    for (uint64_t i = 0; i < gen_rec1_cnt; i++) {
+        ASSERT_EQ(fds_file_write_rec(file.get(), gen_tid1, gen_rec1.rec_data(), gen_rec1.rec_size()), FDS_OK);
+    }
+
+    expect_elements(file.get(),
+        add_element_counts(
+            multiply_element_counts(gen_rec1.elements, gen_rec1_cnt),
+            add_element_counts(
+                multiply_element_counts(gen_rec2.elements, 0),
+                multiply_element_counts(gen_rec3.elements, 0))));
+
+    // Write the second batch and eheck element counts
+    for (uint64_t i = 0; i < gen_rec2_cnt; i++) {
+        ASSERT_EQ(fds_file_write_rec(file.get(), gen_tid2, gen_rec2.rec_data(), gen_rec2.rec_size()), FDS_OK);
+    }
+
+    expect_elements(file.get(),
+        add_element_counts(
+            multiply_element_counts(gen_rec1.elements, gen_rec1_cnt),
+            add_element_counts(
+                multiply_element_counts(gen_rec2.elements, gen_rec2_cnt),
+                multiply_element_counts(gen_rec3.elements, 0))));
+
+    // Write the third batch and eheck element counts
+    for (uint64_t i = 0; i < gen_rec3_cnt; i++) {
+        ASSERT_EQ(fds_file_write_rec(file.get(), gen_tid3, gen_rec3.rec_data(), gen_rec3.rec_size()), FDS_OK);
+    }
+
+    expect_elements(file.get(),
+        add_element_counts(
+            multiply_element_counts(gen_rec1.elements, gen_rec1_cnt),
+            add_element_counts(
+                multiply_element_counts(gen_rec2.elements, gen_rec2_cnt),
+                multiply_element_counts(gen_rec3.elements, gen_rec3_cnt))));
+
+    // Close the file
+    file.reset();
+
+    // Open the file for reading
+    file.reset(fds_file_init());
+    ASSERT_EQ(fds_file_open(file.get(), m_filename.c_str(), m_flags_read), FDS_OK);
+    if (m_load_iemgr) {
+        // Load Information Elements
+        EXPECT_EQ(fds_file_set_iemgr(file.get(), m_iemgr), FDS_OK);
+    }
+
+
+    // Check element counters after reading, should be the same as after last write
+    expect_elements(file.get(),
+        add_element_counts(
+            multiply_element_counts(gen_rec1.elements, gen_rec1_cnt),
+            add_element_counts(
+                multiply_element_counts(gen_rec2.elements, gen_rec2_cnt),
+                multiply_element_counts(gen_rec3.elements, gen_rec3_cnt))));
 }

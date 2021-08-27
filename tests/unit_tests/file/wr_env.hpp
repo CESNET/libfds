@@ -326,7 +326,7 @@ const std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> DRec_simple::element
     {0,  11, 1}, // destinationTransportPort
     {0,  12, 1}, // destinationIPv4Address
     {0,   4, 1}, // protocolIdentifier
-    {0, 210, 0}, // -- paddingOctets
+    {0, 210, 1}, // -- paddingOctets
     {0, 152, 1}, // flowStartMilliseconds
     {0, 153, 1}, // flowEndMilliseconds
     {0,   1, 1}, // octetDeltaCount
@@ -408,7 +408,7 @@ const std::vector<std::tuple<uint32_t, uint16_t, uint64_t>> DRec_biflow::element
         {0,  11, 1},             // destinationTransportPort
         {0,  12, 1},             // destinationIPv4Address
         {0,   4, 1},             // protocolIdentifier
-        {0, 210, 0},             // -- paddingOctets (skipped)
+        {0, 210, 2},             // -- paddingOctets
         {0, 152, 1},             // flowStartMilliseconds
         {0, 153, 1},             // flowEndMilliseconds
         {29305, 152, 1},         // flowStartMilliseconds (reverse)

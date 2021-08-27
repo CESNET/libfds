@@ -1697,7 +1697,7 @@ TEST_P(FileAPI, checkElementCountersWithManyRecords)
                 multiply_element_counts(gen_rec3.elements, 0))));
 
 
-    // Write the first batch and eheck element counts
+    // Write the first batch and check element counts
     for (uint64_t i = 0; i < gen_rec1_cnt; i++) {
         ASSERT_EQ(fds_file_write_rec(file.get(), gen_tid1, gen_rec1.rec_data(), gen_rec1.rec_size()), FDS_OK);
     }
@@ -1709,7 +1709,7 @@ TEST_P(FileAPI, checkElementCountersWithManyRecords)
                 multiply_element_counts(gen_rec2.elements, 0),
                 multiply_element_counts(gen_rec3.elements, 0))));
 
-    // Write the second batch and eheck element counts
+    // Write the second batch and check element counts
     for (uint64_t i = 0; i < gen_rec2_cnt; i++) {
         ASSERT_EQ(fds_file_write_rec(file.get(), gen_tid2, gen_rec2.rec_data(), gen_rec2.rec_size()), FDS_OK);
     }
@@ -1721,7 +1721,7 @@ TEST_P(FileAPI, checkElementCountersWithManyRecords)
                 multiply_element_counts(gen_rec2.elements, gen_rec2_cnt),
                 multiply_element_counts(gen_rec3.elements, 0))));
 
-    // Write the third batch and eheck element counts
+    // Write the third batch and check element counts
     for (uint64_t i = 0; i < gen_rec3_cnt; i++) {
         ASSERT_EQ(fds_file_write_rec(file.get(), gen_tid3, gen_rec3.rec_data(), gen_rec3.rec_size()), FDS_OK);
     }

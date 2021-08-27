@@ -12,6 +12,7 @@
 #define LIBFDS_BLOCK_CONTENT_HPP
 
 #include <vector>
+#include <map>
 #include <cstdint>
 #include <stdio.h>
 
@@ -55,11 +56,23 @@ public:
         uint16_t session_id;    ///< Internal Transport Session ID
     };
 
+    // Element map key
+    class elem_id {
+    public:
+        elem_id() {}
+        elem_id(uint32_t en, uint16_t id) : value(uint64_t(en) << 16 | id) {}
+        uint32_t en() const noexcept { return value >> 16; }    ///< Enterprise Number of the element
+        uint16_t id() const noexcept { return value & 0xFFFF; } ///< ID of the element
+        bool operator==(const elem_id &other) const noexcept { return value == other.value; }
+        bool operator<(const elem_id &other) const noexcept { return value < other.value; }
+        friend class std::hash<elem_id>;
+    private:
+        uint64_t value;
+    };
+
     /// Information about a Element block
     struct info_element {
-        uint32_t en;            ///< Enterprise Number of the Information Element
-        uint16_t id;            ///< ID of the Information Element
-        uint64_t count;         ///< Number of occurences
+        uint64_t count = 0;         ///< Number of occurences
     };
 
     /**
@@ -116,18 +129,11 @@ public:
 
     /**
      * @brief Add information about a new Information Element
-     * @param[in] en     Enterprise Number of the element
-     * @param[in] id     ID of the element
+     * @param[in] eid    The full element ID
      * @param[in] count  Number of occurences of the element
      */
     void
-    add_element(uint32_t en, uint16_t id, uint64_t count);
-
-    /**
-     * @brief Clear the list of elements
-     */
-    void
-    clear_elements();
+    add_element(elem_id eid, uint64_t count);
 
     /**
      * @brief Get list of all Transport Session positions
@@ -144,10 +150,10 @@ public:
     get_data_blocks() const {return m_dblocks;};
 
     /**
-     * @brief Get list of all Elements in the file
-     * @return List
+     * @brief Get map of all Elements in the file
+     * @return Map
      */
-    const std::vector<struct info_element> &
+    const std::map<elem_id, struct info_element> &
     get_elements() const {return m_elements;};
 
 
@@ -156,8 +162,8 @@ private:
     std::vector<struct info_session> m_sessions;
     /// List of all Data Blocks
     std::vector<struct info_data_block> m_dblocks;
-    /// List of all Element blocks
-    std::vector<struct info_element> m_elements;
+    /// Map of all Element blocks
+    std::map<elem_id, struct info_element> m_elements;
 
     size_t
     write_sessions(int fd, off_t offset);
@@ -175,5 +181,14 @@ private:
 };
 
 } // namespace
+
+namespace std {
+    template <>
+    struct hash<fds_file::Block_content::elem_id> {
+        std::size_t operator()(const fds_file::Block_content::elem_id &k) const noexcept {
+            return std::hash<uint64_t>()(k.value);
+        }
+    };
+}
 
 #endif //LIBFDS_BLOCK_CONTENT_HPP

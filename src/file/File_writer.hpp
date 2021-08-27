@@ -12,6 +12,8 @@
 #define LIBFDS_WRITER_HPP
 
 #include <map>
+#include <unordered_map>
+#include <utility>
 
 #include "File_base.hpp"
 #include "Block_templates.hpp"
@@ -104,6 +106,20 @@ public:
     elements_list(struct fds_file_element **arr, size_t *size) override;
 
 private:
+    /// Auxillary structure for template information
+    struct template_counter {
+        std::vector<Block_content::elem_id> elements;
+        uint64_t count = 0;
+
+        template_counter() {}
+
+        template_counter(const fds_template *tmplt) {
+            for (size_t idx = 0; idx < tmplt->fields_cnt_total; idx++) {
+                elements.emplace_back(tmplt->fields[idx].en, tmplt->fields[idx].id);
+            }
+        }
+    };
+
     /// Auxiliary structure that is unique for a combination of Transport Session and ODID
     struct odid_info {
         /// Template manager of the Data Records (will be stored as a Template Block)
@@ -119,6 +135,12 @@ private:
         uint16_t m_sid;
         /// IPFIX (Options) Template used during adding of the latest Data Record (can be nullptr)
         const fds_template *m_tmplt_last;
+
+        /// Auxillary template information
+        std::unordered_map<uint16_t, struct template_counter> m_tmplt_counters;
+
+        /// Auxillary element counter
+        std::unordered_map<Block_content::elem_id, uint64_t> m_elem_counters;
 
         /**
          * @brief Constructor
@@ -157,7 +179,8 @@ private:
     /// Mapping of Transport Sessions to internal IDs (just for faster Transport Session lookup)
     std::map<const Block_session *, uint16_t, block_session_cmp> m_session2id;
     /// List of IPFIX elements that were seen and the number of times they appeared in data records
-    std::map<std::pair<uint32_t, uint16_t>, uint64_t> m_elements;
+    //std::unordered_map<const struct fds_template *, template_info> m_templates;
+    //std::unordered_map<uint64_t, uint64_t> m_elements;
 
     /// Content Table
     Block_content m_ctable;
@@ -177,9 +200,9 @@ private:
     flush(odid_info *oinfo);
 
     void
-    update_elements_from_tmplt(const struct fds_template *tmplt);
+    count_elements_from_drec(const uint8_t *rec_data, uint16_t rec_size, const struct fds_template *tmplt);
     void
-    update_elements_from_drec(const uint8_t *rec_data, uint16_t rec_size, const struct fds_template *tmplt);
+    count_elements_from_nested(fds_drec_field &field);
 };
 
 } // namespace

@@ -130,11 +130,6 @@ File_writer::append_prepare()
         assert(m_session2id.size() == m_sessions.size() && "Number of records must be the same!");
     }
 
-    // Load all element counters
-    for (const struct Block_content::info_element &rec : m_ctable.get_elements()) {
-        m_elements[{rec.en, rec.id}] = rec.count;
-    }
-
     // Remove information about the Content Table because it will be overwritten
     file_hdr_set_ctable(0);
     file_hdr_store();
@@ -160,13 +155,21 @@ File_writer::flush_all()
             struct odid_info *oinfo = odid.second.get();
             // Flush Template Block (if modified) and Data Block (if not empty)
             flush(oinfo);
-        }
-    }
 
-    // For each of the elements seen
-    m_ctable.clear_elements();
-    for (const auto &p : m_elements) {
-        m_ctable.add_element(p.first.first, p.first.second, p.second);
+            // Flush element counters
+            for (const auto &p : oinfo->m_tmplt_counters) {
+                const struct template_counter &tcntr = p.second;
+                for (const auto &e_id : tcntr.elements) {
+                    m_ctable.add_element(e_id, tcntr.count);
+                }
+            }
+            oinfo->m_tmplt_counters.clear();
+
+            for (const auto &p : oinfo->m_elem_counters) {
+                m_ctable.add_element(p.first, p.second);
+            }
+            oinfo->m_elem_counters.clear();
+        }
     }
 }
 
@@ -382,7 +385,7 @@ File_writer::write_rec(uint16_t tid, const uint8_t *rec_data, uint16_t rec_size)
     // Extract statistics (bytes, packets, proto, etc)
     stats_update(rec_data, rec_size, tmplt);
     // Update element counters
-    update_elements_from_drec(rec_data, rec_size, tmplt);
+    count_elements_from_drec(rec_data, rec_size, tmplt);
 }
 
 void
@@ -404,9 +407,7 @@ File_writer::tmplt_add(enum fds_template_type t_type, const uint8_t *t_data, uin
         // Not defined
         m_selected->m_tblock_data.add(t_type, t_data, t_size);
         m_selected->m_tblock_offset = 0; // Make sure that the Template Block will be written later
-
-        update_elements_from_tmplt(m_selected->m_tblock_data.get(tid));
-
+        m_selected->m_tmplt_counters.emplace(tid, m_selected->m_tblock_data.get(tid));
         return;
     }
 
@@ -430,7 +431,15 @@ File_writer::tmplt_add(enum fds_template_type t_type, const uint8_t *t_data, uin
     m_selected->m_tblock_offset = 0;
     m_selected->m_tmplt_last = nullptr; // Just in case
 
-    update_elements_from_tmplt(m_selected->m_tblock_data.get(tid));
+    // Flush counters for the previous template
+    struct template_counter &tcntr = m_selected->m_tmplt_counters[tid];
+    for (const auto &eid : tcntr.elements) {
+        uint64_t &ecntr = m_selected->m_elem_counters[eid];
+        m_ctable.add_element(eid, tcntr.count + ecntr);
+        ecntr = 0;
+    }
+    // Set up a new counter
+    tcntr = template_counter(m_selected->m_tblock_data.get(tid));
 }
 
 void
@@ -485,41 +494,47 @@ File_writer::tmplt_get(uint16_t tid, enum fds_template_type *t_type, const uint8
 void
 File_writer::elements_list(struct fds_file_element **arr, size_t *size)
 {
-    *size = m_elements.size();
+    std::map<Block_content::elem_id, Block_content::info_element> elems = m_ctable.get_elements();
+
+    // For each Transport Session
+    for (auto &session : m_sessions) {
+        struct session_info *sinfo = session.second.get();
+
+        // For each ODID of the Transport Session
+        for (auto &odid : sinfo->m_odids) {
+            struct odid_info *oinfo = odid.second.get();
+
+            // Go through element counters and update the elems map
+            for (const auto &p : oinfo->m_tmplt_counters) {
+                const struct template_counter &tcntr = p.second;
+                for (const auto &e_id : tcntr.elements) {
+                    elems[e_id].count += tcntr.count;
+                }
+            }
+
+            for (const auto &p : oinfo->m_elem_counters) {
+                elems[p.first].count += p.second;
+            }
+        }
+    }
+
+    *size = elems.size();
     if (*size == 0) {
         *arr = nullptr;
         return;
     }
 
-    *arr = (struct fds_file_element *) malloc(sizeof(struct fds_file_element) * m_elements.size());
+    *arr = (struct fds_file_element *) malloc(sizeof(struct fds_file_element) * elems.size());
     if (!*arr) {
         throw std::bad_alloc();
     }
 
     size_t i = 0;
-    for (const auto &p : m_elements) {
-        (*arr)[i].en = p.first.first;
-        (*arr)[i].id = p.first.second;
-        (*arr)[i].count = p.second;
+    for (const auto &p : elems) {
+        (*arr)[i].en = p.first.en();
+        (*arr)[i].id = p.first.id();
+        (*arr)[i].count = p.second.count;
         i++;
-    }
-}
-
-/**
- * \brief Initialize element counters for new elements that are present in the template
- *
- * \param[in] tmplt  The template
- */
-void
-File_writer::update_elements_from_tmplt(const struct fds_template *tmplt)
-{
-    // Loop through the template fields and initialize the counter as we want to differentiate
-    // between a scenario where an element was seen in a template but was never used in a data
-    // record, in which case it exists but the counter is set to 0, and a scenario where the
-    // element hasn't even appeared in a template
-    for (uint16_t idx = 0; idx < tmplt->fields_cnt_total; idx++) {
-        //NOTE: When using insert on a map, the value is not inserted if the key already exists
-        m_elements.insert({{tmplt->fields[idx].en, tmplt->fields[idx].id}, 0});
     }
 }
 
@@ -530,67 +545,94 @@ File_writer::update_elements_from_tmplt(const struct fds_template *tmplt)
  * \param[in] tmplt     The template of the record
  */
 void
-File_writer::update_elements_from_drec(const uint8_t *rec_data, uint16_t rec_size, const struct fds_template *tmplt)
+File_writer::count_elements_from_drec(const uint8_t *rec_data, uint16_t rec_size, const struct fds_template *tmplt)
 {
     if (!tmplt) {
         throw File_exception(FDS_ERR_NOTFOUND, "IPFIX (Options) Template not defined");
     }
 
-    struct fds_drec drec = {const_cast<uint8_t *>(rec_data), rec_size, tmplt, nullptr};
+    if (!(tmplt->flags & FDS_TFIELD_STRUCT)) {
+        // Record does not contain any nested templates
+        m_selected->m_tmplt_counters[tmplt->id].count++;
 
-    struct fds_drec_iter iter;
-    fds_drec_iter_init(&iter, &drec, 0);
+    } else {
+        struct fds_drec drec = {const_cast<uint8_t *>(rec_data), rec_size, tmplt, nullptr};
 
-    while ((fds_drec_iter_next(&iter)) != FDS_EOC) {
-        // Increase the number of times this field has been seen
-        m_elements[{iter.field.info->en, iter.field.info->id}]++;
+        struct fds_drec_iter iter;
+        fds_drec_iter_init(&iter, &drec, 0);
 
-        if (!iter.field.info->def) {
-            // Cannot check for subTemplateList if the element definition is missing
-            continue;
-        }
-
-        // If it's a subTemplateList or subTemplateMultilist, go through the nested records and
-        // call this function recursively so even the nested fields get counted
-        if (iter.field.info->def->data_type == FDS_ET_SUB_TEMPLATE_LIST) {
-            struct fds_stlist_iter stlist_iter;
-            fds_stlist_iter_init(&stlist_iter, &iter.field, m_selected->m_tblock_data.snapshot(), 0);
-
-            int rc;
-
-            while ((rc = fds_stlist_iter_next(&stlist_iter)) == FDS_OK) {
-                update_elements_from_drec(stlist_iter.rec.data,
-                                          stlist_iter.rec.size,
-                                          stlist_iter.rec.tmplt);
-            }
-
-            if (rc != FDS_EOC) {
-                // Iterator failed
-                throw File_exception(rc, fds_stlist_iter_err(&stlist_iter));
-            }
-
-        } else if (iter.field.info->def->data_type == FDS_ET_SUB_TEMPLATE_MULTILIST) {
-            struct fds_stmlist_iter stmlist_iter;
-            fds_stmlist_iter_init(&stmlist_iter, &iter.field, m_selected->m_tblock_data.snapshot(), 0);
-
-            int rc;
-
-            while ((rc = fds_stmlist_iter_next_block(&stmlist_iter)) == FDS_OK) {
-                while ((rc = fds_stmlist_iter_next_rec(&stmlist_iter)) == FDS_OK) {
-                    update_elements_from_drec(stmlist_iter.rec.data,
-                                              stmlist_iter.rec.size,
-                                              stmlist_iter.rec.tmplt);
-                }
-
-                if (rc != FDS_EOC) {
-                    break;
-                }
-            }
-
-            if (rc != FDS_EOC) {
-                // Iterator failed
-                throw File_exception(rc, fds_stmlist_iter_err(&stmlist_iter));
-            }
+        while ((fds_drec_iter_next(&iter)) != FDS_EOC) {
+            count_elements_from_nested(iter.field);
         }
     }
+}
+
+/**
+ * \brief Increase element counters for the elements which appear in the field
+ * \param[in] field  The field
+ */
+void
+File_writer::count_elements_from_nested(fds_drec_field &field)
+{
+    if (!field.info->def) {
+        // Nothing to do if the def is missing as we cannot check for nested
+        return;
+    }
+
+    int rc;
+
+    // If it's a basicList or subTemplateList or subTemplateMultilist, go through the nested records and
+    // call this function recursively so even the nested fields get counted
+    if (field.info->def->data_type == FDS_ET_BASIC_LIST) {
+        fds_blist_iter blist_iter;
+        fds_blist_iter_init(&blist_iter, &field, m_iemgr);
+
+        // The list elements have to be counted seperately as a special case as we cannot count a whole template
+        uint64_t &elem_counter = m_selected->m_elem_counters[{blist_iter.field.info->en, blist_iter.field.info->id}];
+        while ((rc = fds_blist_iter_next(&blist_iter)) == FDS_OK) {
+            elem_counter++;
+            count_elements_from_nested(blist_iter.field);
+        }
+
+
+        if (rc != FDS_EOC) {
+            // Iterator failed
+            throw File_exception(rc, fds_blist_iter_err(&blist_iter));
+        }
+
+
+    } else if (field.info->def->data_type == FDS_ET_SUB_TEMPLATE_LIST) {
+        struct fds_stlist_iter stlist_iter;
+        fds_stlist_iter_init(&stlist_iter, &field, m_selected->m_tblock_data.snapshot(), 0);
+
+        while ((rc = fds_stlist_iter_next(&stlist_iter)) == FDS_OK) {
+            count_elements_from_drec(stlist_iter.rec.data, stlist_iter.rec.size, stlist_iter.rec.tmplt);
+        }
+
+        if (rc != FDS_EOC) {
+            // Iterator failed
+            throw File_exception(rc, fds_stlist_iter_err(&stlist_iter));
+        }
+
+    } else if (field.info->def->data_type == FDS_ET_SUB_TEMPLATE_MULTILIST) {
+        struct fds_stmlist_iter stmlist_iter;
+        fds_stmlist_iter_init(&stmlist_iter, &field, m_selected->m_tblock_data.snapshot(), 0);
+
+        while ((rc = fds_stmlist_iter_next_block(&stmlist_iter)) == FDS_OK) {
+            while ((rc = fds_stmlist_iter_next_rec(&stmlist_iter)) == FDS_OK) {
+                count_elements_from_drec(stmlist_iter.rec.data, stmlist_iter.rec.size, stmlist_iter.rec.tmplt);
+            }
+
+            if (rc != FDS_EOC) {
+                break;
+            }
+        }
+
+        if (rc != FDS_EOC) {
+            // Iterator failed
+            throw File_exception(rc, fds_stmlist_iter_err(&stmlist_iter));
+        }
+
+    }
+
 }

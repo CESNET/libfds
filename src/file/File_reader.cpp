@@ -613,10 +613,10 @@ File_reader::elements_list(struct fds_file_element **arr, size_t *size)
     }
 
     size_t i = 0;
-    for (const auto &elem : elements) {
-        (*arr)[i].en = elem.en;
-        (*arr)[i].id = elem.id;
-        (*arr)[i].count = elem.count;
+    for (const auto &p : elements) {
+        (*arr)[i].en = p.first.en();
+        (*arr)[i].id = p.first.id();
+        (*arr)[i].count = p.second.count;
         i++;
     }
 }

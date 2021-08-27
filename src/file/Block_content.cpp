@@ -52,14 +52,13 @@ Block_content::add_data_block(uint64_t offset, uint64_t len, uint64_t tmplt_offs
 }
 
 void
-Block_content::add_element(uint32_t en, uint16_t id, uint64_t count)
+Block_content::add_element(elem_id eid, uint64_t count)
 {
     if (m_dblocks.size() + 1 > UINT32_MAX) {
         throw File_exception(FDS_ERR_INTERNAL, "Too many Elements (over limit)");
     }
 
-    struct info_element element = {en, id, count};
-    m_elements.emplace_back(element);
+    m_elements[eid].count += count;
 }
 
 void
@@ -237,11 +236,11 @@ Block_content::write_elements(int fd, off_t offset)
     ptr->rec_cnt = htole32(static_cast<uint32_t>(m_elements.size()));
 
     uint32_t idx = 0;
-    for (const auto &rec_orig : m_elements) {
+    for (const auto &p : m_elements) {
         struct fds_file_ctable_element_rec *rec2fill = &ptr->recs[idx++];
-        rec2fill->en = htole32(rec_orig.en);
-        rec2fill->id = htole16(rec_orig.id);
-        rec2fill->count = htole64(rec_orig.count);
+        rec2fill->en = htole32(p.first.en());
+        rec2fill->id = htole16(p.first.id());
+        rec2fill->count = htole64(p.second.count);
     }
 
     // Write the section
@@ -420,19 +419,9 @@ Block_content::read_elements(const uint8_t *bdata, size_t bsize, uint64_t rel_of
 
     for (size_t i = 0; i < rec_cnt; ++i) {
         const struct fds_file_ctable_element_rec *rec_ptr = &ptr->recs[i];
-        add_element(
-            le32toh(rec_ptr->en),
-            le16toh(rec_ptr->id),
-            le64toh(rec_ptr->count)
-        );
+        add_element({le32toh(rec_ptr->en), le16toh(rec_ptr->id)}, le64toh(rec_ptr->count));
     }
 
     return section_size;
-}
-
-void
-Block_content::clear_elements()
-{
-    m_elements.clear();
 }
 

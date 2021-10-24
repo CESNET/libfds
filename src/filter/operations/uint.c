@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -149,7 +149,7 @@ void
 uint_in_list(fds_filter_value_u *item, fds_filter_value_u *list, fds_filter_value_u *result)
 {
     result->b = false;
-    for (int i = 0; i < list->list.len; i++) {
+    for (uint64_t i = 0; i < list->list.len; i++) {
         if (list->list.items[i].u == item->u) {
             result->b = true;
             return;

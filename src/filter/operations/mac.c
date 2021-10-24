@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,7 +65,7 @@ void
 mac_in_list(fds_filter_value_u *item, fds_filter_value_u *list, fds_filter_value_u *result)
 {
     result->b = false;
-    for (int i = 0; i < list->list.len; i++) {
+    for (uint64_t i = 0; i < list->list.len; i++) {
         if (mac_equals(&list->list.items[i].mac, &item->mac)) {
             result->b = true;
             return;
@@ -80,8 +80,9 @@ cast_mac_list_to_bool(fds_filter_value_u *operand, fds_filter_value_u *result)
 }
 
 void
-cast_mac_to_bool(fds_filter_value_u *_1, fds_filter_value_u *_2, fds_filter_value_u *result)
+cast_mac_to_bool(fds_filter_value_u *_1, fds_filter_value_u *result)
 {
+    (void) _1;
     result->b = true; // ??
 }
 

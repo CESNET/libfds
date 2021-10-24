@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -167,7 +167,7 @@ void
 int_in_list(fds_filter_value_u *item, fds_filter_value_u *list, fds_filter_value_u *result)
 {
     result->b = false;
-    for (int i = 0; i < list->list.len; i++) {
+    for (uint64_t i = 0; i < list->list.len; i++) {
         if (list->list.items[i].i == item->i) {
             result->b = true;
             return;
@@ -187,7 +187,7 @@ destroy_int_list(fds_filter_value_u *operand)
     free(operand->list.items);
 }
 
-extern const fds_filter_op_s int_operations[] = {
+const fds_filter_op_s int_operations[] = {
     FDS_FILTER_DEF_UNARY_OP("-", FDS_FDT_INT, neg_int, FDS_FDT_INT),
     FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "+", FDS_FDT_INT, add_int, FDS_FDT_INT),
     FDS_FILTER_DEF_BINARY_OP(FDS_FDT_INT, "-", FDS_FDT_INT, sub_int, FDS_FDT_INT),
@@ -217,6 +217,6 @@ extern const fds_filter_op_s int_operations[] = {
     FDS_FILTER_DEF_CAST(FDS_FDT_INT | FDS_FDT_LIST, cast_int_list_to_bool, FDS_FDT_BOOL),
 
     FDS_FILTER_DEF_DESTRUCTOR(FDS_FDT_INT | FDS_FDT_LIST, destroy_int_list),
-    
+
     FDS_FILTER_END_OP_LIST
 };

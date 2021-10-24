@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without

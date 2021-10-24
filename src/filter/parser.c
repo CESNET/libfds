@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -296,7 +296,7 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
 
         // remainder of the name has to follow
         if (!token_is(token, TK_NAME)) {
-            return LEXICAL_ERROR(scanner, "expected name");
+            return LEXICAL_ERROR(cursor_begin, "expected name");
         }
 
         consume_token(scanner);
@@ -405,7 +405,7 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
             fds_filter_ast_node_s *expr;
             err = parse_infix_expr(scanner, o->prec + 1, &expr);
             if (err != NO_ERROR) {
-    
+
                 return err;
             }
 
@@ -480,7 +480,7 @@ parse_filter(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
 
     if (!token_is(token, TK_END)) {
         destroy_ast(ast);
-        return LEXICAL_ERROR(scanner, "expected end of input");
+        return LEXICAL_ERROR(token.cursor_begin, "expected end of input");
     }
 
     fds_filter_ast_node_s *root_node = create_unary_ast_node("__root__", ast);

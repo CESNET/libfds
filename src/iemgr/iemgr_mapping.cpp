@@ -36,6 +36,7 @@ mapping_destroy(fds_iemgr_mapping *m)
     }
     free(m->items);
     free(m->elems);
+    free(m);
 }
 
 static bool
@@ -93,14 +94,14 @@ mapping_copy(fds_iemgr_mapping *m)
 {
     auto holder = unique_mapping(mapping_create(), &::mapping_destroy);
     fds_iemgr_mapping *m_new = holder.get();
-    
+
     m_new->name = strdup(m->name);
     if (m_new->name == nullptr) {
         return nullptr;
     }
-    
+
     m_new->key_case_sensitive = m->key_case_sensitive;
-    
+
     for (size_t i = 0; i < m->items_cnt; i++) {
         fds_iemgr_mapping_item item;
         if (!mapping_item_copy(&m->items[i], &item)) {
@@ -118,7 +119,7 @@ mapping_copy(fds_iemgr_mapping *m)
     }
     m_new->elems_cnt = m->elems_cnt;
 
-    return holder.release();    
+    return holder.release();
 }
 
 static void
@@ -134,6 +135,7 @@ mapping_migrate_elems(fds_iemgr *mgr, fds_iemgr_mapping *m)
 static int
 mapping_save_to_mgr(fds_iemgr *mgr, fds_iemgr_mapping *m)
 {
+    mgr->mappings.push_back(m);
     for (size_t i = 0; i < m->elems_cnt; i++) {
         if (!element_add_mapping_ref(m->elems[i], m)) {
             mgr->err_msg = ERRMSG_NOMEM;
@@ -202,16 +204,16 @@ const struct fds_iemgr_mapping_item *
 find_mapping_in_elem(const fds_iemgr_elem *elem, const char *key)
 {
     for (size_t i = 0; i < elem->mappings_cnt; i++) {
-        fds_iemgr_mapping *mapping = elem->mappings[i]; 
+        fds_iemgr_mapping *mapping = elem->mappings[i];
         for (size_t j = 0; j < mapping->items_cnt; j++) {
             if (mapping->key_case_sensitive) {
                 if (strcmp(mapping->items[j].key, key) == 0) {
                     return &mapping->items[j];
-                }                
+                }
             } else {
                 if (strcasecmp(mapping->items[j].key, key) == 0) {
                     return &mapping->items[j];
-                }                
+                }
             }
         }
     }
@@ -333,7 +335,7 @@ create_parser(fds_iemgr_t *mgr)
         fds_xml_destroy(parser);
         return nullptr;
     }
-    
+
     return parser;
 }
 
@@ -368,7 +370,7 @@ read_mapping(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx)
             rc = read_item_list(mgr, cont->ptr_ctx, mapping.get());
             if (rc != FDS_OK) {
                 return rc;
-            }  
+            }
             break;
         }
     }
@@ -422,7 +424,7 @@ read_item(fds_iemgr_t *mgr, fds_xml_ctx_t *xml_ctx, fds_iemgr_mapping *mapping)
                 return FDS_ERR_FORMAT;
             }
             if (!check_valid_name(cont->ptr_string)) {
-                mgr->err_msg = 
+                mgr->err_msg =
                     "Invalid characters in item key '" + std::string(cont->ptr_string) + "'. "
                     "Key names must only consist of alphanumeric characters and underscores "
                     "and must not begin with a number.";

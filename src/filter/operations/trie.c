@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ ip_list_to_trie(fds_filter_value_u *val, fds_filter_value_u *res)
     if (!trie) {
         return FDS_ERR_NOMEM;
     }
-    for (int i = 0; i < val->list.len; i++) {
+    for (uint64_t i = 0; i < val->list.len; i++) {
         int ret = fds_trie_add(trie, val->list.items[i].ip.version, val->list.items[i].ip.addr, val->list.items[i].ip.prefix);
         if (!ret) {
             return FDS_ERR_NOMEM;

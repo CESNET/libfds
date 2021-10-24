@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -95,7 +95,7 @@ void
 str_in_list(fds_filter_value_u *item, fds_filter_value_u *list, fds_filter_value_u *result)
 {
     result->b = false;
-    for (int i = 0; i < list->list.len; i++) {
+    for (uint64_t i = 0; i < list->list.len; i++) {
         if (str_equals(&item->str, &list->list.items[i].str)) {
             result->b = true;
             return;
@@ -112,7 +112,7 @@ destroy_str_(fds_filter_value_u *operand)
 void
 destroy_list_of_str(fds_filter_value_u *operand)
 {
-    for (int i = 0; i < operand->list.len; i++) {
+    for (uint64_t i = 0; i < operand->list.len; i++) {
         free(operand->list.items[i].str.chars);
     }
     free(operand->list.items);

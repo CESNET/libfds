@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@
 
 /**
  * Deletes all references to a value from a eval tree
- * 
+ *
  * \param value the value
  * \param tree  the eval tree
  */
@@ -61,21 +61,21 @@ delete_value_from_et(fds_filter_value_u *value, eval_node_s *tree)
     }
     delete_value_from_et(value, tree->left);
     delete_value_from_et(value, tree->right);
-    
+
     // if the value matches by value zero it out
     if (memcmp(&tree->value, value, sizeof(fds_filter_value_u)) == 0) {
-        tree->value = (fds_filter_value_u){};
+        tree->value = (fds_filter_value_u){0};
     }
 }
 
 /**
  * Generate and evaluate an AST once and return the resulting value of its root
- * 
+ *
  * \param[in] ast       the AST
  * \param[in] opts      the filter opts
  * \param[out] out_val  the resulting value
  * \return error type
- */ 
+ */
 static error_t
 ast_to_literal(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, fds_filter_value_u *out_val)
 {
@@ -85,10 +85,10 @@ ast_to_literal(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, fds_filter_v
         return err;
     }
 
-    eval_runtime_s runtime = {};
+    eval_runtime_s runtime = {0};
     evaluate_eval_tree(root, &runtime); // Evaluation cannot fail
 
-    *out_val = root->value; // Copy the value 
+    *out_val = root->value; // Copy the value
     delete_value_from_et(out_val, root); // Delete it so it doesn't get destructed
 
     destroy_eval_tree(root);
@@ -98,7 +98,7 @@ ast_to_literal(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, fds_filter_v
 
 /**
  * Destroy a value by calling its destructor function if it has any
- * 
+ *
  * \param op_list   the list of operations
  * \param datatype  the data type of the value
  * \param value     pointer to the value to destruct
@@ -114,7 +114,7 @@ call_destructor_for_value(fds_filter_op_s *op_list, int datatype, fds_filter_val
 
 /**
  * Properly destruct a partially constructed list that hasn't been finished due to an error
- * 
+ *
  * \param op_list    the list of operations
  * \param item_dt    the datatype of the list items
  * \param items      the list items
@@ -134,13 +134,13 @@ call_destructor_for_list_items(fds_filter_op_s *op_list, int item_dt, fds_filter
 
 /**
  * Convert an AST linked list to a real list
- * 
+ *
  * \param[in]  ast       the ast node of the linked list
  * \param[in]  opts      the filter options
  * \param[in]  env       the eval env
  * \param[out] out_list  the resulting list
  * \return error type
- */  
+ */
 static error_t
 list_to_literal(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, fds_filter_list_t *out_list)
 {
@@ -208,7 +208,7 @@ process_root_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool seco
         destroy_eval_tree(child);
         return MEMORY_ERROR;
     }
-    en->opcode = EVAL_OP_ANY;   
+    en->opcode = EVAL_OP_ANY;
     IF_DEBUG(en->datatype = FDS_FDT_BOOL;)
     en->child = child;
     child->parent = en;
@@ -331,7 +331,7 @@ process_literal_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool s
  */
 static error_t
 process_list_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
-{   
+{
     eval_node_s *en = create_eval_node();
     if (!en) {
         return MEMORY_ERROR;
@@ -418,7 +418,7 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool sec
             return err;
         }
         en->child->parent = en;
-        fds_filter_op_s *op = find_op(opts->op_list, "__cast__", ast->datatype, ast->child->datatype, FDS_FDT_NONE); 
+        fds_filter_op_s *op = find_op(opts->op_list, "__cast__", ast->datatype, ast->child->datatype, FDS_FDT_NONE);
         en->cast_fn = op->cast_fn;
         IF_DEBUG(
         en->operation = op;
@@ -454,7 +454,7 @@ process_fcall_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool sec
         en->datatype = ast->datatype;
         )
     }
-    
+
     *out_eval_node = en;
     return NO_ERROR;
 }
@@ -464,7 +464,7 @@ generate_eval_tree(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool sec
 {
     if (!second_run) {
         // Optimize away constant subtrees into a literal
-        if (ast->flags & FDS_FAF_CONST_SUBTREE 
+        if (ast->flags & FDS_FAF_CONST_SUBTREE
                 && (ast->parent == NULL || !(ast->parent->flags & FDS_FAF_CONST_SUBTREE))) {
             eval_node_s *en = create_eval_node();
             if (!en) {

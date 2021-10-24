@@ -4,8 +4,8 @@
  * \brief Common AST functions file
  * \date 2020
  */
- 
-/* 
+
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -158,7 +158,7 @@ print_ast_nodes_recursively(FILE *out, fds_filter_ast_node_s *ast, int depth)
         fprintf(out, " (destroy value)");
     }
 
-    fprintf(out, ", ptr: %p, parent: %p", ast, ast->parent);
+    fprintf(out, ", ptr: %p, parent: %p", (void *) ast, (void *) ast->parent);
 
     if (ast->left || ast->right) {
         fprintf(out, "\n");

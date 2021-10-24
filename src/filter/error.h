@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -56,8 +56,8 @@
 
 typedef fds_filter_error_s *error_t;
 
-extern const error_t NO_ERROR;
-extern const error_t MEMORY_ERROR;
+extern error_t const NO_ERROR;
+extern error_t const MEMORY_ERROR;
 
 error_t
 error_create_variadic(int code, const char *fmt, va_list args);

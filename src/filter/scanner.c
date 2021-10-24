@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -113,7 +113,7 @@ is_bin_digit(char c)
 static bool
 is_oct_digit(char c)
 {
-    return c >= '0' && c <= '8'; 
+    return c >= '0' && c <= '8';
 }
 
 static bool
@@ -135,7 +135,7 @@ scan_ipv4_octet(const char **cursor, uint8_t *out_value, bool *out_overflow)
     if (!isdigit(*c)) {
         return false;
     }
-    
+
     value = *c - '0';
     c++;
 
@@ -190,7 +190,7 @@ scan_ipv4_address(const char **cursor, struct token_s *out_token, error_t *out_e
             c++;
         }
     }
-  
+
     // Optional prefix
     if (*c != '/') {
         goto end;
@@ -227,7 +227,7 @@ end:
     token.cursor_end = c;
     *out_token = token;
     *cursor = c;
-    return true;    
+    return true;
 }
 
 static uint8_t
@@ -295,7 +295,7 @@ scan_ipv6_address(const char **cursor, struct token_s *out_token, error_t *out_e
                 *out_error = LEXICAL_ERROR(c, "expected hextet in ipv6 address");
                 return true;
             } else {
-                // the address ends with :: 
+                // the address ends with ::
                 break;
             }
         }
@@ -354,7 +354,7 @@ scan_ipv6_address(const char **cursor, struct token_s *out_token, error_t *out_e
     }
     prefix = *c - '0';
     c++;
-    
+
     // The following digits if any
     if (!isdigit(*c)) {
         goto end;
@@ -474,7 +474,7 @@ scan_string(const char **cursor, struct token_s *out_token, error_t *out_error)
     int idx = 0;
     int capacity = 32; // Arbitary starting capacity
     str.chars = malloc(capacity);
-    if (!str.chars) { 
+    if (!str.chars) {
         *out_error = MEMORY_ERROR;
         return true;
     }
@@ -486,7 +486,7 @@ scan_string(const char **cursor, struct token_s *out_token, error_t *out_error)
             *out_error = LEXICAL_ERROR(c, "unterminated string");
             return true;
         }
-        
+
         if (str.len == capacity) {
             capacity *= 2;
             void *tmp = realloc(str.chars, capacity);
@@ -543,7 +543,7 @@ scan_string(const char **cursor, struct token_s *out_token, error_t *out_error)
                 str.len++;
             }
         } else {
-            str.chars[str.len] = *c; 
+            str.chars[str.len] = *c;
             str.len++;
             c++;
         }
@@ -593,7 +593,7 @@ static bool
 scan_name(const char **cursor, struct token_s *out_token, error_t *out_error)
 {
     const char *c = *cursor;
-    
+
     if (!isalpha(*c)) {
         return false;
     }
@@ -601,7 +601,7 @@ scan_name(const char **cursor, struct token_s *out_token, error_t *out_error)
     while (*c && (isalnum(*c) || strchr(":@-._", *c))) {
         c++;
     }
-    
+
     int name_len = c - *cursor;
     char *name = malloc(name_len + 1);
     if (!name) {
@@ -677,7 +677,7 @@ scan_number(const char **cursor, struct token_s *out_token, error_t *out_error)
         *out_token = token;
         *out_error = NO_ERROR;
         return true;
-    
+
     // Number literal
     } else {
         bool is_float = false;
@@ -699,7 +699,7 @@ scan_number(const char **cursor, struct token_s *out_token, error_t *out_error)
             c++;
             while (isdigit(*c)) {
                 any_digit = true;
-                dp_value += (*c - '0') / dp_div; 
+                dp_value += (*c - '0') / dp_div;
                 dp_div *= 10;
                 c++;
             }
@@ -897,7 +897,6 @@ scan_datetime(const char **cursor, struct token_s *out_token, error_t *out_error
         is_localtime = true;
     }
 
-end: ;
     struct tm t = {
         .tm_year = year - 1900, // tm_year -> years since 1900
         .tm_mon = month - 1, // tm_mon -> months since january
@@ -958,7 +957,7 @@ scan_bool(const char **cursor, struct token_s *out_token, error_t *out_error)
 
 typedef bool (scan_func_t)(const char **cursor, struct token_s *out_token, error_t *out_error);
 
-const scan_func_t *scan_funcs[] = {
+scan_func_t * const scan_funcs[] = {
     scan_symbol,
     scan_ipv4_address,
     scan_ipv6_address,
@@ -991,8 +990,8 @@ scan_token(const char **cursor, struct token_s *out_token, error_t *out_best_err
     bool any_success = false;
     for (int i = 0; i < CONST_ARR_SIZE(scan_funcs); i++) {
         const char *c = *cursor;
-        struct token_s token;
-        error_t err;
+        struct token_s token = {0};
+        error_t err = NO_ERROR;
         bool match = scan_funcs[i](&c, &token, &err);
         if (!match) {
             continue;
@@ -1009,7 +1008,7 @@ scan_token(const char **cursor, struct token_s *out_token, error_t *out_best_err
                 }
             } else {
                 best_token = token;
-                any_success = true;        
+                any_success = true;
             }
         } else {
             if (best_err == NO_ERROR) {
@@ -1056,7 +1055,7 @@ is_not_word_symbol(const char *s)
 static bool
 whitespace_or_end_follows(struct token_s *token)
 {
-    return isspace(token->cursor_end) || token->cursor_end == '\0';
+    return isspace(token->cursor_end) || *token->cursor_end == '\0';
 }
 
 
@@ -1097,7 +1096,7 @@ next_token(struct scanner_s *scanner, struct token_s *out_token)
     // <any token><no whitespace><symbol without letters>
     // <symbol without letters><no whitespace><any token>
     // <any token><end of input>
-    bool valid_token_pair = 
+    bool valid_token_pair =
         (isspace(*token.cursor_end) || *token.cursor_end == '\0') // Whitespace or end follows the first token
         || (token.kind == TK_SYMBOL && is_not_word_symbol(token.symbol)) // First token is a non-word symbol
         || (next_token.kind == TK_SYMBOL && is_not_word_symbol(next_token.symbol)); // Second token is a non-word symbol

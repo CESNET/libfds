@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,8 +44,8 @@
 
 const fds_filter_error_s memory_error = { .code = FDS_ERR_NOMEM, .msg = "out of memory" };
 
-const error_t NO_ERROR = NULL;
-const error_t MEMORY_ERROR = &memory_error;
+error_t const NO_ERROR = NULL;
+error_t const MEMORY_ERROR = &memory_error;
 
 error_t
 error_create_variadic(int code, const char *fmt, va_list args)
@@ -54,7 +54,7 @@ error_create_variadic(int code, const char *fmt, va_list args)
     va_copy(args_, args);
     size_t msg_len = vsnprintf(NULL, 0, fmt, args_);
     error_t err = malloc(sizeof(fds_filter_error_s));
-    if (!err) { 
+    if (!err) {
         va_end(args_);
         return MEMORY_ERROR;
     }

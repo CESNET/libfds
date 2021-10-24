@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,6 @@ typedef struct fds_filter_opts {
 } fds_filter_opts_t;
 
 fds_filter_opts_t *
-fds_filter_opts_copy(fds_filter_opts_t *original_opts);
+fds_filter_opts_copy(const fds_filter_opts_t *original_opts);
 
 #endif // FDS_FILTER_OPTS_H

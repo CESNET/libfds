@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -165,8 +165,8 @@ print_eval_tree_rec(FILE *out, eval_node_s *node, int indent_level)
     fprintf(out, "data type: %s, value: ", data_type_to_str(node->datatype));
 
     print_value(out, node->datatype, &node->value);
-    if (node->opcode == EVAL_OP_UNARY_CALL 
-        || node->opcode == EVAL_OP_BINARY_CALL 
+    if (node->opcode == EVAL_OP_UNARY_CALL
+        || node->opcode == EVAL_OP_BINARY_CALL
         || node->opcode == EVAL_OP_CAST_CALL) {
         fprintf(out, ", ");
         print_operation(out, node->operation);

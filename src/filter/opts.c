@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -94,7 +94,7 @@ print_op_list(FILE *out, fds_filter_op_s *op_list)
 }
 
 static inline int
-op_list_count(fds_filter_op_s *op_list)
+op_list_count(const fds_filter_op_s *op_list)
 {
     if (!op_list) {
         return 0;
@@ -117,7 +117,7 @@ fds_filter_opts_add_op(fds_filter_opts_t *opts, fds_filter_op_s op)
     opts->op_list = tmp;
     memmove(opts->op_list + 1, opts->op_list, cnt * sizeof(fds_filter_op_s));
     opts->op_list[0] = op;
-    return opts->op_list; 
+    return opts->op_list;
 }
 
 fds_filter_op_s *
@@ -154,28 +154,28 @@ fds_filter_create_default_opts()
     opts->op_list[0] = (fds_filter_op_s) FDS_FILTER_END_OP_LIST;
 
     if (!fds_filter_opts_extend_ops(opts, int_operations)) {
-        goto error;    
+        goto error;
     }
     if (!fds_filter_opts_extend_ops(opts, uint_operations)) {
-        goto error;    
+        goto error;
     }
     if (!fds_filter_opts_extend_ops(opts, float_operations)) {
-        goto error;    
+        goto error;
     }
     if (!fds_filter_opts_extend_ops(opts, str_operations)) {
-        goto error;    
+        goto error;
     }
     if (!fds_filter_opts_extend_ops(opts, ip_operations)) {
-        goto error;    
+        goto error;
     }
     if (!fds_filter_opts_extend_ops(opts, mac_operations)) {
-        goto error;    
+        goto error;
     }
     if (!fds_filter_opts_extend_ops(opts, flags_operations)) {
-        goto error;    
+        goto error;
     }
     if (!fds_filter_opts_extend_ops(opts, trie_operations)) {
-        goto error;    
+        goto error;
     }
 
     return opts;
@@ -186,7 +186,7 @@ error:
 }
 
 fds_filter_opts_t *
-fds_filter_opts_copy(fds_filter_opts_t *original_opts)
+fds_filter_opts_copy(const fds_filter_opts_t *original_opts)
 {
     fds_filter_opts_t *opts = malloc(sizeof(fds_filter_opts_t));
     *opts = *original_opts;

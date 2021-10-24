@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -116,7 +116,7 @@ static inline void
 print_str(FILE *out, fds_filter_str_t *str)
 {
     fputc('"', out);
-    for (int i = 0; i < str->len; i++) {
+    for (uint64_t i = 0; i < str->len; i++) {
         fputc(str->chars[i], out);
     }
     fputc('"', out);
@@ -151,7 +151,7 @@ print_value(FILE *out, int data_type, fds_filter_value_u *value)
 {
     if (data_type & FDS_FDT_LIST) {
         fprintf(out, "[ ");
-        for (int i = 0; i < value->list.len; i++) {
+        for (uint64_t i = 0; i < value->list.len; i++) {
             print_value(out, data_type & ~FDS_FDT_LIST, &value->list.items[i]);
             fprintf(out, (i < value->list.len - 1) ? ", " : "");
         }
@@ -187,7 +187,7 @@ static inline void
 destroy_list(int data_type, fds_filter_list_t *list)
 {
     if (data_type == (FDS_FDT_LIST | FDS_FDT_STR)) {
-        for (int i = 0; i < list->len; i++) {
+        for (uint64_t i = 0; i < list->len; i++) {
             destroy_str(&list->items[i].str);
         }
     }
@@ -200,7 +200,7 @@ destroy_value(int data_type, fds_filter_value_u *value)
     if (data_type & FDS_FDT_LIST) {
         destroy_list(data_type, &value->list);
     } else if (data_type == FDS_FDT_STR) {
-        destroy_str(value);
+        destroy_str(&value->str);
     }
 }
 

@@ -511,7 +511,7 @@ element_add_alias_ref(fds_iemgr_elem *elem, fds_iemgr_alias *alias)
     return true;
 }
 
-int
+bool
 element_add_mapping_ref(fds_iemgr_elem *elem, fds_iemgr_mapping *mapping)
 {
     fds_iemgr_mapping **ref = array_push(&elem->mappings, &elem->mappings_cnt);

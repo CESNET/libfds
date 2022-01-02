@@ -42,7 +42,7 @@
 
 #include "error.h"
 
-const fds_filter_error_s memory_error = { .code = FDS_ERR_NOMEM, .msg = "out of memory" };
+fds_filter_error_s memory_error = { .code = FDS_ERR_NOMEM, .msg = "out of memory" };
 
 error_t const NO_ERROR = NULL;
 error_t const MEMORY_ERROR = &memory_error;

@@ -425,6 +425,10 @@ TEST_F(Filter, vars) {
     fds_filter_opts_set_lookup_cb(opts,
     [](void *user_ctx, const char *name, const char *other_name, int *out_id, int *out_datatype, int *out_flags) -> int
     {
+        (void) user_ctx;
+        (void) other_name;
+        (void) out_flags;
+
         if (strcmp(name, "ip") == 0) {
             *out_id = 1;
             *out_datatype = FDS_FDT_IP;
@@ -450,11 +454,15 @@ TEST_F(Filter, vars) {
     fds_filter_opts_set_const_cb(opts,
     [](void *user_ctx, int id, fds_filter_value_u *out_value) -> void
     {
-
+        (void) user_ctx;
+        (void) id;
+        (void) out_value;
     });
     fds_filter_opts_set_data_cb(opts,
     [](void *user_ctx, bool reset_ctx, int id, void *data, fds_filter_value_u *out_value) -> int
     {
+        (void) data;
+
         int *n = static_cast<int *>(user_ctx);
         if (reset_ctx) {
             *n = 0;

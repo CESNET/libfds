@@ -84,6 +84,7 @@ dummy_data_callback(void *user_ctx, bool reset_ctx, int id, void *data, fds_filt
     return FDS_ERR_NOTFOUND;
 }
 
+/*
 static void
 print_op_list(FILE *out, fds_filter_op_s *op_list)
 {
@@ -92,6 +93,7 @@ print_op_list(FILE *out, fds_filter_op_s *op_list)
         fprintf(out, "\n");
     }
 }
+*/
 
 static inline int
 op_list_count(const fds_filter_op_s *op_list)

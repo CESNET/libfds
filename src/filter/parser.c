@@ -112,7 +112,7 @@ const char *name_prefixes[] = {
 static bool
 token_is_name_prefix(struct token_s token)
 {
-    for (int i = 0; i < CONST_ARR_SIZE(name_prefixes); i++) {
+    for (size_t i = 0; i < CONST_ARR_SIZE(name_prefixes); i++) {
         if (token_is_symbol(token, name_prefixes[i])) {
             return true;
         }
@@ -124,7 +124,7 @@ token_is_name_prefix(struct token_s token)
 struct operator_s *
 find_operator(enum op_kind_e kind, const char *symbol)
 {
-    for (int i = 0; i < CONST_ARR_SIZE(op_parse_def_table); i++) {
+    for (size_t i = 0; i < CONST_ARR_SIZE(op_parse_def_table); i++) {
         struct operator_s *o = &op_parse_def_table[i];
         if (o->kind == kind && strcmp(o->symbol, symbol) == 0) {
             return o;
@@ -193,9 +193,9 @@ parse_infix_expr(struct scanner_s *scanner, int prec, fds_filter_ast_node_s **ou
             // we want the recursive parse call to only match the 2 and leave the next + to end up with a parse tree:
             //
             //                                     (+) <-- the call one level above in the recursive call tree is creating this node
-            //                                    /    \
+            //                                    /    \                                                                            .
             //   we are creating this node ---> (+)    (4)
-            //                                 /    \
+            //                                 /    \                                                                               .
             //    this is our left expr ---> (2)     (3) <--- this part is returned from the following call
             //
             err = parse_infix_expr(scanner, o->prec + 1, &right_expr);
@@ -210,9 +210,9 @@ parse_infix_expr(struct scanner_s *scanner, int prec, fds_filter_ast_node_s **ou
             // the following ** to end up with a parse tree:
             //
             //                                 (**) <--- we are creating this node
-            //                                /    \
+            //                                /    \                                                      .
             //       this is our left --->  (2)     (**) <--- this part is returned from the following call
-            //                                     /    \
+            //                                     /    \                                                 .
             //                                   (3)     (4)
             err =  parse_infix_expr(scanner, o->prec, &right_expr);
         }
@@ -361,7 +361,6 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
             }
 
             // create the list item node
-            fds_filter_ast_node_s *parent_node = *item_node_ptr;
             *item_node_ptr = create_unary_ast_node("__listitem__", expr_node);
             if (*item_node_ptr == NULL) {
                 destroy_ast(list_node);
@@ -405,7 +404,6 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
             fds_filter_ast_node_s *expr;
             err = parse_infix_expr(scanner, o->prec + 1, &expr);
             if (err != NO_ERROR) {
-
                 return err;
             }
 
@@ -414,6 +412,8 @@ parse_prefix_expr(struct scanner_s *scanner, fds_filter_ast_node_s **out_ast)
                 destroy_ast(expr);
                 return MEMORY_ERROR;
             }
+            ast->cursor_begin = cursor_begin;
+            ast->cursor_end = token.cursor_end;
 
             *out_ast = ast;
             return NO_ERROR;

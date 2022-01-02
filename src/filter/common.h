@@ -5,7 +5,7 @@
  * \date 2020
  */
 
-/* 
+/*
  * Copyright (C) 2020 CESNET, z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@
 #ifdef FDS_FILTER_DEBUG
 #define IF_DEBUG(X) X
 #else
-#define IF_DEBUG(X) 
+#define IF_DEBUG(X)
 #endif
 
 #define CONST_ARR_SIZE(x)   (sizeof(x) / sizeof((x)[0]))

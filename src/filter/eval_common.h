@@ -116,6 +116,7 @@ destroy_eval_node(eval_node_s *en)
     }
     if (en->opcode == EVAL_OP_NONE && en->destructor_fn) {
         en->destructor_fn(&en->value);
+        memset(&en->value, 0, sizeof(fds_filter_value_u));
     }
     free(en);
 }
@@ -161,7 +162,6 @@ print_eval_tree_rec(FILE *out, eval_node_s *node, int indent_level)
 
     PRINT_INDENT();
 
-    fprintf(out, "(%s, ", eval_opcode_to_str(node->opcode));
     fprintf(out, "data type: %s, value: ", data_type_to_str(node->datatype));
 
     print_value(out, node->datatype, &node->value);

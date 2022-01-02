@@ -75,7 +75,7 @@ struct fds_ipfix_filter {
     struct fds_filter_error *error;
 
     fds_filter_t *filter;
-    fds_iemgr_t *iemgr;
+    const fds_iemgr_t *iemgr;
 
     struct ipxfil_lookup_table lookup_tab;
     struct ipxfil_lookup_state lookup_state;
@@ -415,7 +415,7 @@ data_callback(void *user_ctx, bool reset_ctx, int id, void *data, fds_filter_val
     struct fds_drec *rec = data;
 
 
-    assert(id >= 0 && id < ipxfil->lookup_tab.cnt);
+    assert(id >= 0 && (size_t) id < ipxfil->lookup_tab.cnt);
 
     struct ipxfil_lookup_item *item = &ipxfil->lookup_tab.items[id];
 
@@ -460,7 +460,7 @@ data_callback(void *user_ctx, bool reset_ctx, int id, void *data, fds_filter_val
 }
 
 int
-fds_ipfix_filter_create(struct fds_ipfix_filter **ipxfil, fds_iemgr_t *iemgr, const char *expr)
+fds_ipfix_filter_create(struct fds_ipfix_filter **ipxfil, const fds_iemgr_t *iemgr, const char *expr)
 {
     *ipxfil = calloc(1, sizeof(struct fds_ipfix_filter));
     if (*ipxfil == NULL) {

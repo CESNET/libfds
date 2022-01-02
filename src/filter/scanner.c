@@ -219,7 +219,7 @@ scan_ipv4_address(const char **cursor, struct token_s *out_token, error_t *out_e
 
 end:
     *out_error = NO_ERROR;
-    struct token_s token = {};
+    struct token_s token = {0};
     token.kind = TK_LITERAL;
     token.literal.data_type = FDS_FDT_IP;
     token.literal.value.ip = ip;
@@ -378,7 +378,7 @@ scan_ipv6_address(const char **cursor, struct token_s *out_token, error_t *out_e
 
 end:
     ip.prefix = (uint8_t)prefix;
-    struct token_s token = {};
+    struct token_s token = {0};
     token.kind = TK_LITERAL;
     token.literal.data_type = FDS_FDT_IP;
     token.literal.value.ip = ip;
@@ -434,7 +434,7 @@ scan_mac_address(const char **cursor, struct token_s *out_token, error_t *out_er
     mac.addr[5] = xdigit_to_number(c[0]) * 16 + xdigit_to_number(c[1]);
     c += 2;
 
-    struct token_s token = {};
+    struct token_s token = {0};
     token.kind = TK_LITERAL;
     token.literal.data_type = FDS_FDT_MAC;
     token.literal.value.mac = mac;
@@ -459,7 +459,7 @@ fail_digit:
 static bool
 scan_string(const char **cursor, struct token_s *out_token, error_t *out_error)
 {
-    fds_filter_str_t str = { };
+    fds_filter_str_t str = {0};
     const char *c = *cursor;
     if (*c != '"') {
         return false;
@@ -471,8 +471,7 @@ scan_string(const char **cursor, struct token_s *out_token, error_t *out_error)
         goto end;
     }
 
-    int idx = 0;
-    int capacity = 32; // Arbitary starting capacity
+    uint64_t capacity = 32; // Arbitary starting capacity
     str.chars = malloc(capacity);
     if (!str.chars) {
         *out_error = MEMORY_ERROR;
@@ -552,7 +551,7 @@ scan_string(const char **cursor, struct token_s *out_token, error_t *out_error)
 
 end:
     *out_error = NO_ERROR;
-    struct token_s token = {};
+    struct token_s token = {0};
     token.kind = TK_LITERAL;
     token.literal.data_type = FDS_FDT_STR;
     token.literal.value.str = str;
@@ -568,7 +567,7 @@ scan_symbol(const char **cursor, struct token_s *out_token, error_t *out_error)
 {
     // Find the first longest symbol that matches at the cursor
     const char *best_symbol = NULL;
-    for (int i = 0; i < CONST_ARR_SIZE(symbols); i++) {
+    for (size_t i = 0; i < CONST_ARR_SIZE(symbols); i++) {
         if (strncmp(symbols[i], *cursor, strlen(symbols[i])) == 0) {
             if (!best_symbol || strlen(best_symbol) < strlen(symbols[i])) {
                 best_symbol = symbols[i];
@@ -578,7 +577,7 @@ scan_symbol(const char **cursor, struct token_s *out_token, error_t *out_error)
     if (!best_symbol) {
         return false;
     }
-    struct token_s token = {};
+    struct token_s token = {0};
     token.kind = TK_SYMBOL;
     token.symbol = best_symbol;
     token.cursor_begin = *cursor;
@@ -611,7 +610,7 @@ scan_name(const char **cursor, struct token_s *out_token, error_t *out_error)
     strncpy(name, *cursor, name_len);
     name[name_len] = '\0';
 
-    struct token_s token = {};
+    struct token_s token = {0};
     token.kind = TK_NAME;
     token.name = name;
     token.cursor_begin = *cursor;
@@ -626,7 +625,7 @@ static bool
 scan_number(const char **cursor, struct token_s *out_token, error_t *out_error)
 {
     const char *c = *cursor;
-    struct token_s token = {};
+    struct token_s token = {0};
 
     // Hex literal
     if (strncmp(c, "0x", 2) == 0) {
@@ -737,7 +736,7 @@ scan_number(const char **cursor, struct token_s *out_token, error_t *out_error)
 
         // Number unit
         double scale = 1;
-        for (int i = 0; i < CONST_ARR_SIZE(number_units); i++) {
+        for (size_t i = 0; i < CONST_ARR_SIZE(number_units); i++) {
             if (strncmp(c, number_units[i].unit, strlen(number_units[i].unit)) == 0) {
                 scale = number_units[i].scale;
                 if (scale != floor(scale)) {
@@ -934,7 +933,7 @@ scan_datetime(const char **cursor, struct token_s *out_token, error_t *out_error
 static bool
 scan_bool(const char **cursor, struct token_s *out_token, error_t *out_error)
 {
-    struct token_s token = {};
+    struct token_s token = {0};
     *out_error = NO_ERROR;
     token.kind = TK_LITERAL;
     token.literal.data_type = FDS_FDT_BOOL;
@@ -974,7 +973,7 @@ scan_token(const char **cursor, struct token_s *out_token, error_t *out_best_err
 {
     // End of input
     if (**cursor == '\0') {
-        struct token_s token = {};
+        struct token_s token = {0};
         token.kind = TK_END;
         token.cursor_begin = *cursor;
         token.cursor_end = *cursor;
@@ -983,12 +982,12 @@ scan_token(const char **cursor, struct token_s *out_token, error_t *out_best_err
         return true;
     }
 
-    struct token_s best_token = {};
+    struct token_s best_token = {0};
     error_t best_err = NO_ERROR;
     const char *best_err_cursor = 0;
     bool any_match = false;
     bool any_success = false;
-    for (int i = 0; i < CONST_ARR_SIZE(scan_funcs); i++) {
+    for (size_t i = 0; i < CONST_ARR_SIZE(scan_funcs); i++) {
         const char *c = *cursor;
         struct token_s token = {0};
         error_t err = NO_ERROR;
@@ -1052,11 +1051,13 @@ is_not_word_symbol(const char *s)
     return true;
 }
 
+/*
 static bool
 whitespace_or_end_follows(struct token_s *token)
 {
     return isspace(token->cursor_end) || *token->cursor_end == '\0';
 }
+*/
 
 
 // Scan a new token if token is not ready, else do nothing

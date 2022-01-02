@@ -65,6 +65,7 @@ delete_value_from_et(fds_filter_value_u *value, eval_node_s *tree)
     // if the value matches by value zero it out
     if (memcmp(&tree->value, value, sizeof(fds_filter_value_u)) == 0) {
         tree->value = (fds_filter_value_u){0};
+        tree->destructor_fn = NULL;
     }
 }
 
@@ -167,7 +168,7 @@ list_to_literal(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, fds_filter_
     }
 
     // Evaluate each list item node and populate the list
-    int idx = 0;
+    uint64_t idx = 0;
     for (fds_filter_ast_node_s *li = ast->child; li != NULL; li = li->next) {
         assert(idx < out_list->len);
 
@@ -222,6 +223,8 @@ process_root_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool seco
 static error_t
 process_constructor_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
+    (void) second_run;
+
     // Must be const, should be assured by semantic analysis
     assert(ast->flags & FDS_FAF_CONST_SUBTREE);
 
@@ -265,6 +268,9 @@ process_constructor_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bo
 static error_t
 process_exists_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
+    (void) second_run;
+    (void) opts;
+
     // Must have a __name__ node as its only child
     assert(ast_node_symbol_is(ast->child, "__name__"));
 
@@ -286,6 +292,8 @@ process_exists_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool se
 static error_t
 process_name_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
+    (void) second_run;
+
     eval_node_s *en = create_eval_node();
     if (!en) {
         return MEMORY_ERROR;
@@ -309,6 +317,8 @@ process_name_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool seco
 static error_t
 process_literal_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
+    (void) second_run;
+
     eval_node_s *en = create_eval_node();
     if (!en) {
         return MEMORY_ERROR;
@@ -332,6 +342,8 @@ process_literal_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool s
 static error_t
 process_list_node(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool second_run, eval_node_s **out_eval_node)
 {
+    (void) second_run;
+
     eval_node_s *en = create_eval_node();
     if (!en) {
         return MEMORY_ERROR;
@@ -473,9 +485,17 @@ generate_eval_tree(fds_filter_ast_node_s *ast, fds_filter_opts_t *opts, bool sec
             en->opcode = EVAL_OP_NONE;
             IF_DEBUG(en->datatype = ast->datatype;)
             error_t err = ast_to_literal(ast, opts, &en->value);
+            if (err != NO_ERROR) {
+                destroy_eval_node(en);
+                return err;
+            }
+            fds_filter_op_s *destructor = find_destructor(opts->op_list, ast->datatype);
+            if (destructor) {
+                en->destructor_fn = destructor->destructor_fn;
+            }
             *out_eval_node = en;
 
-            // ast->flags &= ~FDS_FAF_DESTROY_VAL;
+            ast->flags &= ~FDS_FAF_DESTROY_VAL;
 
             return NO_ERROR;
         }

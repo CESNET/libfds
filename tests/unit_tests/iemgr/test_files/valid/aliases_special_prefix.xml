@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ipfix-aliases>
+	<element>
+		<name>D</name>
+
+		<alias>src d</alias>
+		<alias>dst d</alias>
+		<alias>in d</alias>
+		<alias>out d</alias>
+		<alias>ingress d</alias>
+		<alias>egress d</alias>
+
+		<source>
+			<id>iana:d</id>
+		</source>
+	</element>
+</ipfix-aliases>
+

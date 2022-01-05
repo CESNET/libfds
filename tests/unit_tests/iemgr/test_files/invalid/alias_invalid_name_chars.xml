@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ipfix-aliases>
+	<element>
+		<name>AC</name>
+
+		<alias>a@c:</alias>
+
+		<source>
+			<id>iana:a</id>
+			<id>iana:c</id>
+		</source>
+	</element>
+</ipfix-aliases>
+

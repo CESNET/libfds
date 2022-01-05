@@ -57,3 +57,21 @@ protected:
         fds_iemgr_destroy(mgr);
     }
 };
+
+/**
+ * \brief Manager is created and filled with individual scope and aliases
+ */
+class FillAndAlias: public ::testing::Test
+{
+protected:
+    fds_iemgr_t* mgr = nullptr;
+    void SetUp() override {
+        mgr = fds_iemgr_create();
+        fds_iemgr_read_file(mgr, FILES_VALID "individual.xml", true);
+        fds_iemgr_alias_read_file(mgr, FILES_VALID "aliases.xml");
+    }
+
+    void TearDown() override {
+        fds_iemgr_destroy(mgr);
+    }
+};

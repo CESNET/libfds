@@ -56,6 +56,8 @@
 #include "iemgr_common.h"
 #include "iemgr_scope.h"
 #include "iemgr_element.h"
+#include "iemgr_alias.h"
+#include "iemgr_mapping.h"
 
 fds_iemgr_t *
 fds_iemgr_create()
@@ -139,6 +141,10 @@ fds_iemgr_clear(fds_iemgr_t *mgr)
     mgr->prefixes.clear();
 
     mtime_remove(mgr);
+
+    aliases_destroy(mgr);
+
+    mappings_destroy(mgr);
 }
 
 void
@@ -272,6 +278,22 @@ dir_read(fds_iemgr_t* mgr, const char* path, fds_xml_t* parser, const string& na
             return false;
         }
     }
+
+    mgr_sort(mgr);
+
+    int rc;
+    
+    rc = fds_iemgr_alias_read_file(mgr, (string(path) + "/" + string(name) + "/aliases.xml").c_str());
+    if (rc != FDS_OK && rc != FDS_ERR_NOTFOUND) {
+        return false;
+    }
+    mgr->err_msg.clear();
+    
+    rc = fds_iemgr_mapping_read_file(mgr, (string(path) + "/" + string(name) + "/mappings.xml").c_str());
+    if (rc != FDS_OK && rc != FDS_ERR_NOTFOUND) {
+        return false;
+    }
+    mgr->err_msg.clear();
 
     return true;
 }
@@ -750,4 +772,36 @@ fds_iemgr_str2unit(const char *str)
     }
 
     return FDS_EU_UNASSIGNED;
+}
+
+const struct fds_iemgr_alias *
+fds_iemgr_alias_find(const fds_iemgr_t *mgr, const char *aliased_name)
+{
+    return binary_find(mgr->aliased_names, std::string(aliased_name));
+}
+
+const struct fds_iemgr_mapping_item *
+fds_iemgr_mapping_find(const fds_iemgr_t *mgr, const char *name, const char *key)
+{
+    const fds_iemgr_mapping_item *item;
+
+    const fds_iemgr_alias *alias = fds_iemgr_alias_find(mgr, name);
+    if (alias != nullptr) {
+        for (size_t i = 0; i < alias->sources_cnt; i++) {
+            item = find_mapping_in_elem(alias->sources[i], key);
+            if (item != nullptr) {
+                return item;
+            }
+        }
+    }
+
+    const fds_iemgr_elem *elem = fds_iemgr_elem_find_name(mgr, name);
+    if (elem != nullptr) {
+        item = find_mapping_in_elem(elem, key);
+        if (item != nullptr) {
+            return item;
+        }
+    }
+
+    return nullptr;
 }

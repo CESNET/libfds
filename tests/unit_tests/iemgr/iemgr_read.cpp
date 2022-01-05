@@ -462,3 +462,87 @@ TEST_F(Mgr, dir_double)
     EXPECT_NE(fds_iemgr_read_dir(mgr, FILES_INVALID "multiple_user"), FDS_OK);
     EXPECT_ERROR;
 }
+
+TEST_F(Mgr, dir_alias_mapping)
+{
+    EXPECT_EQ(fds_iemgr_read_dir(mgr, FILES_VALID "readdir_alias_mapping"), FDS_OK);
+    EXPECT_NO_ERROR;
+
+    EXPECT_NE(fds_iemgr_alias_find(mgr, "ac"), nullptr);
+    EXPECT_NE(fds_iemgr_alias_find(mgr, "ca"), nullptr);
+    EXPECT_NE(fds_iemgr_alias_find(mgr, "d"), nullptr);
+    EXPECT_EQ(fds_iemgr_alias_find(mgr, "a"), nullptr);
+    EXPECT_EQ(fds_iemgr_alias_find(mgr, "b"), nullptr);
+    EXPECT_EQ(fds_iemgr_alias_find(mgr, "c"), nullptr);
+
+    auto *alias_ac = fds_iemgr_alias_find(mgr, "ac");
+    ASSERT_NE(alias_ac, nullptr);
+    auto *alias_d = fds_iemgr_alias_find(mgr, "d");
+    ASSERT_NE(alias_d, nullptr);
+    auto *elem_a = fds_iemgr_elem_find_name(mgr, "iana:a");
+    ASSERT_NE(elem_a, nullptr);
+    auto *elem_c = fds_iemgr_elem_find_name(mgr, "iana:c");
+    ASSERT_NE(elem_c, nullptr);
+    auto *elem_d = fds_iemgr_elem_find_name(mgr, "iana:d");
+    ASSERT_NE(elem_d, nullptr);
+    auto *elem_e = fds_iemgr_elem_find_name(mgr, "iana:e");
+    ASSERT_NE(elem_e, nullptr);
+
+    EXPECT_EQ(alias_ac->sources_cnt, 2);
+    EXPECT_EQ(alias_ac->sources[0], elem_a);
+    EXPECT_EQ(alias_ac->sources[1], elem_c);
+
+    EXPECT_EQ(alias_d->sources_cnt, 1);
+    EXPECT_EQ(alias_d->sources[0], elem_d);
+
+    EXPECT_EQ(elem_a->aliases_cnt, 1);
+    EXPECT_EQ(elem_a->aliases[0], alias_ac);
+    EXPECT_EQ(elem_c->aliases_cnt, 1);
+    EXPECT_EQ(elem_c->aliases[0], alias_ac);
+
+    EXPECT_EQ(elem_d->aliases_cnt, 1);
+    EXPECT_EQ(elem_d->aliases[0], alias_d);
+
+    EXPECT_EQ(elem_e->aliases_cnt, 0);
+
+    EXPECT_EQ(elem_e->mappings_cnt, 1);
+    EXPECT_EQ(elem_e->mappings[0]->items_cnt, 2);
+    EXPECT_EQ(elem_e->mappings[0]->items[0].value.i, 1);
+    EXPECT_EQ(elem_e->mappings[0]->items[1].value.i, 2);
+
+    EXPECT_NE(fds_iemgr_mapping_find(mgr, "iana:e", "val1"), nullptr);
+    EXPECT_NE(fds_iemgr_mapping_find(mgr, "iana:e", "val1"), nullptr);
+    EXPECT_NE(fds_iemgr_mapping_find(mgr, "iana:e", "Val1"), nullptr);
+    EXPECT_NE(fds_iemgr_mapping_find(mgr, "iana:e", "VAL1"), nullptr);
+    EXPECT_NE(fds_iemgr_mapping_find(mgr, "iana:e", "VAL2"), nullptr);
+    EXPECT_NE(fds_iemgr_mapping_find(mgr, "iana:e", "Val2"), nullptr);
+    EXPECT_NE(fds_iemgr_mapping_find(mgr, "iana:e", "val2"), nullptr);
+
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "iana:e", "val1")->value.i, 1);
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "iana:e", "val2")->value.i, 2);
+
+    EXPECT_NE(fds_iemgr_mapping_find(mgr, "ac", "val3"), nullptr);
+    EXPECT_NE(fds_iemgr_mapping_find(mgr, "ca", "val3"), nullptr);
+    
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "aca", "val3"), nullptr);
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "caca", "val3"), nullptr);
+
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "ac", "val1"), nullptr);
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "ac", "val2"), nullptr);
+
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "ca", "val1"), nullptr);
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "ca", "val2"), nullptr);
+
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "ac", "Val3"), nullptr);
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "ac", "VAL3"), nullptr);
+
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "ac", "val3")->value.i, 3);
+    EXPECT_EQ(fds_iemgr_mapping_find(mgr, "ca", "val3")->value.i, 3);
+
+    EXPECT_EQ(elem_a->mappings_cnt, 1);
+    EXPECT_EQ(elem_a->mappings[0]->items_cnt, 1);
+    EXPECT_EQ(elem_a->mappings[0]->items[0].value.i, 3);
+    EXPECT_EQ(elem_c->mappings_cnt, 1);
+    EXPECT_EQ(elem_c->mappings[0]->items_cnt, 1);
+    EXPECT_EQ(elem_c->mappings[0]->items[0].value.i, 3);
+}

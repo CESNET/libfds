@@ -18,6 +18,8 @@ add_subdirectory(file)
 
 unit_tests_register_test(api.cpp)
 # >> Add your new tests or test subdirectories HERE <<
+add_subdirectory(filter)
+add_subdirectory(trie)
 
 # Enable code coverage target (i.e. make coverage) when appropriate build
 # type is chosen.

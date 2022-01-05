@@ -9,5 +9,7 @@ unit_tests_register_test(iemgr_read.cpp               iemgr_common.h)
 unit_tests_register_test(iemgr_find.cpp               iemgr_common.h)
 unit_tests_register_test(iemgr_err.cpp                iemgr_common.h)
 unit_tests_register_test(iemgr_add.cpp                iemgr_common.h)
+unit_tests_register_test(iemgr_alias.cpp              iemgr_common.h)
+unit_tests_register_test(iemgr_mapping.cpp            iemgr_common.h)
 
 file(COPY test_files DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

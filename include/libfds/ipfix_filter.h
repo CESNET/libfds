@@ -12,6 +12,16 @@ extern "C" {
 typedef struct fds_ipfix_filter fds_ipfix_filter_t;
 
 /**
+ * The match result, see fds_ipfix_filter_eval_biflow
+ */
+enum fds_ipfix_filter_match {
+    FDS_IPFIX_FILTER_NO_MATCH   = 0,
+    FDS_IPFIX_FILTER_MATCH_FWD  = 1,
+    FDS_IPFIX_FILTER_MATCH_REV  = 2,
+    FDS_IPFIX_FILTER_MATCH_BOTH = 3,
+};
+
+/**
  *
  * Creates an IPFIX filter from an expression.
  *
@@ -37,6 +47,20 @@ fds_ipfix_filter_create(fds_ipfix_filter_t **ipxfil, const fds_iemgr_t *iemgr, c
  */
 FDS_API bool
 fds_ipfix_filter_eval(struct fds_ipfix_filter *ipxfil, struct fds_drec *record);
+
+/**
+ * Evaluates the IPFIX filter using the provided data record also considering biflow.
+ *
+ * \param[in] ipxfil  The IPFIX filter
+ * \param[in] record  A data record
+ *
+ * \return FDS_IPFIX_FILTER_MATCH_BOTH  if both directions matched
+ *         FDS_IPFIX_FILTER_MATCH_FWD   if only forward direction matched
+ *         FDS_IPFIX_FILTER_MATCH_REV   if only reverse direction matched
+ *         FDS_IPFIX_FILTER_NO_MATCH    if no direction matched
+ */
+FDS_API enum fds_ipfix_filter_match
+fds_ipfix_filter_eval_biflow(struct fds_ipfix_filter *ipxfil, struct fds_drec *record);
 
 /**
  * Destroys the IPFIX filter.

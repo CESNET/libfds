@@ -69,6 +69,7 @@ struct ipxfil_lookup_table {
 
 struct ipxfil_lookup_state {
     size_t source_idx;
+    uint16_t find_flags; // 0, FDS_DREC_BIFLOW_FWD or FDS_DREC_BIFLOW_REV
 };
 
 struct fds_ipfix_filter {
@@ -80,6 +81,27 @@ struct fds_ipfix_filter {
     struct ipxfil_lookup_table lookup_tab;
     struct ipxfil_lookup_state lookup_state;
 };
+
+/**
+ * Same as fds_drec_find, but with flags (see fds_drec_iter_init documentation).
+ */
+static int
+fds_drec_find_with_flags(struct fds_drec *drec, uint32_t pen, uint16_t id, uint16_t flags, struct fds_drec_field *field)
+{
+    if (flags == 0) {
+        return fds_drec_find(drec, pen, id, field);
+
+    } else {
+        struct fds_drec_iter iter;
+        fds_drec_iter_init(&iter, drec, flags);
+
+        int ret = fds_drec_iter_find(&iter, pen, id);
+        if (ret != FDS_EOC) {
+            *field = iter.field;
+        }
+        return ret;
+    }
+}
 
 /**
  * Calculate index of a lookup item in a lookup table
@@ -293,13 +315,13 @@ set_default_value(fds_filter_value_u *out_value)
  * Try to read the desired field from a record into a filter value
  */
 static int
-read_record_field(struct fds_drec *record, const struct fds_iemgr_elem *field_def,
+read_record_field(struct fds_drec *record, const struct fds_iemgr_elem *field_def, uint16_t find_flags,
                   fds_filter_value_u *out_value)
 {
     struct fds_drec_field field;
 
     // The wanted field does not exist in the record
-    if (fds_drec_find(record, field_def->scope->pen, field_def->id, &field) == FDS_EOC) {
+    if (fds_drec_find_with_flags(record, field_def->scope->pen, field_def->id, find_flags, &field) == FDS_EOC) {
         return FDS_ERR_NOTFOUND;
     }
 
@@ -390,13 +412,13 @@ read_record_field(struct fds_drec *record, const struct fds_iemgr_elem *field_de
  * Read the first source that is found in the record
  */
 static bool
-read_first_of(struct fds_drec *record, const struct fds_iemgr_alias *alias, size_t *source_idx,
+read_first_of(struct fds_drec *record, const struct fds_iemgr_alias *alias, size_t *source_idx, uint16_t find_flags,
               fds_filter_value_u *out_value)
 {
     while (*source_idx < alias->sources_cnt) {
         const struct fds_iemgr_elem *field_def = alias->sources[*source_idx];
         (*source_idx)++;
-        if (read_record_field(record, field_def, out_value) == FDS_OK) {
+        if (read_record_field(record, field_def, find_flags, out_value) == FDS_OK) {
             return true;
         }
     }
@@ -427,7 +449,7 @@ data_callback(void *user_ctx, bool reset_ctx, int id, void *data, fds_filter_val
         case FDS_ALIAS_FIRST_OF:
             if (reset_ctx) {
                 ipxfil->lookup_state.source_idx = 0;
-                return read_first_of(rec, item->alias, &ipxfil->lookup_state.source_idx, out_value)
+                return read_first_of(rec, item->alias, &ipxfil->lookup_state.source_idx, ipxfil->lookup_state.find_flags, out_value)
                     ? FDS_OK : FDS_ERR_NOTFOUND;
             }
             set_default_value(out_value);
@@ -437,7 +459,7 @@ data_callback(void *user_ctx, bool reset_ctx, int id, void *data, fds_filter_val
             if (reset_ctx) {
                 ipxfil->lookup_state.source_idx = 0;
             }
-            return read_first_of(rec, item->alias, &ipxfil->lookup_state.source_idx, out_value)
+            return read_first_of(rec, item->alias, &ipxfil->lookup_state.source_idx, ipxfil->lookup_state.find_flags, out_value)
                 ? FDS_OK_MORE : FDS_ERR_NOTFOUND;
         default:
             assert(0);
@@ -445,7 +467,7 @@ data_callback(void *user_ctx, bool reset_ctx, int id, void *data, fds_filter_val
         break;
 
     case IPXFIL_FIELD_LOOKUP: {
-        int rc = read_record_field(rec, item->elem, out_value);
+        int rc = read_record_field(rec, item->elem, ipxfil->lookup_state.find_flags, out_value);
         if (rc != FDS_OK) {
             set_default_value(out_value);
         }
@@ -491,7 +513,28 @@ bool
 fds_ipfix_filter_eval(struct fds_ipfix_filter *ipxfil, struct fds_drec *record)
 {
     ipxfil->lookup_state.source_idx = 0;
+    ipxfil->lookup_state.find_flags = 0;
     return fds_filter_eval(ipxfil->filter, record);
+}
+
+enum fds_ipfix_filter_match
+fds_ipfix_filter_eval_biflow(struct fds_ipfix_filter *ipxfil, struct fds_drec *record)
+{
+    int result = 0;
+
+    ipxfil->lookup_state.source_idx = 0;
+    ipxfil->lookup_state.find_flags = FDS_DREC_BIFLOW_FWD;
+    if (fds_filter_eval(ipxfil->filter, record)) {
+        result |= FDS_IPFIX_FILTER_MATCH_FWD;
+    }
+
+    ipxfil->lookup_state.source_idx = 0;
+    ipxfil->lookup_state.find_flags = FDS_DREC_BIFLOW_REV;
+    if (fds_filter_eval(ipxfil->filter, record)) {
+        result |= FDS_IPFIX_FILTER_MATCH_REV;
+    }
+
+    return result;
 }
 
 void

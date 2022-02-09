@@ -35,9 +35,6 @@ jobs:
       run: |
         yum -y install epel-release
         yum -y install git gcc gcc-c++ cmake make libxml2-devel lz4-devel libzstd-devel
-    - name: Install depedencies (Fedora)
-      if: startsWith(matrix.image, 'fedora')
-      run: dnf -y install git gcc gcc-c++ cmake make libxml2-devel lz4-devel libzstd-devel
 
     # Build ----------------------------------------------------------------------------------
     # Note: Unit tests are disabled on CentOS7 due to outdated GCC version

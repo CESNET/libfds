@@ -1844,6 +1844,112 @@ fds_tsnapshot_for(const fds_tsnapshot_t *snap, fds_tsnapshot_for_cb cb, void *da
     snapshot_rec_for(snap_orig, &tsnapshot_cb_aux, &for_data);
 }
 
+/// Auxiliary internal data structure for template snapshot comparison
+struct tsnapshot_eq_data {
+    /// Right-hand side parameter of comparision function
+    const fds_tsnapshot_t *rhs;
+    /// Result of comparison
+    int result;
+};
+
+static bool
+fds_tsnapshot_eq_cb(const struct fds_template *lhs_tmplt, void *data)
+{
+    struct tsnapshot_eq_data *cmp_data = (struct tsnapshot_eq_data *) data;
+    const struct fds_template *rhs_tmplt;
+
+    rhs_tmplt = fds_tsnapshot_template_get(cmp_data->rhs, lhs_tmplt->id);
+    if (!rhs_tmplt) {
+        cmp_data->result = 0; // Template not found
+        return false;
+    }
+
+    if (fds_template_cmp(lhs_tmplt, rhs_tmplt) != 0) {
+        cmp_data->result = 0; // Template is different
+        return false;
+    }
+
+    return true;
+}
+
+int
+fds_tsnapshot_eq(const fds_tsnapshot_t *lhs, const fds_tsnapshot_t *rhs)
+{
+    struct tsnapshot_eq_data eq_data = {rhs, 1};
+
+    if (lhs == rhs)
+        return 1;
+
+    if (lhs->rec_cnt != rhs->rec_cnt) {
+        return 0;
+    }
+
+    fds_tsnapshot_for(lhs, &fds_tsnapshot_eq_cb, &eq_data);
+    return eq_data.result;
+}
+
+/// Auxiliary internal data structure for deep copy of a template snapshot
+struct tsnapshot_deep_copy_data {
+    /// Snapshot where to insert copied templates
+    fds_tsnapshot_t *snapshot;
+    /// Result of deep copy
+    int failed;
+};
+
+static bool
+fds_tsnapshot_deep_copy_cb(const struct fds_template *tmplt, void *data)
+{
+    struct tsnapshot_deep_copy_data *dc_data = (struct tsnapshot_deep_copy_data *) data;
+    const int tmplt_flags = SNAPSHOT_TF_CREATE | SNAPSHOT_TF_DESTROY;
+    struct fds_template *tmplt_copy;
+    int ret;
+
+    tmplt_copy = fds_template_copy(tmplt);
+    if (!tmplt_copy) {
+        dc_data->failed = 1;
+        return false;
+    }
+
+    ret = mgr_snap_template_add_ref(dc_data->snapshot, tmplt_copy, tmplt_flags);
+    if (ret != FDS_OK) {
+        fds_template_destroy(tmplt_copy);
+        dc_data->failed = 1;
+        return false;
+    }
+
+    return true;
+}
+
+fds_tsnapshot_t *
+fds_tsnapshot_deep_copy(const fds_tsnapshot_t *snap)
+{
+    struct tsnapshot_deep_copy_data dc_data = {0};
+    fds_tsnapshot_t *result;
+
+    result = snapshot_create();
+    if (!result) {
+        return NULL;
+    }
+
+    result->start_time = snap->start_time;
+    dc_data.snapshot = result;
+
+    fds_tsnapshot_for(snap, &fds_tsnapshot_deep_copy_cb, &dc_data);
+
+    if (dc_data.failed) {
+        mgr_snap_destroy(result);
+        return NULL;
+    }
+
+    return result;
+}
+
+void
+fds_tsnapshot_destroy(fds_tsnapshot_t *snap)
+{
+    mgr_snap_destroy(snap);
+}
+
 int
 fds_tmgr_template_get(fds_tmgr_t *tmgr, uint16_t id, const struct fds_template **tmplt)
 {

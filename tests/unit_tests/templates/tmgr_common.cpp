@@ -847,6 +847,178 @@ TEST_P(Common, snapshotIterator)
     }
 }
 
+// Auxiliary callback function for counting number of templates in a snapshot
+bool snapshot_iterator_count_cb(const struct fds_template *tmplt, void *data)
+{
+    (void) tmplt;
+
+    size_t *count = reinterpret_cast<size_t *>(data);
+    (*count)++;
+
+    return true;
+}
+
+// Try to create a deep copy of a Template snapshot
+TEST_P(Common, snapshotDeepCopy)
+{
+    const struct fds_template *tmplt;
+    const fds_tsnapshot_t *snap = nullptr;
+    fds_tsnapshot_t *snap_copy = nullptr;
+    size_t count;
+
+    // Create an IE manager and load definitions
+    fds_iemgr_t *iemgr = fds_iemgr_create();
+    ASSERT_NE(iemgr, nullptr);
+    ASSERT_EQ(fds_iemgr_read_file(iemgr, "./data/iana.xml", false), FDS_OK);
+    fds_tmgr_set_iemgr(tmgr, iemgr);
+
+    // Create a copy of an empty snapshot
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, 10000), FDS_OK);
+    ASSERT_EQ(fds_tmgr_snapshot_get(tmgr, &snap), FDS_OK);
+    ASSERT_NE(snap, nullptr);
+    snap_copy = fds_tsnapshot_deep_copy(snap);
+    ASSERT_NE(snap_copy, nullptr);
+    EXPECT_TRUE(fds_tsnapshot_eq(snap, snap_copy));
+
+    count = 0;
+    fds_tsnapshot_for(snap_copy, &snapshot_iterator_count_cb, &count);
+    ASSERT_EQ(count, 0U);
+
+    fds_tsnapshot_destroy(snap_copy);
+
+    // Create a copy of a snapshot with some templates
+    const uint16_t tid1 = 1234;
+    const uint16_t tid2 = 2000;
+    const uint16_t tid3 = 256;
+    struct fds_template *t1 = TMock::create(TMock::type::DATA_BASIC_FLOW, tid1);
+    struct fds_template *t2 = TMock::create(TMock::type::OPTS_ERPOC_RSTAT, tid2);
+    struct fds_template *t3 = TMock::create(TMock::type::DATA_BASIC_BIFLOW, tid3);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, t1), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, t2), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, t3), FDS_OK);
+
+    ASSERT_EQ(fds_tmgr_snapshot_get(tmgr, &snap), FDS_OK);
+    ASSERT_NE(snap, nullptr);
+    snap_copy = fds_tsnapshot_deep_copy(snap);
+    ASSERT_NE(snap_copy, nullptr);
+    EXPECT_TRUE(fds_tsnapshot_eq(snap, snap_copy));
+
+    /*
+     * Destroy the template manager
+     * (the templates in deeply copied snapshot should be still accessible)
+     */
+    fds_tmgr_destroy(tmgr);
+    tmgr = nullptr;
+
+    // Try to access the templates in the copied snapshop
+    count = 0;
+    fds_tsnapshot_for(snap_copy, &snapshot_iterator_count_cb, &count);
+    ASSERT_EQ(count, 3U);
+
+    tmplt = fds_tsnapshot_template_get(snap_copy, tid1);  // TID 1
+    ASSERT_NE(tmplt, nullptr);
+    EXPECT_NE(tmplt->raw.data, nullptr);
+    EXPECT_EQ(tmplt->fields_rev, nullptr);
+
+    for (uint16_t i = 0; i < tmplt->fields_cnt_total; ++i) {
+        const struct fds_tfield *field = &tmplt->fields[i];
+
+        // Just try to touch a memory of template and IE manager
+        EXPECT_NE(field->id, 0U);
+        if (field->def) {
+            EXPECT_EQ(field->id, field->def->id);
+        }
+    }
+
+    tmplt = fds_tsnapshot_template_get(snap_copy, tid3);  // TID 3
+    ASSERT_NE(tmplt, nullptr);
+    EXPECT_NE(tmplt->raw.data, nullptr);
+    ASSERT_NE(tmplt->fields_rev, nullptr);
+
+    for (uint16_t i = 0; i < tmplt->fields_cnt_total; ++i) {
+        const struct fds_tfield *field = &tmplt->fields[i];
+        const struct fds_tfield *field_rev = &tmplt->fields_rev[i];
+
+        // Just try to touch a memory of template and IE manager
+        EXPECT_NE(field->id, 0U);
+
+        if (field->def) {
+            EXPECT_EQ(field->id, field->def->id);
+        }
+
+        EXPECT_NE(field_rev->id, 0U);
+
+        if (field_rev->def) {
+            EXPECT_EQ(field_rev->id, field_rev->def->id);
+        }
+    }
+
+    fds_tsnapshot_destroy(snap_copy);
+    fds_iemgr_destroy(iemgr);
+}
+
+// Try to compare two independent snapshots with the same Templates
+TEST_P(Common, snapshotEq)
+{
+    // Create an IE manager and load definitions
+    fds_iemgr_t *iemgr = fds_iemgr_create();
+    ASSERT_NE(iemgr, nullptr);
+    ASSERT_EQ(fds_iemgr_read_file(iemgr, "./data/iana.xml", false), FDS_OK);
+
+    // Create a secondary independent Template manager with the IE manager
+    fds_tmgr_t *tmgr2 = fds_tmgr_create(GetParam());
+    ASSERT_NE(tmgr2, nullptr);
+    ASSERT_EQ(fds_tmgr_set_iemgr(tmgr2, iemgr), FDS_OK);
+
+    // Set different export time
+    const uint32_t time1 = 2147483647;
+    const uint32_t time2 = 2147483657;
+    EXPECT_EQ(fds_tmgr_set_time(tmgr, time1), FDS_OK);
+    EXPECT_EQ(fds_tmgr_set_time(tmgr2, time2), FDS_OK);
+
+    // Fill the primary Template manager with Templates
+    const uint16_t tid1 = 1234;
+    const uint16_t tid2 = 1235;
+    const uint16_t tid3 = 12222;
+    struct fds_template *t1 = TMock::create(TMock::type::DATA_BASIC_FLOW, tid1);
+    struct fds_template *t2 = TMock::create(TMock::type::OPTS_MPROC_STAT, tid2);
+    struct fds_template *t3 = TMock::create(TMock::type::OPTS_FKEY, tid3);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, t1), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, t2), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr, t3), FDS_OK);
+
+    const fds_tsnapshot_t *snap = nullptr;
+    EXPECT_EQ(fds_tmgr_snapshot_get(tmgr, &snap), FDS_OK);
+    EXPECT_TRUE(fds_tsnapshot_eq(snap, snap));
+
+    const fds_tsnapshot_t *snap2 = nullptr;
+    EXPECT_EQ(fds_tmgr_snapshot_get(tmgr2, &snap2), FDS_OK);
+
+    // Compare the primary (filled) with secondary (empty) snapshot
+    EXPECT_FALSE(fds_tsnapshot_eq(snap, snap2));
+
+    // Fill the secondary Template manager
+    t1 = TMock::create(TMock::type::DATA_BASIC_FLOW, tid1);
+    t2 = TMock::create(TMock::type::OPTS_MPROC_STAT, tid2);
+    t3 = TMock::create(TMock::type::OPTS_FKEY, tid3);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr2, t1), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr2, t2), FDS_OK);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr2, t3), FDS_OK);
+
+    // Compare the primary with the secondary snapshot
+    EXPECT_EQ(fds_tmgr_snapshot_get(tmgr2, &snap2), FDS_OK);
+    EXPECT_TRUE(fds_tsnapshot_eq(snap, snap2));
+
+    // Slightly modify secondary template manager so it is different
+    struct fds_template *t4 = TMock::create(TMock::type::DATA_BASIC_BIFLOW, 1236);
+    EXPECT_EQ(fds_tmgr_template_add(tmgr2, t4), FDS_OK);
+
+    EXPECT_EQ(fds_tmgr_snapshot_get(tmgr2, &snap2), FDS_OK);
+    EXPECT_FALSE(fds_tsnapshot_eq(snap, snap2));
+
+    fds_tmgr_destroy(tmgr2);
+    fds_iemgr_destroy(iemgr);
+}
 
 // TODO: Multiple updates of the same template at the same time + cleanup
 

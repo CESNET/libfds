@@ -451,6 +451,42 @@ FDS_API void
 fds_tsnapshot_for(const fds_tsnapshot_t *snap, fds_tsnapshot_for_cb cb, void *data);
 
 /**
+ * \brief Check if two snapshots are equal
+ *
+ * Only raw templates are compared i.e. everything is ignored except Template ID
+ * and template fields (Information Element ID, Private Enterprise Number and length).
+ * \param[in] lhs Template snapshot
+ * \param[in] rhs Template snapshot
+ * \return Non-zero value if the snapshots are the same. Otherwise returns zero.
+ */
+FDS_API int
+fds_tsnapshot_eq(const fds_tsnapshot_t *lhs, const fds_tsnapshot_t *rhs);
+
+/**
+ * \brief Create a deep copy of the given template snapshot.
+ *
+ * The newly created snapshot is not a part of any template manager and it MUST be
+ * later destroyed using fds_tsnapshot_destroy() function.
+ *
+ * Keep on mind that all Templates will preseve their references to definition of
+ * Information Elements stored inside an external IE Manager.
+ * \param[in] snap Template snapshot to copy
+ * \return Pointer or NULL (i.e. memory allocation error)
+ */
+FDS_API fds_tsnapshot_t *
+fds_tsnapshot_deep_copy(const fds_tsnapshot_t *snap);
+
+/**
+ * \brief Destroy a template snapshot.
+ *
+ * The function should be called only on a Template snapshot previously created
+ * by fds_tsnapshot_deep_copy() as it will also destroy all referenced Templates.
+ * \param[in] snap Template snapshot to destory
+ */
+FDS_API void
+fds_tsnapshot_destroy(fds_tsnapshot_t *snap);
+
+/**
  * @}
  */
 #ifdef __cplusplus

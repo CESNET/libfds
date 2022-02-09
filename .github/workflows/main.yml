@@ -8,7 +8,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: ['ubuntu:18.04', 'ubuntu:20.04', 'debian:stretch', 'debian:buster', 'debian:bullseye', 'centos:7', 'centos:8']
+        image:
+          - 'ubuntu:18.04'
+          - 'ubuntu:20.04'
+          - 'debian:stretch'
+          - 'debian:buster'
+          - 'debian:bullseye'
+          - 'centos:7'
+          - 'quay.io/centos/centos:stream8'
 
     name: Build on ${{ matrix.image }}
     container: ${{ matrix.image }}
@@ -24,7 +31,7 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
     - name: Install dependencies (CentOS)
-      if: startsWith(matrix.image, 'centos')
+      if: contains(matrix.image, 'centos')
       run: |
         yum -y install epel-release
         yum -y install git gcc gcc-c++ cmake make libxml2-devel lz4-devel libzstd-devel

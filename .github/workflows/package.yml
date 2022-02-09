@@ -58,7 +58,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: ['centos:7', 'centos:8']
+        image:
+          - 'centos:7'
+          - 'quay.io/centos/centos:stream8'
 
     name: Build RPMs on ${{ matrix.image }}
     container: ${{ matrix.image }}
@@ -77,7 +79,7 @@ jobs:
 
     # Dependencies ---------------------------------------------------------------------------
     - name: Install dependencies (CentOS)
-      if: startsWith(matrix.image, 'centos')
+      if: contains(matrix.image, 'centos')
       run: |
         yum -y install epel-release
         yum -y install git gcc gcc-c++ cmake make libxml2-devel lz4-devel libzstd-devel rpm-build

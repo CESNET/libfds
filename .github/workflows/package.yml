@@ -15,7 +15,7 @@ jobs:
     container: ${{ matrix.image }}
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Define global variables
       run: echo "::set-output name=zip_file::libfds-${IMAGE//:/}-$GITHUB_SHA.zip"
       shell: bash
@@ -62,7 +62,7 @@ jobs:
     container: ${{ matrix.image }}
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Define global variables
       run: echo "::set-output name=zip_file::libfds-${IMAGE//:/}-$GITHUB_SHA.zip"
       env:

@@ -971,6 +971,45 @@
         <name>vxlanVNI</name>
         <dataType>unsigned32</dataType>
     </element>
+<!--     MDNS FIELDS START       -->
+    <element>
+        <id>570</id>
+        <name>DNSSDQuery</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>571</id>
+        <name>DNSSDResponse</name>
+        <dataType>string</dataType>
+    </element>
+<!--     MDNS FIELDS END       -->
+<!--     SSDP FIELDS START     -->
+    <element>
+      <id>580</id>
+      <name>SSDPLocationPort</name>
+      <dataType>unsigned16</dataType>
+    </element>
+    <element>
+      <id>581</id>
+      <name>SSDPNT</name>
+      <dataType>string</dataType>
+    </element>
+    <element>
+      <id>582</id>
+      <name>SSDPST</name>
+      <dataType>string</dataType>
+    </element>
+    <element>
+      <id>583</id>
+      <name>SSDPServer</name>
+      <dataType>string</dataType>
+    </element>
+    <element>
+      <id>584</id>
+      <name>SSDPUserAgent</name>
+      <dataType>string</dataType>
+    </element>
+<!--     SSDP FIELDS END       -->
     <element>
         <id>7232</id>
         <name>username</name>

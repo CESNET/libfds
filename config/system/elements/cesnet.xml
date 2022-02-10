@@ -540,4 +540,19 @@
         <dataSemantics>default</dataSemantics>
         <units>none</units>
     </element>
+    <element>
+        <id>1100</id>
+        <name>WGConfLevel</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>1101</id>
+        <name>WGSrcPeer</name>
+        <dataType>unsigned32</dataType>
+    </element>
+    <element>
+        <id>1102</id>
+        <name>WGDstPeer</name>
+        <dataType>unsigned32</dataType>
+   </element>
 </ipfix-elements>

@@ -515,28 +515,28 @@
     <element>
         <id>1060</id>
         <name>phistSrcSizes</name>
-        <dataType>unsigned16</dataType>
+        <dataType>unsigned32</dataType>
         <dataSemantics>default</dataSemantics>
         <units>none</units>
     </element>
     <element>
         <id>1061</id>
         <name>phistSrcInterPacketTime</name>
-        <dataType>unsigned16</dataType>
+        <dataType>unsigned32</dataType>
         <dataSemantics>default</dataSemantics>
         <units>none</units>
     </element>
     <element>
         <id>1062</id>
         <name>phistDstSizes</name>
-        <dataType>unsigned16</dataType>
+        <dataType>unsigned32</dataType>
         <dataSemantics>default</dataSemantics>
         <units>none</units>
     </element>
     <element>
         <id>1063</id>
         <name>phistDstInterPacketTime</name>
-        <dataType>unsigned16</dataType>
+        <dataType>unsigned32</dataType>
         <dataSemantics>default</dataSemantics>
         <units>none</units>
     </element>

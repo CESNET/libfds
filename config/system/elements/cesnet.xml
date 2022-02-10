@@ -409,6 +409,11 @@
         <dataType>string</dataType>
     </element>
     <element>
+        <id>890</id>
+        <name>quicSNI</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
         <id>900</id>
         <name>tcpMss</name>
         <dataType>unsigned32</dataType>

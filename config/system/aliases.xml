@@ -20,6 +20,21 @@
 		</aggregation>
 	</element>
 
+	<!-- Number of bytes -->
+	<element>
+		<name>Bytes</name>
+		<alias>bytes</alias>
+
+		<source>
+			<id>iana:octetDeltaCount</id>
+		</source>
+
+		<aggregation>
+			<method>sum</method>
+			<order>descendent</order>
+		</aggregation>
+	</element>
+
 	<!-- Source IP address (IPv4 or IPv6) -->
 	<element>
 		<name>SRC IP</name>
@@ -188,4 +203,3 @@
 
 </ipfix-aliases>
 
-<!-- TODO: How to express "net a.b.c.d/XX"? -->

@@ -409,6 +409,16 @@
         <dataType>string</dataType>
     </element>
     <element>
+        <id>891</id>
+        <name>quicUserAgent</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>892</id>
+        <name>quicVersion</name>
+        <dataType>unsigned32</dataType>
+    </element>
+    <element>
         <id>900</id>
         <name>tcpMss</name>
         <dataType>unsigned32</dataType>

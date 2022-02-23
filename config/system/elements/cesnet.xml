@@ -222,11 +222,6 @@
         <dataType>string</dataType>
     </element>
     <element>
-        <id>830</id>
-        <name>tlsJa3Fingerprint</name>
-        <dataType>octetArray</dataType>
-    </element>
-    <element>
         <id>810</id>
         <name>SMTPCommands</name>
         <dataType>unsigned32</dataType>

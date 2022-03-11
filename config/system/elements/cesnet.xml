@@ -212,14 +212,14 @@
         <dataType>string</dataType>
     </element>
     <element>
-        <id>808</id>
-        <name>TLSSNI</name>
+        <id>200</id>
+        <name>httpMethod</name>
         <dataType>string</dataType>
     </element>
     <element>
-        <id>830</id>
-        <name>tlsJa3Fingerprint</name>
-        <dataType>octetArray</dataType>
+        <id>808</id>
+        <name>TLSSNI</name>
+        <dataType>string</dataType>
     </element>
     <element>
         <id>810</id>
@@ -404,6 +404,21 @@
         <dataType>string</dataType>
     </element>
     <element>
+        <id>890</id>
+        <name>quicSNI</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>891</id>
+        <name>quicUserAgent</name>
+        <dataType>string</dataType>
+    </element>
+    <element>
+        <id>892</id>
+        <name>quicVersion</name>
+        <dataType>unsigned32</dataType>
+    </element>
+    <element>
         <id>900</id>
         <name>tcpMss</name>
         <dataType>unsigned32</dataType>
@@ -505,29 +520,44 @@
     <element>
         <id>1060</id>
         <name>phistSrcSizes</name>
-        <dataType>unsigned16</dataType>
+        <dataType>unsigned32</dataType>
         <dataSemantics>default</dataSemantics>
         <units>none</units>
     </element>
     <element>
         <id>1061</id>
         <name>phistSrcInterPacketTime</name>
-        <dataType>unsigned16</dataType>
+        <dataType>unsigned32</dataType>
         <dataSemantics>default</dataSemantics>
         <units>none</units>
     </element>
     <element>
         <id>1062</id>
         <name>phistDstSizes</name>
-        <dataType>unsigned16</dataType>
+        <dataType>unsigned32</dataType>
         <dataSemantics>default</dataSemantics>
         <units>none</units>
     </element>
     <element>
         <id>1063</id>
         <name>phistDstInterPacketTime</name>
-        <dataType>unsigned16</dataType>
+        <dataType>unsigned32</dataType>
         <dataSemantics>default</dataSemantics>
         <units>none</units>
     </element>
+    <element>
+        <id>1100</id>
+        <name>WGConfLevel</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
+        <id>1101</id>
+        <name>WGSrcPeer</name>
+        <dataType>unsigned32</dataType>
+    </element>
+    <element>
+        <id>1102</id>
+        <name>WGDstPeer</name>
+        <dataType>unsigned32</dataType>
+   </element>
 </ipfix-elements>

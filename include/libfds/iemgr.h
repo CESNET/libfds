@@ -248,6 +248,12 @@ enum fds_iemgr_element_biflow {
     FDS_BF_INDIVIDUAL, /**< Individually configured for each normal element within the PEN */
 };
 
+/** Alias modes                                           */
+enum fds_iemgr_alias_mode {
+    FDS_ALIAS_ANY_OF,   /**< Any of the elements listed   */
+    FDS_ALIAS_FIRST_OF, /**< First of the elements listed */
+};
+
 /** Metadata for a scope                                                          */
 struct fds_iemgr_scope {
     uint32_t pen;                                 /**< Private Enterprise Number  */
@@ -291,7 +297,73 @@ struct fds_iemgr_elem {
     bool                            is_reverse;
     /** Reverse element, when individual mode is defined in a elements scope */
     struct fds_iemgr_elem *         reverse_elem;
+
+    struct fds_iemgr_alias **       aliases;
+    size_t                          aliases_cnt;
+
+    struct fds_iemgr_mapping **     mappings;
+    size_t                          mappings_cnt;
 };
+
+/** 
+ * The alias structure
+ *
+ * Aliases are used to be able refer to one or more information elements using
+ * an alias rather than the long IPFIX entity name.
+ */
+struct fds_iemgr_alias {
+    /** The name of the alias as specified in the alias config               */
+    char *name;
+    
+    /** The alias handling mode (anyOf, firstOf, ...)                        */
+    enum fds_iemgr_alias_mode mode;
+    
+    /** All the names this alias can be referred to with                     */
+    char **aliased_names;
+    size_t aliased_names_cnt;
+
+    /** The elements this alias refers to                                    */
+    struct fds_iemgr_elem **sources;
+    size_t sources_cnt;
+};
+
+/** Mapping key-value pair */
+struct fds_iemgr_mapping_item {
+    /* The key (e.g. for a "protocol" mapping this could be "TCP")           */
+    char *key;
+    
+    /* The value (e.g. in case of a "protocol" mapping where the key is "TCP" 
+       this would be the number of the TCP protocol)                         */
+    union fds_iemgr_mapping_value {
+        int64_t i;
+    } value;
+};
+
+/** 
+ * Mapping structure 
+ * 
+ * Mappings are used to be able to refer IPFIX element values using their 
+ * commonly used names. E.g. in case of a "protocolIdentifier" information  
+ * element a "Protocol" mapping can be defined to be able to refer to the 
+ * protocol values using names such as "TCP", "UDP" instead of their numeric 
+ * values. 
+ */
+struct fds_iemgr_mapping {
+    /* The name of the mapping as specified in the mappings file             */
+    char *name;
+    
+    /* Whether the mapping keys are case sensitive                           */
+    bool key_case_sensitive;
+
+    /* The information elements this mapping belongs to                      */
+    struct fds_iemgr_elem **elems;
+    size_t elems_cnt;
+
+    /* The key-values of the mapping                                         */
+    struct fds_iemgr_mapping_item *items;
+    size_t items_cnt;
+};
+
 
 /** Element Manager  */
 typedef struct fds_iemgr fds_iemgr_t;
@@ -579,6 +651,44 @@ fds_iemgr_scope_find_name(const fds_iemgr_t *mgr, const char *name);
  */
 FDS_API const char *
 fds_iemgr_last_err(const fds_iemgr_t *mgr);
+
+/**
+ * Load an aliases file and save the information to the manager.
+ * \param mgr        The information element manager.
+ * \param file_path  Path to the file to read the aliases from.
+ * \return FDS_OK on success, FDS error code otherwise.
+ */
+FDS_API int
+fds_iemgr_alias_read_file(fds_iemgr_t *mgr, const char *file_path);
+
+/**
+ * \brief Find an alias by name
+ * \param[in] mgr  Manager
+ * \param[in] name The aliased name
+ * \return Pointer to the alias if found, else NULL.
+ */
+FDS_API const struct fds_iemgr_alias *
+fds_iemgr_alias_find(const fds_iemgr_t *mgr, const char *aliased_name);
+
+/**
+ * Find a value mapping definition.
+ * \param mgr   The information elements manager.
+ * \param name  The mapping name (e.g. protocol).
+ * \param key   The mapping key (e.g. TCP).
+ * \return Pointer to the mapping if found, else NULL.
+ */
+FDS_API const struct fds_iemgr_mapping_item *
+fds_iemgr_mapping_find(const fds_iemgr_t *mgr, const char *name, const char *key);
+
+/**
+ * Load a mappings file and save the information to the manager.
+ * \param mgr        The information element manager.
+ * \param file_path  Path to the file to read the mappings from.
+ * \return FDS_OK on success, FDS error code otherwise.
+ */
+FDS_API int
+fds_iemgr_mapping_read_file(fds_iemgr_t *mgr, const char *file_path);
+
 
 #ifdef __cplusplus
 }

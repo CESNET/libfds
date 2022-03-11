@@ -1,0 +1,37 @@
+<ipfix-mapping>
+    <group>
+        <name>Mapping for A</name>
+        
+        <!-- Alias or Element name -->
+        <match>iana:e</match>
+
+        <item-list mode="caseInsensitive">
+            <item>
+                <key>val1</key>
+                <value>1</value>
+            </item>
+            <item>
+                <key>val2</key>
+                <value>2</value>
+            </item>
+        </item-list>
+    </group>
+
+    <group>
+        <name>Mapping for A</name>
+        
+        <!-- Alias or Element name -->
+        <match>iana:e</match>
+
+        <item-list mode="caseInsensitive">
+            <item>
+                <key>val1</key>
+                <value>1</value>
+            </item>
+            <item>
+                <key>val2</key>
+                <value>2</value>
+            </item>
+        </item-list>
+    </group>
+</ipfix-mapping>

@@ -1,0 +1,65 @@
+<ipfix-mapping>
+    <group>
+        <name>Protocol</name>
+        
+        <!-- Alias or Element name -->
+        <match>Protocol</match>
+
+        <item-list mode="caseInsensitive">
+            <item>
+                <key>TCP</key>
+                <value>6</value>
+            </item>
+            <item>
+                <key>UDP</key>
+                <value>17</value>
+            </item>
+        </item-list>
+    </group>
+
+    <group>
+        <name>TCP Flags</name>
+
+        <match>TCP Flags</match>
+
+        <item-list mode="caseInsensitive">
+            <item>
+                <key>FIN</key>
+                <value>1</value>
+            </item>
+            <item>
+                <key>SYN</key>
+                <value>2</value>
+            </item>
+            <item>
+                <key>RST</key>
+                <value>4</value>
+            </item>
+            <item>
+                <key>PSH</key>
+                <value>8</value>
+            </item>
+            <item>
+                <key>ACK</key>
+                <value>16</value>
+            </item>
+            <item>
+                <key>URG</key>
+                <value>32</value>
+            </item>
+            <item>
+                <key>ECE</key>
+                <value>64</value>
+            </item>
+            <item>
+                <key>CWR</key>
+                <value>128</value>
+            </item>
+            <item>
+                <key>NS</key>
+                <value>256</value>
+            </item>
+        </item-list>
+    </group>
+
+</ipfix-mapping>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ipfix-aliases>
+	<element>
+		<name>AC</name>
+
+		<alias>ac</alias>
+
+		<source>
+		</source>
+	</element>
+</ipfix-aliases>
+

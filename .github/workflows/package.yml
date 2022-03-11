@@ -15,13 +15,16 @@ jobs:
     container: ${{ matrix.image }}
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Define global variables
-      run: echo "::set-output name=zip_file::libfds-${IMAGE//:/}-$GITHUB_SHA.zip"
-      shell: bash
-      env:
-        IMAGE: ${{ matrix.image }}
-      id: vars
+    - uses: actions/checkout@v2
+    - name: Define variables
+      uses: actions/github-script@v5
+      with:
+        script: |
+          const sha = context.sha.substring(0, 8);
+          const image = `${{ matrix.image }}`
+          const distro = image.split('/').pop().replace(/:/g,'_');
+          const zip = `libfds-${distro}-${sha}`;
+          core.exportVariable('ZIP_FILE', zip);
 
     # Dependencies ---------------------------------------------------------------------------
     - name: Install dependencies (Ubuntu/Debian)
@@ -38,17 +41,16 @@ jobs:
         mkdir build && cd build
         cmake .. -DPACKAGE_BUILDER_DEB=On -DCPACK_PACKAGE_CONTACT="GitHub actions <no-reply@example.com>"
         make deb
-    - name: Pack DEB packages
-      working-directory: 'build/pkg/deb/debbuild/'
-      run: zip "$GITHUB_WORKSPACE/$ZIP_FILE" *.deb *.ddeb *.tar.gz *.dsc
-      env:
-        ZIP_FILE: ${{ steps.vars.outputs.zip_file }}
     - name: Archive DEB packages
       if: github.event_name == 'push'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
-        name: ${{ steps.vars.outputs.zip_file }}
-        path: ${{ steps.vars.outputs.zip_file }}
+        name: ${{ env.ZIP_FILE }}
+        path: |
+          build/pkg/deb/debbuild/*.deb
+          build/pkg/deb/debbuild/*.ddeb
+          build/pkg/deb/debbuild/*.tar.gz
+          build/pkg/deb/debbuild/*.dsc
 
   rpm:
     # Try to build RPM packages
@@ -56,28 +58,41 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: ['centos:7', 'centos:8']
+        image:
+          - 'centos:7'
+          - 'quay.io/centos/centos:stream8'
+          - 'oraclelinux:8'
 
     name: Build RPMs on ${{ matrix.image }}
     container: ${{ matrix.image }}
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Define global variables
-      run: echo "::set-output name=zip_file::libfds-${IMAGE//:/}-$GITHUB_SHA.zip"
-      env:
-        IMAGE: ${{ matrix.image }}
-      id: vars
+    - name: Define variables
+      uses: actions/github-script@v5
+      with:
+        script: |
+          const sha = context.sha.substring(0, 8);
+          const image = `${{ matrix.image }}`
+          const distro = image.split('/').pop().replace(/:/g,'_');
+          const zip = `libfds-${distro}-${sha}`;
+          core.exportVariable('ZIP_FILE', zip);
 
     # Dependencies ---------------------------------------------------------------------------
-    - name: Install dependencies (CentOS)
-      if: startsWith(matrix.image, 'centos')
+    - name: Enable EPEL (CentOS)
+      if: contains(matrix.image, 'centos')
       run: |
         yum -y install epel-release
+    - name: Enable EPEL (Oracle Linxu)
+      if: contains(matrix.image, 'oraclelinux')
+      run: |
+        dnf -y install oracle-epel-release-el8
+    - name: Install dependencies (CentOS, Oracle Linux)
+      if: contains(matrix.image, 'centos') || contains(matrix.image, 'oraclelinux')
+      run: |
         yum -y install git gcc gcc-c++ cmake make libxml2-devel lz4-devel libzstd-devel rpm-build
-    - name: Install depedencies (Fedora)
-      if: startsWith(matrix.image, 'fedora')
-      run: dnf -y install git gcc gcc-c++ cmake make libxml2-devel lz4-devel libzstd-devel rpm-build
+
+    # Checkout repository --------------------------------------------------------------------
+    - uses: actions/checkout@v2
 
     # Build ----------------------------------------------------------------------------------
     - name: Build RPM packages
@@ -85,14 +100,11 @@ jobs:
         mkdir build && cd build
         cmake .. -DPACKAGE_BUILDER_RPM=On -DCPACK_PACKAGE_CONTACT="GitHub actions <no-reply@example.com>"
         make rpm
-    - name: Pack RPM packages
-      working-directory: 'build/pkg/rpm/rpmbuild'
-      run: zip -r "$GITHUB_WORKSPACE/$ZIP_FILE" RPMS SRPMS
-      env:
-        ZIP_FILE: ${{ steps.vars.outputs.zip_file }}
     - name: Archive RPM packages
       if: github.event_name == 'push'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
-        name: ${{ steps.vars.outputs.zip_file }}
-        path: ${{ steps.vars.outputs.zip_file }}
+        name: ${{ env.ZIP_FILE }}
+        path: |
+          build/pkg/rpm/rpmbuild/RPMS/
+          build/pkg/rpm/rpmbuild/SRPMS/

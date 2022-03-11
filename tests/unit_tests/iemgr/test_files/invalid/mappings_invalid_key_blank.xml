@@ -1,0 +1,15 @@
+<ipfix-mapping>
+    <group>
+        <name>Mapping for A</name>
+        
+        <match>iana:a</match>
+
+        <item-list mode="caseInsensitive">
+            <item>
+                <key></key>
+                <value>1</value>
+            </item>
+        </item-list>
+    </group>
+
+</ipfix-mapping>

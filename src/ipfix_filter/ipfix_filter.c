@@ -177,6 +177,7 @@ get_filter_data_type(const struct fds_iemgr_elem *elem)
         return FDS_FDT_MAC;
 
     case FDS_ET_STRING:
+    case FDS_ET_OCTET_ARRAY:
         return FDS_FDT_STR;
 
     case FDS_ET_DATE_TIME_SECONDS:
@@ -386,6 +387,7 @@ read_record_field(struct fds_drec *record, const struct fds_iemgr_elem *field_de
             break;
 
         case FDS_ET_STRING:
+        case FDS_ET_OCTET_ARRAY:
             out_value->str.len = size;
             out_value->str.chars = (char *) data;
             break;

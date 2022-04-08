@@ -88,6 +88,8 @@ struct operator_s op_parse_def_table[] = {
     { "exists"  , 2, OP_KIND_PREFIX, OP_ASSOC_NONE },
     { "in"      , 2, OP_KIND_INFIX , OP_ASSOC_LEFT },
     { "contains", 2, OP_KIND_INFIX , OP_ASSOC_LEFT },
+    { "startswith", 2, OP_KIND_INFIX , OP_ASSOC_LEFT },
+    { "endswith", 2, OP_KIND_INFIX , OP_ASSOC_LEFT },
 
     { ""        , 1, OP_KIND_INFIX , OP_ASSOC_LEFT },
     { "=="      , 1, OP_KIND_INFIX , OP_ASSOC_LEFT },

@@ -75,7 +75,8 @@ const struct {
 // Strings that are treated as symbols
 const char *symbols[] = {
     "~", "not", "*", "/", "+", "-", "|", "&", "^", "%",
-    "and", "or", "in", "contains", "exists", "[", "]", "(", ")", ",",
+    "and", "or", "in", "contains", "startswith", "endswith", "exists",
+    "[", "]", "(", ")", ",",
     "<", ">", "==", "!=", ">=", "<=", "<<", ">>",
     "in", "out", "ingress", "egress", "src", "dst"
 };

@@ -88,8 +88,19 @@ contains_str(fds_filter_value_u *big, fds_filter_value_u *little, fds_filter_val
     result->b = strnnstr(big->str.chars, little->str.chars, big->str.len, little->str.len) != NULL;
 }
 
+void
+startswith_str(fds_filter_value_u *big, fds_filter_value_u *little, fds_filter_value_u *result)
+{
+    result->b = (big->str.len >= little->str.len
+        && memcmp(big->str.chars, little->str.chars, little->str.len) == 0);
+}
 
-
+void
+endswith_str(fds_filter_value_u *big, fds_filter_value_u *little, fds_filter_value_u *result)
+{
+    result->b = (big->str.len >= little->str.len
+        && memcmp(&big->str.chars[big->str.len - little->str.len], little->str.chars, little->str.len) == 0);
+}
 
 void
 str_in_list(fds_filter_value_u *item, fds_filter_value_u *list, fds_filter_value_u *result)
@@ -136,6 +147,8 @@ const fds_filter_op_s str_operations[] = {
     FDS_FILTER_DEF_BINARY_OP(FDS_FDT_STR, "!=", FDS_FDT_STR, ne_str, FDS_FDT_BOOL),
 
     FDS_FILTER_DEF_BINARY_OP(FDS_FDT_STR, "contains", FDS_FDT_STR, contains_str, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_STR, "startswith", FDS_FDT_STR, startswith_str, FDS_FDT_BOOL),
+    FDS_FILTER_DEF_BINARY_OP(FDS_FDT_STR, "endswith", FDS_FDT_STR, endswith_str, FDS_FDT_BOOL),
 
     FDS_FILTER_DEF_BINARY_OP(FDS_FDT_STR, "in", FDS_FDT_LIST | FDS_FDT_STR, str_in_list, FDS_FDT_BOOL),
 

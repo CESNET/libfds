@@ -397,6 +397,18 @@ TEST_F(Filter, string_operations) {
     EXPECT_EQ(evaluate("\"hello world!\" contains \"\""), true);
     EXPECT_EQ(evaluate("not \"\" contains \"hello\""), true);
     EXPECT_EQ(evaluate("not \"hello world!\" contains \"foo\""), true);
+    EXPECT_EQ(evaluate("\"hello world!\" startswith \"hello\""), true);
+    EXPECT_EQ(evaluate("\"hello world!\" startswith \"hello world!\""), true);
+    EXPECT_EQ(evaluate("\"hello world!\" startswith \"hello world!!\""), false);
+    EXPECT_EQ(evaluate("\"hello world!\" startswith \"ello world!!\""), false);
+    EXPECT_EQ(evaluate("\"hello world!\" startswith \"\""), true);
+    EXPECT_EQ(evaluate("\"hello world!\" startswith \"ello\""), false);
+    EXPECT_EQ(evaluate("\"hello world!\" startswith \"world\""), false);
+    EXPECT_EQ(evaluate("\"hello world!\" endswith \"world\""), false);
+    EXPECT_EQ(evaluate("\"hello world!\" endswith \"world!\""), true);
+    EXPECT_EQ(evaluate("\"hello world!\" endswith \"hello world!\""), true);
+    EXPECT_EQ(evaluate("\"hello world!\" endswith \"hello\""), false);
+    EXPECT_EQ(evaluate("\"hello world!\" endswith \"hello world!!\""), false);
 }
 
 TEST_F(Filter, bitwise_operations) {

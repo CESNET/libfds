@@ -520,21 +520,33 @@ fds_ipfix_filter_eval(struct fds_ipfix_filter *ipxfil, struct fds_drec *record)
 enum fds_ipfix_filter_match
 fds_ipfix_filter_eval_biflow(struct fds_ipfix_filter *ipxfil, struct fds_drec *record)
 {
-    int result = 0;
+    if (record->tmplt->flags & FDS_TEMPLATE_BIFLOW) {
+        int result = 0;
 
-    ipxfil->lookup_state.source_idx = 0;
-    ipxfil->lookup_state.find_flags = FDS_DREC_BIFLOW_FWD;
-    if (fds_filter_eval(ipxfil->filter, record)) {
-        result |= FDS_IPFIX_FILTER_MATCH_FWD;
+        ipxfil->lookup_state.source_idx = 0;
+        ipxfil->lookup_state.find_flags = FDS_DREC_BIFLOW_FWD;
+        if (fds_filter_eval(ipxfil->filter, record)) {
+            result |= FDS_IPFIX_FILTER_MATCH_FWD;
+        }
+
+        ipxfil->lookup_state.source_idx = 0;
+        ipxfil->lookup_state.find_flags = FDS_DREC_BIFLOW_REV;
+        if (fds_filter_eval(ipxfil->filter, record)) {
+            result |= FDS_IPFIX_FILTER_MATCH_REV;
+        }
+
+        return result;
+
+    } else {
+        ipxfil->lookup_state.source_idx = 0;
+        ipxfil->lookup_state.find_flags = 0;
+
+        if (fds_filter_eval(ipxfil->filter, record)) {
+            return FDS_IPFIX_FILTER_MATCH_FWD;
+        } else {
+            return FDS_IPFIX_FILTER_NO_MATCH;
+        }
     }
-
-    ipxfil->lookup_state.source_idx = 0;
-    ipxfil->lookup_state.find_flags = FDS_DREC_BIFLOW_REV;
-    if (fds_filter_eval(ipxfil->filter, record)) {
-        result |= FDS_IPFIX_FILTER_MATCH_REV;
-    }
-
-    return result;
 }
 
 void

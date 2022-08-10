@@ -2,6 +2,7 @@
 #include "iemgr_element.h"
 #include "iemgr_alias.h"
 
+#include <array>
 #include <string>
 
 #include <cassert>

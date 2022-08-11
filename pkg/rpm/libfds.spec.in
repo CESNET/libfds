@@ -45,6 +45,7 @@ This package contains header files for libfds.
 
 # Build source code
 %build
+%global _vpath_builddir .
 %cmake .
 make %{?_smp_mflags}
 

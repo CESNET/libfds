@@ -48,6 +48,7 @@
 #include <string>
 #include <memory>
 #include <cmath>
+#include <array>
 
 #include <iomanip> // setprecision
 #include <sstream> // stringstream

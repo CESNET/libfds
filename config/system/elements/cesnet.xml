@@ -217,6 +217,42 @@
         <dataType>string</dataType>
     </element>
     <element>
+        <id>201</id>
+        <name>httpServer</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>202</id>
+        <name>httpCookieNames</name>
+        <dataType>string</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>804</id>
+        <name>statsTLSSize</name>
+        <dataType>unsigned16</dataType>
+        <units>octets</units>
+    </element>
+    <element>
+        <id>805</id>
+        <name>statsTLSTimestamp</name>
+        <dataType>dateTimeMilliseconds</dataType>
+        <units>milliseconds</units>
+    </element>
+    <element>
+        <id>806</id>
+        <name>statsTLSDirection</name>
+        <dataType>signed8</dataType>
+    </element>
+    <element>
+        <id>807</id>
+        <name>statsTLSType</name>
+        <dataType>unsigned8</dataType>
+    </element>
+    <element>
         <id>808</id>
         <name>TLSSNI</name>
         <dataType>string</dataType>
@@ -404,6 +440,13 @@
         <dataType>string</dataType>
     </element>
     <element>
+        <id>889</id>
+        <name>quicZeroRTT</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
         <id>890</id>
         <name>quicSNI</name>
         <dataType>string</dataType>
@@ -419,6 +462,55 @@
         <dataType>unsigned32</dataType>
     </element>
     <element>
+        <id>893</id>
+        <name>quicClientVersion</name>
+        <dataType>unsigned32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>894</id>
+        <name>quicTokenLength</name>
+        <dataType>unsigned64</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>895</id>
+        <name>quicOCCID</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>896</id>
+        <name>quicOSCID</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>897</id>
+        <name>quicSCID</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>898</id>
+        <name>quicRetrySCID</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>899</id>
+        <name>quicMultiplexed</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
         <id>900</id>
         <name>tcpMss</name>
         <dataType>unsigned32</dataType>
@@ -432,6 +524,11 @@
         <id>902</id>
         <name>tcpSynSize</name>
         <dataType>unsigned16</dataType>
+    </element>
+    <element>
+        <id>903</id>
+        <name>ssaConfLevel</name>
+        <dataType>unsigned8</dataType>
     </element>
     <element>
         <id>1013</id>
@@ -458,6 +555,97 @@
         <id>1016</id>
         <name>packetDirection</name>
         <dataType>signed8</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1020</id>
+        <name>ntsMeanPacketPayload</name>
+        <dataType>float32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1021</id>
+        <name>ntsMinPacketPayload</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1022</id>
+        <name>ntsMaxPacketPayload</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1023</id>
+        <name>ntsStdevPacketPayload</name>
+        <dataType>float32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1024</id>
+        <name>ntsKurtosisPacketPayload</name>
+        <dataType>float32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1025</id>
+        <name>ntsRootMeanSquarePacketPayload</name>
+        <dataType>float32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+    <id>1026</id>
+        <name>ntsAverageDispersionPacketPayload</name>
+        <dataType>float32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+        </element>
+    <element>
+        <id>1027</id>
+        <name>ntsMeanScaledTime</name>
+        <dataType>float32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1028</id>
+        <name>ntsMeanDifftimes</name>
+        <dataType>float32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1029</id>
+        <name>ntsMinDifftimes</name>
+        <dataType>float32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1030</id>
+        <name>ntsMaxDifftimes</name>
+        <dataType>float32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1031</id>
+        <name>ntsTimeDistribution</name>
+        <dataType>float32</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1032</id>
+        <name>ntsSwitchingRatio</name>
+        <dataType>float32</dataType>
         <dataSemantics>default</dataSemantics>
         <units>none</units>
     </element>
@@ -559,5 +747,19 @@
         <id>1102</id>
         <name>WGDstPeer</name>
         <dataType>unsigned32</dataType>
-   </element>
+    </element>
+    <element>
+        <id>1200</id>
+        <name>scitagExperimentID</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>1201</id>
+        <name>scitagExperimentAct</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
 </ipfix-elements>

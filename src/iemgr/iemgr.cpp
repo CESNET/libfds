@@ -526,7 +526,7 @@ fds_iemgr_elem_add(fds_iemgr_t *mgr, const struct fds_iemgr_elem *elem, uint32_t
         }
 
         auto res = unique_elem(element_copy(scope, elem), &::element_remove);
-        if (!element_push(mgr, scope, move(res), BIFLOW_ID_INVALID)) {
+        if (!element_push(mgr, scope, std::move(res), BIFLOW_ID_INVALID)) {
             return FDS_ERR_FORMAT;
         }
     } catch (...) {

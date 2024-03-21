@@ -18,6 +18,7 @@ include_directories(
 	"${PROJECT_BINARY_DIR}/include/"      # for api.h
 	"${PROJECT_BINARY_DIR}/src/"          # for build_config.h
 	"${LIBXML2_INCLUDE_DIR}"
+	"${LIBXML2_INCLUDE_DIR}/../"
 )
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)

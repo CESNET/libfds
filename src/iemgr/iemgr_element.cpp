@@ -312,9 +312,9 @@ element_push(fds_iemgr_t* mgr, fds_iemgr_scope_inter* scope, unique_elem elem, i
 
     auto res = find_second(scope->ids, elem->id);
     if (res != nullptr) {
-        return element_overwrite(mgr, scope, res, move(elem), biflow_id);
+        return element_overwrite(mgr, scope, res, std::move(elem), biflow_id);
     }
-    return element_write(mgr, scope, move(elem), biflow_id);
+    return element_write(mgr, scope, std::move(elem), biflow_id);
 }
 
 bool
@@ -382,7 +382,7 @@ element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
     }
 
     elem->scope = &scope->head;
-    return element_push(mgr, scope, move(elem), biflow_id);
+    return element_push(mgr, scope, std::move(elem), biflow_id);
 }
 
 bool

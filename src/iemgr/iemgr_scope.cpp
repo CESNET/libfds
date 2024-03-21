@@ -280,7 +280,7 @@ scope_push(fds_iemgr_t* mgr, unique_scope scope, bool biflow_read)
         return scope_overwrite(mgr, res);
     }
 
-    return scope_write(mgr, move(scope), biflow_read);
+    return scope_write(mgr, std::move(scope), biflow_read);
 }
 
 bool
@@ -343,7 +343,7 @@ scope_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx)
             break;
         }
     }
-    return scope_push(mgr, move(scope), biflow_read);
+    return scope_push(mgr, std::move(scope), biflow_read);
 }
 
 const fds_xml_cont *

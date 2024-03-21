@@ -44,6 +44,7 @@
 #include <stdio.h>      // snprintf
 #include <inttypes.h>   // PRIi64, PRIu32,...
 #include <math.h>       // isnormal
+#include <sys/socket.h> // AF_INET, inet_ntop, ...
 #include "branchlut2.h"
 
 int

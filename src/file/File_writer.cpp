@@ -10,6 +10,7 @@
 
 #include <endian.h>
 #include <algorithm>
+#include <cerrno>
 
 #include <sys/types.h> // lseek
 #include <unistd.h>    // lseek, lockf

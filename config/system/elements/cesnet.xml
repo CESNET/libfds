@@ -231,6 +231,16 @@
         <units>none</units>
     </element>
     <element>
+        <id>802</id>
+        <name>tlsExtTypeField</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
+        <id>803</id>
+        <name>tlsExtLenField</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
         <id>804</id>
         <name>statsTLSSize</name>
         <dataType>unsigned16</dataType>

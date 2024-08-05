@@ -59,7 +59,7 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - 'quay.io/centos/centos:stream8'
+          - 'rockylinux:8'
           - 'oraclelinux:8'
           - 'oraclelinux:9'
 
@@ -78,8 +78,8 @@ jobs:
           core.exportVariable('ZIP_FILE', zip);
 
     # Dependencies ---------------------------------------------------------------------------
-    - name: Enable EPEL (CentOS)
-      if: contains(matrix.image, 'centos')
+    - name: Enable EPEL (Rocky Linux)
+      if: contains(matrix.image, 'rockylinux')
       run: |
         yum -y install epel-release
     - name: Enable EPEL (Oracle Linux 8)
@@ -90,8 +90,8 @@ jobs:
       if: contains(matrix.image, 'oraclelinux:9')
       run: |
         dnf -y install oracle-epel-release-el9
-    - name: Install dependencies (CentOS, Oracle Linux)
-      if: contains(matrix.image, 'centos') || contains(matrix.image, 'oraclelinux')
+    - name: Install dependencies (Rocky Linux, Oracle Linux)
+      if: contains(matrix.image, 'rockylinux') || contains(matrix.image, 'oraclelinux')
       run: |
         yum -y install git gcc gcc-c++ cmake make libxml2-devel lz4-devel libzstd-devel rpm-build
 

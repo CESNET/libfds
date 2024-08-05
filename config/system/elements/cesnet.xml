@@ -231,6 +231,16 @@
         <units>none</units>
     </element>
     <element>
+        <id>802</id>
+        <name>tlsExtTypeField</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
+        <id>803</id>
+        <name>tlsExtLenField</name>
+        <dataType>unsigned16</dataType>
+    </element>
+    <element>
         <id>804</id>
         <name>statsTLSSize</name>
         <dataType>unsigned16</dataType>
@@ -438,6 +448,48 @@
         <id>862</id>
         <name>OSQuerySystemHostname</name>
         <dataType>string</dataType>
+    </element>
+    <element>
+        <id>883</id>
+        <name>quicTlsExt</name>
+        <dataType>octetArray</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>884</id>
+        <name>quicTlsExtLen</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>885</id>
+        <name>quicTlsExtType</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>886</id>
+        <name>quicCHParsed</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>887</id>
+        <name>quicServerPort</name>
+        <dataType>unsigned16</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
+    </element>
+    <element>
+        <id>888</id>
+        <name>quicPackets</name>
+        <dataType>unsigned8</dataType>
+        <dataSemantics>default</dataSemantics>
+        <units>none</units>
     </element>
     <element>
         <id>889</id>

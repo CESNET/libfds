@@ -51,7 +51,6 @@ jobs:
     - uses: actions/checkout@v2
 
     # Build ----------------------------------------------------------------------------------
-    # Note: Unit tests are disabled on CentOS7 due to outdated GCC version
     - name: Build the project
       run: |
         mkdir build && cd build

@@ -43,7 +43,7 @@ jobs:
         make deb
     - name: Archive DEB packages
       if: github.event_name == 'push'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.ZIP_FILE }}
         path: |
@@ -106,7 +106,7 @@ jobs:
         make rpm
     - name: Archive RPM packages
       if: github.event_name == 'push'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.ZIP_FILE }}
         path: |

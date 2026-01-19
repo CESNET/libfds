@@ -60,6 +60,7 @@ element_create()
     elem->aliases_cnt   = 0;
     elem->mappings      = nullptr;
     elem->mappings_cnt  = 0;
+    elem->excluded      = false;
     return elem;
 }
 
@@ -81,7 +82,7 @@ element_copy(fds_iemgr_scope_inter* scope, const fds_iemgr_elem* elem)
     res->aliases       = copy_flat_array(elem->aliases, elem->aliases_cnt);
     res->mappings_cnt  = elem->mappings_cnt;
     res->mappings      = copy_flat_array(elem->mappings, elem->mappings_cnt);
-
+    res->excluded      = elem->excluded;
     return res;
 }
 
@@ -102,8 +103,8 @@ element_create_reverse(fds_iemgr_elem* src, uint16_t new_id)
     res->aliases       = nullptr;
     res->mappings_cnt  = 0;
     res->mappings      = nullptr;
-
-    src->reverse_elem  = res.get();
+    res->excluded      = src->excluded;
+    src->reverse_elem  = res.get();    
     return res.release();
 }
 
@@ -375,6 +376,9 @@ element_read(fds_iemgr_t* mgr, fds_xml_ctx_t* ctx, fds_iemgr_scope_inter* scope)
             if (biflow_id < 0) {
                 return false;
             }
+            break;
+        case ELEM_EXCLUDED:
+            elem->excluded = cont->val_bool;
             break;
         default:
             break;

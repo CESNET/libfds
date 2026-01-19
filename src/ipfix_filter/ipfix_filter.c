@@ -503,6 +503,7 @@ fds_ipfix_filter_create(struct fds_ipfix_filter **ipxfil, const fds_iemgr_t *iem
     fds_filter_opts_set_user_ctx(opts, *ipxfil);
 
     int rc = fds_filter_create(&(*ipxfil)->filter, expr, opts);
+    fds_filter_destroy_opts(opts);
     if (rc != FDS_OK) {
         (*ipxfil)->error = fds_filter_get_error((*ipxfil)->filter);
         return rc;

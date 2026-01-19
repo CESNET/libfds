@@ -319,7 +319,8 @@ parser_create(fds_iemgr_t* mgr)
         FDS_OPTS_ELEM(ELEM_DATA_SEMAN, "dataSemantics", FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
         FDS_OPTS_ELEM(ELEM_DATA_UNIT,  "units",         FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
         FDS_OPTS_ELEM(ELEM_STATUS,     "status",        FDS_OPTS_T_STRING, FDS_OPTS_P_OPT),
-        FDS_OPTS_ELEM(ELEM_BIFLOW,     "biflowId",      FDS_OPTS_T_INT,   FDS_OPTS_P_OPT),
+        FDS_OPTS_ELEM(ELEM_BIFLOW,     "biflowId",      FDS_OPTS_T_INT,    FDS_OPTS_P_OPT),
+        FDS_OPTS_ELEM(ELEM_EXCLUDED,   "excluded",      FDS_OPTS_T_BOOL,   FDS_OPTS_P_OPT),
         FDS_OPTS_END
     };
     static const struct fds_xml_args args_biflow[] = {

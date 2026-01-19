@@ -167,6 +167,7 @@ enum FDS_XML_ID {
     ITEM_LIST_ITEM,
     ITEM_KEY,
     ITEM_VALUE,
+    ELEM_EXCLUDED
 };
 
 /** \cond DOXYGEN_SKIP_THIS */

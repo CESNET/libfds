@@ -976,6 +976,14 @@ get_converter(const struct fds_drec_field *field)
     }
 }
 
+static bool match_exclude(const struct fds_drec_iter* iter)
+{
+    if( iter->field.info->def == NULL || iter->field.info->def->excluded) {
+        return true;
+    }
+    return false;
+}
+
 /**
  * \breaf Function for iterating through Information Elements
  * \param[in] rec    IPFIX Data Record to convert
@@ -1001,13 +1009,16 @@ iter_loop(const struct fds_drec *rec, struct context *buffer)
     fds_drec_iter_init(&iter, (struct fds_drec *) rec, iter_flag);
 
     while (fds_drec_iter_next(&iter) != FDS_EOC) {
+
         // If flag of multi fields is set,
         // then this field will be skiped and processed when the last occurrence is found
         const fds_template_flag_t field_flags = iter.field.info->flags;
         if ((field_flags & FDS_TFIELD_MULTI_IE) != 0 && (field_flags & FDS_TFIELD_LAST_IE) == 0){
             continue;
         }
-
+        if ( match_exclude( &iter ) ) {
+            continue;
+        }
         // Separate fields
         if (added != 0) {
             // Add comma

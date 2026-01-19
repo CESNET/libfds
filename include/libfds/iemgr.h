@@ -303,6 +303,8 @@ struct fds_iemgr_elem {
 
     struct fds_iemgr_mapping **     mappings;
     size_t                          mappings_cnt;
+    /** Exclusion flag, tells weather a fields should be excluded from export */
+    bool                            excluded;
 };
 
 /** 

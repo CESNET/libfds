@@ -1,5 +1,23 @@
+find_package(PkgConfig QUIET)
+if (PKG_CONFIG_FOUND)
+	# Generate and install pkg-config file
+	configure_file(
+		"${CMAKE_CURRENT_SOURCE_DIR}/libfds.pc.in"
+		"${CMAKE_CURRENT_BINARY_DIR}/libfds.pc"
+		@ONLY)
+	install(
+		FILES "${CMAKE_CURRENT_BINARY_DIR}/libfds.pc"
+		DESTINATION "${INSTALL_DIR_LIB}/pkgconfig/")
+endif()
+
+# CPack configuration and package builders are available only in standalone
+# builds as they would collide with the parent project
+if (NOT LIBFDS_TOP_LEVEL)
+	return()
+endif()
+
 # Common parameters (based on CPack variables)
-set(CPACK_PACKAGE_NAME     ${CMAKE_PROJECT_NAME})
+set(CPACK_PACKAGE_NAME     ${PROJECT_NAME})
 set(CPACK_PACKAGE_VERSION  ${LIBFDS_VERSION})
 if (NOT CPACK_PACKAGE_RELEASE)
 	# User specified
@@ -57,18 +75,6 @@ if (NOT CPACK_PACKAGE_CONTACT OR CPACK_PACKAGE_CONTACT STREQUAL "")
 endif()
 
 message(STATUS "Maintainer contact for packages: " ${CPACK_PACKAGE_CONTACT})
-
-find_package(PkgConfig QUIET)
-if (PKG_CONFIG_FOUND)
-	# Generate and install pkg-config file
-	configure_file(
-		"${CMAKE_CURRENT_SOURCE_DIR}/libfds.pc.in"
-		"${CMAKE_CURRENT_BINARY_DIR}/libfds.pc"
-		@ONLY)
-	install(
-		FILES "${CMAKE_CURRENT_BINARY_DIR}/libfds.pc"
-		DESTINATION "${INSTALL_DIR_LIB}/pkgconfig/")
-endif()
 
 # Package builders
 add_subdirectory(tgz)

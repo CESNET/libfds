@@ -52,6 +52,13 @@ add_library(
 	${PROJECT_SOURCE_DIR}/include/libfds/
 )
 
+# Public headers for projects that use libfds as a subproject
+target_include_directories(fds PUBLIC
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+)
+add_library(libfds::fds ALIAS fds)
+
 target_link_libraries(fds ${LIBXML2_LIBRARIES})
 if (LIBRT)
 	target_link_libraries(fds ${LIBRT})

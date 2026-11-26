@@ -1,5 +1,13 @@
-cmake_minimum_required(VERSION 2.8.8)
+cmake_minimum_required(VERSION 3.5...3.10)
 project(libfds)
+
+# Check if libfds is the main project or it is a part of another project
+# (e.g. included via add_subdirectory() or FetchContent)
+if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+	set(LIBFDS_TOP_LEVEL ON)
+else()
+	set(LIBFDS_TOP_LEVEL OFF)
+endif()
 
 # Description of the project
 set(PROJECT_DESCRIPTION
@@ -25,7 +33,7 @@ include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 
 # Include custom FindXXX modules
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
+list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/CMakeModules")
 
 CHECK_C_COMPILER_FLAG(-std=gnu11 COMPILER_SUPPORT_GNU11)
 if (NOT COMPILER_SUPPORT_GNU11)
@@ -50,13 +58,25 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
         "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
-option(ENABLE_DOC            "Enable documentation building"            OFF)
-option(ENABLE_TESTS          "Build Unit tests (make test)"             OFF)
-option(ENABLE_TESTS_INTERNAL "Build Unit tests that don't use public API" OFF)
-option(ENABLE_TESTS_VALGRIND "Build Unit tests with Valgrind Memcheck"  OFF)
-option(ENABLE_TESTS_COVERAGE "Enable support for code coverage"         OFF)
-option(PACKAGE_BUILDER_RPM   "Enable RPM package builder (make rpm)"    OFF)
-option(PACKAGE_BUILDER_DEB   "Enable DEB package builder (make deb)"    OFF)
+if (LIBFDS_TOP_LEVEL)
+	option(ENABLE_DOC            "Enable documentation building"            OFF)
+	option(ENABLE_TESTS          "Build Unit tests (make test)"             OFF)
+	option(ENABLE_TESTS_INTERNAL "Build Unit tests that don't use public API" OFF)
+	option(ENABLE_TESTS_VALGRIND "Build Unit tests with Valgrind Memcheck"  OFF)
+	option(ENABLE_TESTS_COVERAGE "Enable support for code coverage"         OFF)
+	option(PACKAGE_BUILDER_RPM   "Enable RPM package builder (make rpm)"    OFF)
+	option(PACKAGE_BUILDER_DEB   "Enable DEB package builder (make deb)"    OFF)
+else()
+	# Options of the same name in the parent project must not affect libfds.
+	# Documentation, tests and packages are available only in standalone builds.
+	set(ENABLE_DOC            OFF)
+	set(ENABLE_TESTS          OFF)
+	set(ENABLE_TESTS_INTERNAL OFF)
+	set(ENABLE_TESTS_VALGRIND OFF)
+	set(ENABLE_TESTS_COVERAGE OFF)
+	set(PACKAGE_BUILDER_RPM   OFF)
+	set(PACKAGE_BUILDER_DEB   OFF)
+endif()
 option(USE_SYSTEM_LZ4        "Use system-installed LZ4 library"         ON)
 option(USE_SYSTEM_ZSTD       "Use system-installed ZSTD library"        ON)
 

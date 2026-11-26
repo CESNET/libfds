@@ -4,6 +4,8 @@ ExternalProject_Add(
     project_zstdlib
     SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/src/
     PREFIX          ${CMAKE_CURRENT_BINARY_DIR}/zstdlib
+    # Bundled ZSTD declares compatibility with CMake < 3.5 (removed in CMake 4)
+    CMAKE_ARGS      -DCMAKE_POLICY_VERSION_MINIMUM=3.5
     UPDATE_COMMAND  "" # Do nothing
     INSTALL_COMMAND "" # Do nothing
     LOG_CONFIGURE   ON
